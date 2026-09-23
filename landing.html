@@ -62,6 +62,7 @@
 <script>
 const demo = {run:0, step:0};
 const DEMO_TIME_SCALE = 2;
+const TYPING_TIME_SCALE = 2;
 const byId = id => document.getElementById(id);
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms * DEMO_TIME_SCALE));
 const live = run => run === demo.run;
@@ -87,7 +88,7 @@ async function chat(run, kind, text, speed=7) {
   for (let i = 0; i <= text.length; i += 3) {
     if (!live(run)) return false;
     node.textContent = text.slice(0, i);
-    await pause(speed);
+    await pause(speed * TYPING_TIME_SCALE);
   }
   node.textContent = text;
   return true;
@@ -151,7 +152,7 @@ async function playLearn(run) {
   await chat(run,'agent','You decide what to do with each role. I keep the reason so the next interactive run can review it.'); if (!live(run)) return;
   await pause(350); setUi(learnUi('typing',''));
   const reason='Too focused on managing existing enterprise workflows';
-  for (let i=0; i<=reason.length; i+=3) { if (!live(run)) return; setUi(learnUi('typing',reason.slice(0,i))); await pause(20); }
+  for (let i=0; i<=reason.length; i+=3) { if (!live(run)) return; setUi(learnUi('typing',reason.slice(0,i))); await pause(20 * TYPING_TIME_SCALE); }
   setUi(learnUi('decided',reason));
   await chat(run,'user','Not a fit — it is too focused on maintaining enterprise workflows.'); if (!live(run)) return;
   await pause(250); setUi(learnUi('recorded',reason));
