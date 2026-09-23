@@ -9,9 +9,55 @@ Interview the user conversationally (not a rigid form — follow up, don't
 just fire a checklist) to produce two files at the project root. Do not
 guess at answers; if the user is vague, ask a follow-up.
 
+
+## File-driven onboarding contract
+
+The local web onboarding is a viewer and decision surface, not a wizard. Never
+advance it with a `Next` button and never ask the user to repeat structured
+answers in chat. The setup chat is the driver; it writes the local files and
+`onboarding-state.json`, while the browser polls that state and shows only the
+current stage.
+
+Use the repository helper for every transition:
+
+```bash
+venv/bin/python -m ftja.onboarding . init
+venv/bin/python -m ftja.onboarding . message agent "..."
+venv/bin/python -m ftja.onboarding . set-state --stage profile --phase profile_summary --status waiting --json '{"profile":{"summary":"...","sources":[...]}}'
+```
+
+The web writes user decisions to `onboarding-action.json` through
+`POST /api/onboarding-action`. Read that file before continuing; do not assume
+the user accepted a proposal. The action types are `confirm_profile`,
+`confirm_stage0`, `confirm_stage1`, and `confirm_stage2`. After applying an
+action, write the next state and a chat message so both surfaces move together.
+
+The only onboarding order is:
+
+1. **Profile** — wait for resume and portfolio files, write a concise
+   `profile/summary.md`, then propose editable job titles. Propose location from
+   the user's country as a starting point, but use **Europe** in the public
+   example; propose non-remote and postings from the past 24 hours as defaults.
+   Do not save these defaults until the user confirms them in the web card.
+2. **Rubric** — propose keywords, readable languages, and exclude words for
+   Stage 0; after confirmation, ask about dealbreakers and preferences using the
+   profile summary, then show Stage 1 and Stage 2 cards. Use plain model labels:
+   `rough model` for the evidence-only pass and `middle model` for the full-job
+   judgment. Do not expose vendor names in onboarding UI.
+3. **Run** — after the rubric is confirmed, tell the user to run `/ftja-run` in
+   the agent chat. The existing Results/Pipeline surfaces remain the source of
+   truth and update from local files.
+4. **Learn** — record apply/skip decisions and reasons in Results. On a later
+   interactive run, propose rubric changes for approval; never silently apply
+   them.
+
+A stage is complete only after the corresponding local action has been read and
+its next state has been written. The browser must be safe to reload: it should
+resume from `onboarding-state.json`, not localStorage or a guessed step.
+
 ## What you need to learn
 
-**For `criteria.json` (Stage 0, deterministic — used by `ftja/scrape.py` and
+**For `criteria.json` (Rubric stage, after Profile — Stage 0 deterministic, used by `ftja/scrape.py` and
 `ftja/filter_stage0.py`):**
 - `search_terms`: list of LinkedIn search strings (e.g. `["Product Manager", "Founding PM"]`)
 - `location`, `is_remote`, `hours_old`, `results_wanted` — this is the ONLY
@@ -49,7 +95,7 @@ guess at answers; if the user is vague, ask a follow-up.
     builder" — ask for concrete phrases, not vague topics ("prototyping",
     not just "AI").
 
-**For `rubric.md` (Stage 1/2 — read by the Agent subagents at judgment time):**
+**For `rubric.md` (Rubric stage, after Profile — read by the judgment workers):**
 - What makes a role a clear yes for them (be specific — role type, seniority,
   what they'd actually be doing day to day)
 - Dealbreakers (things that auto-fail regardless of everything else)

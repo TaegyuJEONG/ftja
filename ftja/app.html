@@ -388,106 +388,93 @@ function fmtN(n) { return n === null || n === undefined ? "-" : n.toLocaleString
 function fmtDate(iso) { return iso ? iso.slice(0, 10) : "no date recorded"; }
 
 
-// ---- first-run onboarding ----
-let onboardingStep = 0;
-let onboardingDraft = { profile_sources: [], search_terms: [], tier1: [], exclude_keywords: [], languages: ['en'], location: '', is_remote: true, hours_old: 72, results_wanted: 100, pass: '', fail: '', preferences: '' };
-const ONBOARDING_STEPS = ['Background', 'Search', 'Criteria', 'Review'];
+// ---- file-driven onboarding ----
+let onboardingState = null;
+let onboardingVersion = '';
+let onboardingDraft = {titles: [], location: '', is_remote: false, hours_old: 24, tier1: [], exclude_keywords: [], languages: ['en']};
+const ONBOARDING_STEPS = ['Profile', 'Rubric', 'Run', 'Learn'];
 
-function onboardingTags(values, key) {
-  return `<div class="onboarding-pills">${(values || []).map((v, i) => `<span class="onboarding-pill">${esc(v)} <button type="button" data-remove="${key}" data-index="${i}">×</button></span>`).join('')}</div>`;
+function onboardingStepIndex(state) {
+  return Math.max(0, ONBOARDING_STEPS.indexOf(state?.stage || 'profile'));
+}
+function onboardingPhaseLabel(state) {
+  const labels = {sources: 'Waiting for your files', profile_summary: 'Preparing your profile', title_proposal: 'Review your search draft', scrape_card: 'Scraping criteria ready', stage0: 'Review Stage 0', stage1: 'Review Stage 1', stage2: 'Review Stage 2', ready: 'Ready to run'};
+  return labels[state?.phase] || 'Working with your agent';
+}
+function latestOnboardingMessage(state) {
+  const messages = state?.messages || [];
+  return messages.length ? messages[messages.length - 1].text : 'Keep this page open beside your coding agent. FTJA will update it as the setup chat moves forward.';
+}
+function onboardingTags(values, key, editable = true) {
+  return `<div class="onboarding-pills">${(values || []).map((v, i) => `<span class="onboarding-pill">${esc(v)}${editable ? ` <button type="button" data-remove="${key}" data-index="${i}">×</button>` : ''}</span>`).join('')}</div>`;
+}
+function sourceRows(state) {
+  return ((state?.profile || {}).sources || []).map(source => `<div class="onboarding-source"><div><b>${esc(source.label || source.path || 'Source')}</b><small>${esc(source.path || '')}</small></div><span class="source-status">✓</span></div>`).join('') || '<div class="source-empty">Waiting for resume and portfolio files from the setup chat.</div>';
+}
+function profileCard(state) {
+  const profile = state.profile || {};
+  const phase = state.phase;
+  const summary = profile.summary || '';
+  const titles = onboardingDraft.titles.length ? onboardingDraft.titles : (profile.titles || []);
+  if (phase === 'title_proposal' || phase === 'scrape_card') return `<div class="onboarding-card"><h3>Search draft from your profile</h3><p>${esc(latestOnboardingMessage(state))}</p><div class="onboarding-field"><label>Suggested job titles</label>${onboardingTags(titles, 'titles')}<div class="field-row"><input id="title-input" type="text" placeholder="Add a title"><button class="save-btn" type="button" data-title-add>Add</button></div></div><div class="onboarding-field"><label for="profile-location">Location</label><input id="profile-location" value="${esc(onboardingDraft.location || profile.criteria?.location || 'Europe')}" placeholder="e.g. Europe"></div><div class="field-row"><label class="check-label"><input id="profile-remote" type="checkbox" ${onboardingDraft.is_remote ? 'checked' : ''}> Remote only</label><div class="onboarding-field" style="margin-top:0;flex:1"><label for="profile-hours">Posting age</label><select id="profile-hours"><option value="24" ${onboardingDraft.hours_old === 24 ? 'selected' : ''}>Past 24 hours</option><option value="72" ${onboardingDraft.hours_old === 72 ? 'selected' : ''}>Past 72 hours</option><option value="168" ${onboardingDraft.hours_old === 168 ? 'selected' : ''}>Past 7 days</option></select></div></div>${phase === 'scrape_card' ? '<div class="onboarding-summary"><b>Scraping criteria</b>\nTitles, Europe, non-remote, past 24 hours</div>' : '<button class="primary" type="button" data-confirm-profile>Confirm profile and search draft</button>'}</div>`;
+  return `<div class="onboarding-card"><h3>Your source files</h3><p>${esc(latestOnboardingMessage(state))}</p><div class="onboarding-source-list">${sourceRows(state)}</div>${summary ? `<div class="onboarding-summary" style="margin-top:14px"><b>Profile summary</b>\n${esc(summary)}</div>` : ''}</div>`;
+}
+function rubricCard(state) {
+  const cards = state.cards || {};
+  const profile = state.profile || {};
+  const phase = state.phase;
+  const stage0 = cards.stage0 || {};
+  const stage1 = cards.stage1 || {};
+  const stage2 = cards.stage2 || {};
+  const stage0View = `<div class="onboarding-card"><h3>Stage 0 · deterministic filter</h3><p>Code-only checks run before any model judgment.</p><div class="onboarding-field"><label>Keywords</label>${onboardingTags(stage0.keywords || profile.criteria?.keywords?.tier1 || [], 'tier1', phase === 'stage0')}</div><div class="onboarding-field"><label>Readable languages</label>${onboardingTags(stage0.languages || profile.criteria?.languages || ['en'], 'languages', phase === 'stage0')}</div><div class="onboarding-field"><label>Exclude words</label>${onboardingTags(stage0.exclude_keywords || profile.criteria?.exclude_keywords || [], 'exclude_keywords', phase === 'stage0')}</div>${phase === 'stage0' ? '<button class="primary" type="button" data-confirm-stage0>Confirm Stage 0</button>' : '<div class="source-status">READY ✓</div>'}</div>`;
+  if (phase === 'stage0') return stage0View;
+  if (phase === 'stage1') return `${stage0View}<div class="onboarding-card"><h3>Stage 1 · rough model</h3><p>${esc(stage1.description || 'A rough model reads the matched sentence and nearby evidence only.')}</p><div class="onboarding-summary">Profile and rubric signals are used to make the first judgment.</div><button class="primary" type="button" data-confirm-rubric="stage1">Confirm Stage 1</button></div>`;
+  return `${stage0View}<div class="onboarding-card"><h3>Stage 1 · rough model</h3><p>${esc(stage1.description || 'A rough model reads matched evidence only.')}</p><div class="source-status">READY ✓</div></div><div class="onboarding-card"><h3>Stage 2 · middle model</h3><p>${esc(stage2.description || 'A middle model reads the full job description together with your profile summary and rubric.')}</p><div class="onboarding-summary"><b>Input</b> Full job description + profile summary + confirmed rubric</div>${phase === 'stage2' ? '<button class="primary" type="button" data-confirm-rubric="stage2">Confirm Stage 2</button>' : '<div class="source-status">READY ✓</div>'}</div>`;
 }
 function onboardingStepMarkup() {
-  if (onboardingStep === 0) return `
-    <div class="onboarding-kicker">Step 1 of 4 · Your background</div>
-    <h2 class="onboarding-title">Start with what you know.</h2>
-    <p class="onboarding-copy">Add your resume or portfolio first. FTJA will use them to suggest more relevant LinkedIn searches and judge whether a role fits your experience.</p>
-    <div class="onboarding-card">
-      <h3>Your source files</h3><p>Choose files from your computer. FTJA keeps the references in your local workspace.</p>
-      <div class="onboarding-actions" style="margin-top:0;justify-content:flex-start">
-        <button class="action-btn" type="button" data-pick-source="Resume">Add resume</button>
-        <button class="action-btn" type="button" data-pick-source="Portfolio">Add portfolio</button>
-      </div>
-      <div class="onboarding-source-list">${(onboardingDraft.profile_sources || []).map((x, i) => `<div class="onboarding-source"><div><b>${esc(x.label)}</b><small>${esc(x.path)}</small></div><button type="button" data-remove-source="${i}">Remove</button></div>`).join('')}</div>
-    </div>
-    <div class="onboarding-actions"><button class="secondary" type="button" data-skip-onboarding>Skip for now</button><button class="primary" type="button" data-next>Continue</button></div>`;
-  if (onboardingStep === 1) return `
-    <div class="onboarding-kicker">Step 2 of 4 · LinkedIn search</div>
-    <h2 class="onboarding-title">Find the right direction.</h2>
-    <p class="onboarding-copy">FTJA currently searches public LinkedIn job postings. Start with the roles you want, then adjust the suggestions before the first run.</p>
-    <div class="onboarding-card">
-      <h3>Search terms</h3><p>Use the phrases you would actually type into LinkedIn.</p>
-      <div class="onboarding-field"><label for="search-term">Add a role or phrase</label><input id="search-term" placeholder="e.g. AI Product Manager"><div>${onboardingTags(onboardingDraft.search_terms, 'search_terms')}</div></div>
-      <div class="onboarding-field"><label for="location">Location</label><input id="location" value="${esc(onboardingDraft.location)}" placeholder="e.g. European Union"></div>
-      <div class="onboarding-field"><label for="hours-old">How recent should postings be?</label><select id="hours-old"><option value="24" ${onboardingDraft.hours_old===24?'selected':''}>Past 24 hours</option><option value="72" ${onboardingDraft.hours_old===72?'selected':''}>Past 72 hours</option><option value="168" ${onboardingDraft.hours_old===168?'selected':''}>Past 7 days</option></select></div>
-    </div>
-    <div class="onboarding-actions"><button class="secondary" type="button" data-back>Back</button><button class="primary" type="button" data-next>Continue</button></div>`;
-  if (onboardingStep === 2) return `
-    <div class="onboarding-kicker">Step 3 of 4 · Your judgment</div>
-    <h2 class="onboarding-title">Tell FTJA what matters.</h2>
-    <p class="onboarding-copy">These signals decide which LinkedIn roles deserve a closer look. You can change them later.</p>
-    <div class="onboarding-card">
-      <div class="onboarding-field"><label for="signal">What should make a role worth your attention?</label><input id="signal" placeholder="e.g. building an AI product from zero to one"><div>${onboardingTags(onboardingDraft.tier1, 'tier1')}</div></div>
-      <div class="onboarding-field"><label for="exclude">What should FTJA reject immediately?</label><input id="exclude" placeholder="e.g. German required"><div>${onboardingTags(onboardingDraft.exclude_keywords, 'exclude_keywords')}</div></div>
-      <div class="onboarding-field"><label for="preferences">Anything else that should influence the decision?</label><textarea id="preferences" placeholder="e.g. prefer early-stage companies and founder-facing work">${esc(onboardingDraft.preferences)}</textarea></div>
-    </div>
-    <div class="onboarding-actions"><button class="secondary" type="button" data-back>Back</button><button class="primary" type="button" data-next>Continue</button></div>`;
-  return `
-    <div class="onboarding-kicker">Step 4 of 4 · Review</div>
-    <h2 class="onboarding-title">Here is how FTJA will judge roles.</h2>
-    <p class="onboarding-copy">Review the draft in plain English. Nothing is saved until you confirm it.</p>
-    <div class="onboarding-card">
-      <div class="onboarding-field"><label for="pass">Worth reviewing when</label><textarea id="pass">${esc(onboardingDraft.pass || onboardingDraft.tier1.join(', '))}</textarea></div>
-      <div class="onboarding-field"><label for="fail">Reject when</label><textarea id="fail">${esc(onboardingDraft.fail || onboardingDraft.exclude_keywords.join(', '))}</textarea></div>
-      <div class="onboarding-field"><label for="review-preferences">Preferences</label><textarea id="review-preferences">${esc(onboardingDraft.preferences)}</textarea></div>
-      <div class="onboarding-summary"><b>Source</b>
-LinkedIn public job postings
-
-<b>Search</b>
-${esc(onboardingDraft.search_terms.join(', ') || 'No search terms yet')}
-
-<b>Location</b>
-${esc(onboardingDraft.location || 'Not set')}</div>
-    </div>
-    <div id="onboarding-error"></div>
-    <div class="onboarding-actions"><button class="secondary" type="button" data-back>Back</button><button class="primary" type="button" data-confirm>Confirm and continue</button></div>`;
+  const state = onboardingState || {stage: 'profile', phase: 'sources', profile: {}, messages: []};
+  const title = ONBOARDING_STEPS[onboardingStepIndex(state)];
+  let body = '';
+  if (state.stage === 'profile') body = profileCard(state);
+  else if (state.stage === 'rubric') body = rubricCard(state);
+  else if (state.stage === 'run') body = `<div class="onboarding-card"><h3>Run</h3><p>${esc(latestOnboardingMessage(state))}</p><div class="onboarding-summary"><b>Ready</b> Use <span class="mono">/ftja-run</span> in your coding-agent chat. Results will appear here without advancing the page manually.</div></div>`;
+  else body = `<div class="onboarding-card"><h3>Learn</h3><p>${esc(latestOnboardingMessage(state))}</p><div class="onboarding-summary"><b>Learn from decisions</b> Mark apply or skip in Results and explain why. FTJA will propose rubric changes in a later interactive run.</div></div>`;
+  return `<div class="onboarding-kicker">Step ${onboardingStepIndex(state) + 1} of 4 · ${title}</div><h2 class="onboarding-title">${title === 'Profile' ? 'Start with what you know.' : title === 'Rubric' ? 'Make the judgment visible.' : title === 'Run' ? 'Run the pipeline.' : 'Teach FTJA carefully.'}</h2><p class="onboarding-copy">${esc(latestOnboardingMessage(state))}</p>${body}`;
 }
 function renderOnboarding() {
-  document.getElementById('onboarding-progress').innerHTML = ONBOARDING_STEPS.map((_, i) => `<span class="${i <= onboardingStep ? 'active' : ''}"></span>`).join('');
+  const state = onboardingState || {stage: 'profile', phase: 'sources'};
+  document.getElementById('onboarding-progress').innerHTML = ONBOARDING_STEPS.map((_, i) => `<span class="${i === onboardingStepIndex(state) ? 'active' : ''}"></span>`).join('');
   document.getElementById('onboarding-content').innerHTML = onboardingStepMarkup();
   bindOnboarding();
 }
-function addOnboardingTag(inputId, key) {
-  const input = document.getElementById(inputId); if (!input) return;
-  const value = input.value.trim(); if (!value) return;
-  onboardingDraft[key] = [...new Set([...(onboardingDraft[key] || []), value])]; input.value = ''; renderOnboarding();
-}
-async function persistOnboarding(state, final=false) {
-  const criteria = { search_terms: onboardingDraft.search_terms, location: onboardingDraft.location, is_remote: onboardingDraft.is_remote, hours_old: onboardingDraft.hours_old, results_wanted: onboardingDraft.results_wanted, exact_phrase_search: true, exclude_keywords: onboardingDraft.exclude_keywords, languages: onboardingDraft.languages, keywords: {tier1: onboardingDraft.tier1} };
-  const rubric_md = `# FTJA judgment rubric\n\n## Pass\n${onboardingDraft.pass || 'Review roles that match the selected search signals.'}\n\n## Fail\n${onboardingDraft.fail || 'Reject roles that match the selected dealbreakers.'}\n\n## Preferences\n${onboardingDraft.preferences || 'Use the stated preferences as secondary context.'}\n`;
-  const res = await fetch('/api/onboarding', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({criteria, rubric_md, profile_sources: onboardingDraft.profile_sources, state: {step: state, status: final ? 'ready' : 'in_progress'}})});
-  if (!res.ok) throw new Error((await res.json().catch(()=>({}))).error || 'Could not save onboarding');
+async function postOnboardingAction(type, payload = {}) {
+  const res = await fetch('/api/onboarding-action', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({type, ...payload})});
+  if (!res.ok) throw new Error('Could not send this decision to the setup chat.');
+  document.getElementById('onboarding-content').insertAdjacentHTML('beforeend', '<div class="saved-note" style="display:block">Sent to your setup chat.</div>');
 }
 function bindOnboarding() {
-  document.querySelectorAll('[data-pick-source]').forEach(b => b.addEventListener('click', async () => {
-    const res = await fetch('/api/pick-profile-source', {method:'POST'}); if (res.status === 204) return;
-    if (!res.ok) { alert('Could not open the file picker.'); return; }
-    const picked = await res.json(); onboardingDraft.profile_sources = [...onboardingDraft.profile_sources.filter(x => x.path !== picked.path), {path:picked.path, label:b.dataset.pickSource, enabled:true}]; renderOnboarding();
-  }));
-  document.querySelectorAll('[data-remove-source]').forEach(b => b.addEventListener('click', () => { onboardingDraft.profile_sources.splice(Number(b.dataset.removeSource), 1); renderOnboarding(); }));
-  document.querySelectorAll('[data-remove]').forEach(b => b.addEventListener('click', () => { onboardingDraft[b.dataset.remove] = onboardingDraft[b.dataset.remove].filter((_, i) => i !== Number(b.dataset.index)); renderOnboarding(); }));
-  const term = document.getElementById('search-term'); if (term) term.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addOnboardingTag('search-term','search_terms'); } });
-  const signal = document.getElementById('signal'); if (signal) signal.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addOnboardingTag('signal','tier1'); } });
-  const exclude = document.getElementById('exclude'); if (exclude) exclude.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addOnboardingTag('exclude','exclude_keywords'); } });
-  const next = document.querySelector('[data-next]'); if (next) next.addEventListener('click', async () => { if (onboardingStep === 1) { onboardingDraft.location = document.getElementById('location').value.trim(); onboardingDraft.hours_old = Number(document.getElementById('hours-old').value); } if (onboardingStep === 2) { onboardingDraft.preferences = document.getElementById('preferences').value.trim(); } onboardingStep++; await persistOnboarding(ONBOARDING_STEPS[onboardingStep] || 'review'); renderOnboarding(); });
-  const back = document.querySelector('[data-back]'); if (back) back.addEventListener('click', () => { onboardingStep = Math.max(0, onboardingStep - 1); renderOnboarding(); });
-  const skip = document.querySelector('[data-skip-onboarding]'); if (skip) skip.addEventListener('click', () => { onboardingStep = 1; renderOnboarding(); });
-  const confirm = document.querySelector('[data-confirm]'); if (confirm) confirm.addEventListener('click', async () => { onboardingDraft.pass = document.getElementById('pass').value.trim(); onboardingDraft.fail = document.getElementById('fail').value.trim(); onboardingDraft.preferences = document.getElementById('review-preferences').value.trim(); try { await persistOnboarding('complete', true); location.reload(); } catch (e) { document.getElementById('onboarding-error').innerHTML = `<div class="onboarding-error">${esc(e.message)}</div>`; } });
+  document.querySelectorAll('[data-remove]').forEach(button => button.addEventListener('click', () => { const key = button.dataset.remove; onboardingDraft[key].splice(Number(button.dataset.index), 1); renderOnboarding(); }));
+  const add = document.querySelector('[data-title-add]'); if (add) add.addEventListener('click', () => { const input = document.getElementById('title-input'); const value = input.value.trim(); if (value && !onboardingDraft.titles.includes(value)) onboardingDraft.titles.push(value); renderOnboarding(); });
+  const confirmProfile = document.querySelector('[data-confirm-profile]'); if (confirmProfile) confirmProfile.addEventListener('click', () => postOnboardingAction('confirm_profile', {titles: onboardingDraft.titles, location: document.getElementById('profile-location').value.trim(), is_remote: document.getElementById('profile-remote').checked, hours_old: Number(document.getElementById('profile-hours').value)}));
+  const confirmStage0 = document.querySelector('[data-confirm-stage0]'); if (confirmStage0) confirmStage0.addEventListener('click', () => postOnboardingAction('confirm_stage0', {keywords: onboardingDraft.tier1, languages: onboardingDraft.languages, exclude_keywords: onboardingDraft.exclude_keywords}));
+  document.querySelectorAll('[data-confirm-rubric]').forEach(button => button.addEventListener('click', () => postOnboardingAction(`confirm_${button.dataset.confirmRubric}`)));
+}
+async function refreshOnboarding(force = false) {
+  const res = await fetch('/api/onboarding?ts=' + Date.now(), {cache:'no-store'}); const data = await res.json();
+  const state = data.state || {};
+  const version = state.updated_at || JSON.stringify(state);
+  if (!force && version === onboardingVersion) return;
+  onboardingVersion = version; onboardingState = state;
+  const profile = state.profile || {}; const criteria = profile.criteria || data.config?.criteria || {};
+  onboardingDraft = {...onboardingDraft, titles: profile.titles || onboardingDraft.titles, location: criteria.location || onboardingDraft.location, is_remote: criteria.is_remote ?? onboardingDraft.is_remote, hours_old: criteria.hours_old || onboardingDraft.hours_old, tier1: criteria.keywords?.tier1 || onboardingDraft.tier1, languages: criteria.languages || onboardingDraft.languages, exclude_keywords: criteria.exclude_keywords || onboardingDraft.exclude_keywords};
+  renderOnboarding();
 }
 async function maybeStartOnboarding() {
-  const res = await fetch('/api/onboarding'); const data = await res.json();
-  if (data.has_criteria && data.has_rubric) return false;
+  const res = await fetch('/api/onboarding?ts=' + Date.now(), {cache:'no-store'}); const data = await res.json();
+  if (!data.has_onboarding_state && data.has_criteria && data.has_rubric) return false;
+  onboardingState = data.state || {stage:'profile', phase:'sources'};
   document.body.classList.add('onboarding-active'); document.querySelectorAll('.main-tab, .view:not(#view-onboarding)').forEach(x => x.style.display = 'none'); document.getElementById('view-onboarding').classList.add('active');
-  const c = data.config || {}; const criteria = c.criteria || {}; onboardingDraft = {...onboardingDraft, ...criteria, tier1: (criteria.keywords || {}).tier1 || [], search_terms: criteria.search_terms || [], profile_sources: c.profile_sources || [], preferences: ''}; renderOnboarding(); return true;
+  await refreshOnboarding(true); setInterval(() => refreshOnboarding(false).catch(() => {}), 1200); return true;
 }
 
 // ---- top-level tabs ----

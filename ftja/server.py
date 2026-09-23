@@ -27,6 +27,7 @@ from urllib.parse import urlparse, parse_qs
 from ftja.state import connect, update_decision, VALID_USER_ACTIONS
 from ftja.pipeline_view import read_config, write_config, keyword_stats
 from ftja.runs_view import list_runs
+from ftja.onboarding import read_state, write_action, write_state
 
 DEFAULT_PORT = 8765
 APP_HTML_PATH = os.path.join(os.path.dirname(__file__), "app.html")
@@ -166,7 +167,8 @@ def make_handler(db_path: str, project_dir: str):
             elif path == "/api/onboarding":
                 config = read_config(project_dir)
                 self._send_json(200, {
-                    "state": _onboarding_state(project_dir),
+                    "state": read_state(project_dir),
+                    "has_onboarding_state": os.path.isfile(os.path.join(project_dir, ONBOARDING_STATE)),
                     "has_criteria": os.path.isfile(os.path.join(project_dir, "criteria.json")),
                     "has_rubric": os.path.isfile(os.path.join(project_dir, "rubric.md")),
                     "has_profile": bool(config.get("profile_sources")) or bool(config.get("profile_md")),
@@ -203,6 +205,12 @@ def make_handler(db_path: str, project_dir: str):
                 with connect(db_path) as conn:
                     update_decision(conn, job_url, user_action=user_action, user_reason=user_reason)
                 self._send_json(200, {"ok": True})
+            elif self.path == "/api/onboarding-action":
+                if not isinstance(data, dict) or not data.get("type"):
+                    self._send_json(400, {"error": "action type required"})
+                    return
+                write_action(project_dir, data)
+                self._send_json(200, {"ok": True, "action": data})
             elif self.path == "/api/onboarding":
                 criteria = data.get("criteria")
                 rubric_md = data.get("rubric_md")
@@ -216,7 +224,7 @@ def make_handler(db_path: str, project_dir: str):
                     write_config(project_dir, criteria=criteria, rubric_md=rubric_md,
                                  profile_md=profile_md, profile_sources=profile_sources)
                     if isinstance(state, dict):
-                        _write_onboarding_state(project_dir, state)
+                        write_state(project_dir, **state)
                 except (TypeError, ValueError, OSError) as e:
                     self._send_json(400, {"error": f"invalid onboarding data: {e}"})
                     return
