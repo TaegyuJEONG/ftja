@@ -78,8 +78,9 @@ Claude Code agent itself as the judgment engine.
 
 **Local file structure** (FTJA repo root):
 ```
-rubric.md          # natural-language judgment criteria, git-tracked
-criteria.json       # {keywords:{tier1:[...]}, location:[...], languages:[...]}, git-tracked
+rubric.md          # natural-language judgment criteria, local and gitignored
+criteria.json       # {keywords:{tier1:[...]}, location:[...], languages:[...]}, local and gitignored
+criteria.example.json, rubric.example.md  # public templates
 profile/            # references to resume/portfolio paths (original files or links), .gitignore
 seen.db             # SQLite: seen_jobs(job_url_hash PK, job_url, status, stage_reached, verdict, last_seen_at) — .gitignore
 digest-*.md         # daily results — .gitignore
@@ -186,7 +187,7 @@ results (`osascript -e 'display notification'`) — no silent failures.
 | `.claude/skills/ftja-setup/SKILL.md` | onboarding skill |
 | `.claude/skills/ftja-run/SKILL.md` | main run skill (invokes Stage1/2 subagents) |
 | `.claude/skills/ftja-tune/SKILL.md` | rubric-editing skill |
-| `rubric.md`, `criteria.json` | judgment criteria (git-tracked) |
+| `criteria.example.json`, `rubric.example.md` | public configuration templates |
 | `com.ftja.run.plist` | LaunchAgent definition |
 
 ## Out of Scope
