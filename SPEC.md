@@ -222,8 +222,8 @@ results (`osascript -e 'display notification'`) — no silent failures.
 ## Related
 
 - Reference (not a dependency): `job_evaluator.py`, `text_index.py`,
-  `app_db.py`, `daemon.py` (JobSpyProject, `/Users/taegyujeong/JobSpyProject`)
+  `app_db.py`, `daemon.py` (the earlier JobSpyProject prototype)
 - Reference: `fine-tune-job-agent-main.zip` (2025 prototype, a failure
   case — code not reused; be careful when referencing it since it
-  contains credentials like `the_real_key.p12` — never put this zip
+  may contain private material — never put the prototype archive
   itself into the FTJA repo)
