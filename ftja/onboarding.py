@@ -191,17 +191,27 @@ def main() -> None:
         add_message(args.project_dir, args.role, args.text)
     else:
         payload = json.loads(args.json)
-        profile = payload.pop("profile", None)
-        cards = payload.pop("cards", None)
-        changes = {"stage": args.stage, "phase": args.phase, "status": args.status}
+        state = read_state(args.project_dir)
+        profile = payload.get("profile") or {}
+        if (state["stage"], state["phase"]) == ("profile", "sources"):
+            apply_action(args.project_dir, {"type": "set_profile_sources", "sources": profile.get("sources")})
+        elif (state["stage"], state["phase"]) == ("profile", "profile_summary"):
+            apply_action(args.project_dir, {"type": "set_profile_summary", "summary": profile.get("summary")})
+        elif (state["stage"], state["phase"]) == ("profile", "title_proposal"):
+            criteria = profile.get("criteria") or {}
+            apply_action(args.project_dir, {"type": "confirm_profile", "titles": profile.get("titles") or criteria.get("search_terms"), "location": criteria.get("location"), "is_remote": criteria.get("is_remote", False), "hours_old": criteria.get("hours_old", 24)})
+        elif (state["stage"], state["phase"]) == ("rubric", "stage0"):
+            card = (payload.get("cards") or {}).get("stage0", {})
+            criteria = profile.get("criteria") or {}
+            apply_action(args.project_dir, {"type": "confirm_stage0", "keywords": card.get("keywords", criteria.get("keywords", {}).get("tier1", [])), "languages": card.get("languages", criteria.get("languages", [])), "exclude_keywords": card.get("exclude_keywords", criteria.get("exclude_keywords", []))})
+        elif (state["stage"], state["phase"]) == ("rubric", "stage1"):
+            apply_action(args.project_dir, {"type": "confirm_stage1"})
+        elif (state["stage"], state["phase"]) == ("rubric", "stage2"):
+            apply_action(args.project_dir, {"type": "confirm_stage2", "rubric_md": payload.get("rubric_md", "")})
+        else:
+            raise OnboardingError("set-state cannot bypass the onboarding state machine")
         if args.message:
-            changes["messages"] = read_state(args.project_dir)["messages"] + [{"role": "agent", "text": args.message}]
-        if profile is not None:
-            changes["profile"] = {**read_state(args.project_dir)["profile"], **profile}
-        if cards is not None:
-            changes["cards"] = cards
-        changes.update(payload)
-        write_state(args.project_dir, **changes)
+            add_message(args.project_dir, "agent", args.message)
 
 
 if __name__ == "__main__":
