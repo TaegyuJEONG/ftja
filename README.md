@@ -7,6 +7,23 @@ runs a 2-stage LLM judgment (cheap model on keyword-sentence blocks, mid
 model on full JD + your resume/portfolio/rubric), and drops a daily digest
 of only the jobs worth reading. Everything stays in your FTJA folder — no hosted database and no account required.
 
+## Landing page and first-time setup
+
+The public landing page is `landing.html`. It explains the value first and
+provides a copyable setup prompt with the exact GitHub URL — no `<owner>`
+placeholder and no path that a non-developer has to fill in.
+
+The local server previews it at:
+
+```text
+http://127.0.0.1:8765/landing.html
+```
+
+The landing page hands off to Claude Code or Codex. After the agent creates the
+workspace and starts the local server, the product onboarding runs at the local
+FTJA app URL. The landing page is static and can be deployed independently from
+the local data experience.
+
 ## Install and first-time setup
 
 FTJA is installed as a normal workspace. Clone it, open the folder in Claude
