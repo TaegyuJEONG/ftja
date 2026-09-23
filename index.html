@@ -14,6 +14,8 @@
 .install{background:var(--surface);border:1px solid var(--border);padding:28px clamp(20px,4vw,40px);margin-top:30px}.install-head{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:22px}.install h3{font-size:15px;margin:0 0 7px}.install-note{color:var(--muted);font-size:12px;line-height:1.6;margin:0;max-width:560px}.agent-note{color:var(--accent);font:10px "IBM Plex Mono",monospace;white-space:nowrap}.prompt{position:relative;background:var(--surface2);border:1px solid var(--border);padding:18px 52px 18px 18px;color:var(--ink);font:12px/1.7 "IBM Plex Mono",monospace}.copy-button{position:absolute;right:10px;top:10px;border:1px solid var(--border2);background:var(--surface);color:var(--accent);width:32px;height:32px;cursor:pointer;border-radius:2px;font-size:15px}.copy-button:hover{background:var(--accent2);border-color:var(--accent-border)}.copy-status{min-height:17px;color:var(--accent);font:10px "IBM Plex Mono",monospace;margin-top:8px}.install-foot{display:flex;gap:15px;align-items:center;margin-top:20px;color:var(--faint);font-size:11px}.install-foot span:first-child{color:var(--accent)}
 .callout{display:grid;grid-template-columns:1fr 1fr;gap:30px;padding:34px 0 0}.callout-card{border-top:2px solid var(--accent);padding-top:14px}.callout-card h3{font-size:14px;margin:0 0 8px}.callout-card p{color:var(--muted);font-size:12px;line-height:1.65;margin:0}.footer{display:flex;justify-content:space-between;gap:20px;border-top:1px solid var(--border);margin-top:100px;padding-top:20px;color:var(--faint);font:10px "IBM Plex Mono",monospace}.footer a{color:var(--accent);text-decoration:none}
 @media(max-width:720px){.nav{padding-bottom:45px}.hero{padding-top:10px;padding-bottom:70px}.proof{grid-template-columns:1fr}.proof-item,.proof-item:not(:first-child){padding:18px 0;border-right:0;border-bottom:1px solid var(--border)}.proof-item:last-child{border-bottom:0}.steps{grid-template-columns:1fr}.step{min-height:auto}.install-head{display:block}.agent-note{display:block;margin-top:12px}.callout{grid-template-columns:1fr}.footer{display:block}.footer span{display:block;margin-bottom:8px}}
+
+.step-icon{color:var(--accent);font:28px Georgia,serif;height:34px;margin-bottom:10px}.funnel{border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:18px 0;margin-top:22px}.funnel-row{display:flex;align-items:center;gap:16px;min-height:52px}.funnel-bar{display:block;height:8px;background:var(--accent);opacity:.86}.funnel-bar.wide{width:34%}.funnel-bar.medium{width:25%}.funnel-bar.narrow{width:17%}.funnel-bar.final{width:10%}.funnel-row strong{font:600 18px "IBM Plex Mono",monospace;margin-right:9px}.funnel-row small{color:var(--muted);font-size:12px}.mock-result{background:var(--surface);border:1px solid var(--border);padding:22px;margin-top:28px;max-width:680px}.mock-top{display:flex;justify-content:space-between;color:var(--faint);font-size:10px}.pass-pill{color:var(--accent);border:1px solid var(--accent-border);padding:4px 7px}.mock-result h3{font-size:16px;margin:22px 0 8px}.mock-result p{color:var(--muted);font:13px/1.6 Georgia,serif;margin:0 0 15px}.mock-tags{display:flex;gap:7px;flex-wrap:wrap}.mock-tags span{background:var(--accent2);color:var(--accent);font:10px "IBM Plex Mono",monospace;padding:5px 7px}.mock-foot{border-top:1px solid var(--border);color:var(--muted);font-size:11px;line-height:1.6;margin-top:18px;padding-top:13px}@media(max-width:720px){.funnel-row{gap:10px}.funnel-row small{font-size:11px}.funnel-bar.wide{width:25%}.funnel-bar.medium{width:20%}.funnel-bar.narrow{width:14%}.funnel-bar.final{width:9%}}
 </style>
 </head>
 <body>
@@ -23,7 +25,7 @@
     <div class="eyebrow">Fine Tune Job Agent</div>
     <h1>Stop reading every job description <em>yourself.</em></h1>
     <p class="hero-copy">Give your AI coding agent your background, your standards, and one clear job-search goal. FTJA finds the LinkedIn roles worth your attention — and shows you why.</p>
-    <div class="hero-actions"><a class="primary" href="#install">Try FTJA</a><a class="text-link" href="#how-it-works">See how it works</a></div>
+    <div class="hero-actions"><a class="primary" href="setup.html">Try FTJA <span aria-hidden="true">↗</span></a><a class="text-link" href="#how-it-works">See how it works</a></div>
   </section>
   <section class="proof" aria-label="How FTJA helps">
     <div class="proof-item"><div class="proof-num">01</div><div class="proof-title">Your background</div><div class="proof-copy">Start with your resume and portfolio, not a generic job board profile.</div></div>
@@ -31,25 +33,37 @@
     <div class="proof-item"><div class="proof-num">03</div><div class="proof-title">Better next searches</div><div class="proof-copy">Record your decisions and review suggested changes before your criteria evolve.</div></div>
   </section>
   <section class="section" id="how-it-works">
-    <div class="section-kicker">A focused loop</div>
-    <h2>From your background to the jobs worth a closer look.</h2>
-    <p class="section-intro">FTJA runs locally through Claude Code or Codex. Your criteria, profile, and results stay in your workspace.</p>
+    <div class="section-kicker">How it works</div>
+    <h2>Less scanning. More signal.</h2>
+    <p class="section-intro">FTJA turns your own background and judgment into a local, reviewable search loop. It does not decide your career for you; it clears the noise so your attention goes to the roles that deserve it.</p>
     <div class="steps">
-      <div class="step"><div class="step-number">01 / START</div><h3>Add your background</h3><p>Choose a resume and portfolio. FTJA turns them into a reviewable profile summary.</p></div>
-      <div class="step"><div class="step-number">02 / SHAPE</div><h3>Set your standard</h3><p>Confirm the LinkedIn searches, positive signals, and dealbreakers that matter to you.</p></div>
-      <div class="step"><div class="step-number">03 / RUN</div><h3>Review the evidence</h3><p>Run the judgment pipeline and see only the roles that deserve your attention.</p></div>
-      <div class="step"><div class="step-number">04 / LEARN</div><h3>Teach it carefully</h3><p>Give a reason, then review a suggested criteria change before anything is updated.</p></div>
+      <div class="step"><div class="step-icon">◌</div><div class="step-number">01 / GROUND</div><h3>Start with your story</h3><p>Bring a resume, portfolio, or other files. FTJA distills them into a profile your judge can actually use.</p></div>
+      <div class="step"><div class="step-icon">⌁</div><div class="step-number">02 / SHAPE</div><h3>Make your standard explicit</h3><p>Confirm suggested roles and keywords, then define the signals, preferences, and dealbreakers behind a real yes.</p></div>
+      <div class="step"><div class="step-icon">↘</div><div class="step-number">03 / FILTER</div><h3>Spend judgment where it matters</h3><p>Public LinkedIn postings move through a fast keyword filter, a lightweight sentence check, and a deeper profile match.</p></div>
+      <div class="step"><div class="step-icon">↻</div><div class="step-number">04 / LEARN</div><h3>Keep the loop yours</h3><p>Record apply or skip and why. FTJA proposes a rubric change for your review instead of silently rewriting your standard.</p></div>
     </div>
+  </section>
+  <section class="section signal-section">
+    <div class="section-kicker">What the output feels like</div>
+    <h2>A long feed becomes a short, explainable shortlist.</h2>
+    <p class="section-intro">The exact numbers depend on your search and the day. The point is the shape: broad discovery first, expensive judgment last, with evidence attached to every recommendation.</p>
+    <div class="funnel" aria-label="Example FTJA filtering funnel">
+      <div class="funnel-row"><span class="funnel-bar wide"></span><div><strong>1,000</strong><small>public LinkedIn postings discovered</small></div></div>
+      <div class="funnel-row"><span class="funnel-bar medium"></span><div><strong>56</strong><small>match your language, exclusions, and concrete search signals</small></div></div>
+      <div class="funnel-row"><span class="funnel-bar narrow"></span><div><strong>20</strong><small>survive the lightweight sentence-level judgment</small></div></div>
+      <div class="funnel-row"><span class="funnel-bar final"></span><div><strong>9</strong><small>fit your profile and rubric closely enough to read</small></div></div>
+    </div>
+    <div class="mock-result"><div class="mock-top"><span class="mono">TODAY'S DIGEST · 09:20</span><span class="pass-pill">PASSED</span></div><h3>Founding Product Builder · Northstar Labs</h3><p>“Built 0→1 products with hands-on customer discovery and shipped prototypes...”</p><div class="mock-tags"><span>0→1</span><span>builder role</span><span>evidence attached</span></div><div class="mock-foot">Why it passed: your rubric prioritizes founder-facing product work, ambiguity, and direct shipping.</div></div>
   </section>
   <section class="section" id="install">
     <div class="section-kicker">Start in your AI coding agent</div>
-    <h2>One prompt. Then the web experience takes over.</h2>
-    <p class="section-intro">Open a new Claude Code or Codex session, paste this prompt, and let FTJA create the local workspace. No package manager, no account, no path placeholders.</p>
+    <h2>Start with one prompt. Then the web experience takes over.</h2>
+    <p class="section-intro">Open a new Claude Code or Codex session, paste this prompt, and let FTJA create the local workspace. The next page walks you through the setup one step at a time.</p>
     <div class="install">
       <div class="install-head"><div><h3>Copy the setup prompt</h3><p class="install-note">The agent will clone FTJA, connect the new workspace to the session, and start the local onboarding. It must ask before guessing anything about you.</p></div><div class="agent-note">CLAUDE CODE / CODEX</div></div>
       <div class="prompt" id="setup-prompt">Clone https://github.com/TaegyuJEONG/ftja.git into a new local FTJA workspace, open the generated folder in this session, and run the FTJA setup skill. Start the local web onboarding. Do not guess my preferences.<button class="copy-button" id="copy-prompt" type="button" aria-label="Copy setup prompt">⧉</button></div>
       <div class="copy-status" id="copy-status" aria-live="polite"></div>
-      <div class="install-foot"><span>✓</span><span>LinkedIn only for the first release</span><span>·</span><span>Local workspace</span></div>
+      <div class="install-foot"><span>✓</span><span>LinkedIn only for the first release</span><span>·</span><span>Local workspace</span><span>·</span><span>Schedule after your first manual run</span></div>
     </div>
   </section>
   <section class="callout"><div class="callout-card"><h3>Public LinkedIn postings</h3><p>FTJA starts with public LinkedIn job postings and does not ask you to sign in. Coverage can vary because LinkedIn controls access.</p></div><div class="callout-card"><h3>See the criteria</h3><p>There is no hidden score you have to trust. Review the signals, evidence, and suggested changes before deciding what to do next.</p></div></section>
