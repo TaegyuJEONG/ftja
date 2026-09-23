@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="380" viewBox="0 0 480 190" role="img" aria-labelledby="title desc">
+  <title id="title">Better next searches: profile and agent learn in a loop</title>
+  <desc id="desc">A profile icon and agent icon exchange an animated circular feedback loop.</desc>
+  <style>
+    .ink{fill:none;stroke:#47675d;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+    .soft{fill:#f7f6f0;stroke:#a4b5aa;stroke-width:1.2}
+    .loop{fill:none;stroke:#a4b5aa;stroke-width:1.35;stroke-dasharray:2 7;stroke-linecap:round;animation:loop 5s linear infinite}
+    .loop.back{animation-delay:-2.5s}
+    .motion{fill:#47675d}
+    .label{fill:#6d756e;font:500 11px ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:.02em}
+    .strong{fill:#28302d;font-weight:600}
+    .micro{fill:#718078;font:500 10px ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:.14em;text-transform:uppercase}
+    @keyframes loop{to{stroke-dashoffset:-36}}
+    @media (prefers-reduced-motion: reduce){.loop{animation:none}.motion{display:none}}
+  </style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 0 8 4 0 8" fill="none" stroke="#47675d" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <filter id="soft-shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#34463f" flood-opacity=".08"/></filter>
+  </defs>
+  <path class="loop" marker-end="url(#arrow)" d="M165 78 C213 22 306 22 348 78"/>
+  <path class="loop back" marker-end="url(#arrow)" d="M348 112 C306 168 213 168 165 112"/>
+  <circle class="motion" r="3"><animateMotion dur="3.8s" repeatCount="indefinite" path="M165 78 C213 22 306 22 348 78"/></circle>
+  <circle class="motion" r="2.7"><animateMotion dur="4.2s" begin="-2s" repeatCount="indefinite" path="M348 112 C306 168 213 168 165 112"/></circle>
+
+  <g filter="url(#soft-shadow)">
+    <circle class="soft" cx="145" cy="95" r="25"/>
+    <circle class="soft" cx="368" cy="95" r="25"/>
+  </g>
+  <!-- profile reused from section one -->
+  <g class="ink" transform="translate(131 80)">
+    <circle cx="14" cy="9" r="5"/>
+    <path d="M4 28c1-6 5-9 10-9s9 3 10 9"/>
+  </g>
+  <!-- agent: AI bot icon centered at (368,95) -->
+  <g class="ink" transform="translate(368 95)">
+    <rect x="-11" y="-9" width="22" height="18" rx="3"/>
+    <circle cx="-4" cy="-2" r="2.5"/>
+    <circle cx="4"  cy="-2" r="2.5"/>
+    <path d="M-4 5h8"/>
+    <path d="M0 -9v-5"/>
+    <circle cx="0" cy="-16" r="2"/>
+  </g>
+
+  <text class="label strong" x="145" y="137" text-anchor="middle">Profile</text>
+  <text class="label strong" x="368" y="137" text-anchor="middle">Agent</text>
+  <text class="micro" x="256" y="99" text-anchor="middle">LEARN</text>
+</svg>
