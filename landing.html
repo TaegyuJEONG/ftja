@@ -167,6 +167,7 @@ async function playConnect(run) {
   await chat(run,'user','Resume.pdf and Portfolio.pdf added.'); if (!live(run)) return;
   await pause(750); // let the saved upload reply settle before the title draft appears
   setUi(profileUi('suggestions'));
+  await pause(750); // 750ms × DEMO_TIME_SCALE (2) = 1.5s to read the title draft
   await chat(run,'agent','I’ve prepared your profile. You can add or remove job titles in the web view, then confirm the draft when it looks right.');
 }
 async function playShape(run) {
