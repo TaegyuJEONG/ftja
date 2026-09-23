@@ -157,8 +157,8 @@ async function playConnect(run) {
   setChrome('ONBOARDING','/ftja-setup','running'); setUi(profileUi());
   await chat(run,'agent','Before we define your search, add your resume and portfolio. I’ll use them to prepare your local profile.'); if (!live(run)) return;
   await pause(280); setUi(profileUi('resume'));
-  await chat(run,'user','Resume.pdf and Portfolio.pdf added.'); if (!live(run)) return;
   await pause(240); setUi(profileUi('files'));
+  await chat(run,'user','Resume.pdf and Portfolio.pdf added.'); if (!live(run)) return;
   await chat(run,'agent','I’ve prepared your profile. Based on it, here are three search titles to review.'); if (!live(run)) return;
   setUi(profileUi('suggestions'));
 }
