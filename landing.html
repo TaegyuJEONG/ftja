@@ -16,6 +16,8 @@
 @media(max-width:720px){.nav{padding-bottom:45px}.hero{padding-top:10px;padding-bottom:70px}.proof{grid-template-columns:1fr}.proof-item,.proof-item:not(:first-child){padding:18px 0;border-right:0;border-bottom:1px solid var(--border)}.proof-item:last-child{border-bottom:0}.steps{grid-template-columns:1fr}.step{min-height:auto}.install-head{display:block}.agent-note{display:block;margin-top:12px}.callout{grid-template-columns:1fr}.footer{display:block}.footer span{display:block;margin-bottom:8px}}
 
 .step-icon{color:var(--accent);font:28px Georgia,serif;height:34px;margin-bottom:10px}.funnel{border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:18px 0;margin-top:22px}.funnel-row{display:flex;align-items:center;gap:16px;min-height:52px}.funnel-bar{display:block;height:8px;background:var(--accent);opacity:.86}.funnel-bar.wide{width:34%}.funnel-bar.medium{width:25%}.funnel-bar.narrow{width:17%}.funnel-bar.final{width:10%}.funnel-row strong{font:600 18px "IBM Plex Mono",monospace;margin-right:9px}.funnel-row small{color:var(--muted);font-size:12px}.mock-result{background:var(--surface);border:1px solid var(--border);padding:22px;margin-top:28px;max-width:680px}.mock-top{display:flex;justify-content:space-between;color:var(--faint);font-size:10px}.pass-pill{color:var(--accent);border:1px solid var(--accent-border);padding:4px 7px}.mock-result h3{font-size:16px;margin:22px 0 8px}.mock-result p{color:var(--muted);font:13px/1.6 Georgia,serif;margin:0 0 15px}.mock-tags{display:flex;gap:7px;flex-wrap:wrap}.mock-tags span{background:var(--accent2);color:var(--accent);font:10px "IBM Plex Mono",monospace;padding:5px 7px}.mock-foot{border-top:1px solid var(--border);color:var(--muted);font-size:11px;line-height:1.6;margin-top:18px;padding-top:13px}@media(max-width:720px){.funnel-row{gap:10px}.funnel-row small{font-size:11px}.funnel-bar.wide{width:25%}.funnel-bar.medium{width:20%}.funnel-bar.narrow{width:14%}.funnel-bar.final{width:9%}}
+
+.roadmap{border:1px solid var(--border);background:var(--surface);margin-top:26px}.roadmap-tabs{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--border)}.roadmap-tab{border:0;border-right:1px solid var(--border);background:transparent;color:var(--muted);padding:13px 15px;text-align:left;font:11px "IBM Plex Mono",monospace;cursor:pointer}.roadmap-tab:last-child{border-right:0}.roadmap-tab span{display:block;color:var(--faint);font-size:10px;margin-bottom:8px}.roadmap-tab.active{background:var(--accent2);color:var(--accent)}.roadmap-tab.active span{color:var(--accent)}.roadmap-panel{display:grid;grid-template-columns:1fr 1.15fr;gap:1px;background:var(--border)}.chat-mock,.web-mock{background:var(--surface);min-height:245px;padding:20px}.mock-label{color:var(--faint);font:9px "IBM Plex Mono",monospace;letter-spacing:.1em;margin-bottom:18px}.bubble{font-size:12px;line-height:1.5;padding:11px 12px;margin-bottom:9px;max-width:250px}.bubble.agent{background:var(--surface2);color:var(--muted)}.bubble.user{background:var(--accent);color:var(--on-accent);margin-left:auto}.mock-command{color:var(--accent);font-size:11px;margin-top:21px}.web-title{font:23px/1.05 Georgia,serif;letter-spacing:-.03em;margin-bottom:9px}.web-copy{color:var(--muted);font-size:12px;line-height:1.55;max-width:300px}.web-ui{border:1px solid var(--border);padding:14px;margin-top:20px}.ui-line{height:7px;background:var(--surface2);margin-bottom:8px}.ui-line.long{width:85%}.ui-line.medium{width:58%}.ui-button{display:inline-block;border:1px solid var(--accent-border);color:var(--accent);font:10px "IBM Plex Mono",monospace;padding:7px 9px;margin-top:5px}.compact-result{display:grid;grid-template-columns:auto auto 1fr;gap:18px;align-items:center;border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:18px 0}.compact-result .mono{color:var(--accent);font-size:10px}.compact-result strong{font:600 18px "IBM Plex Mono",monospace}.compact-result span:last-child{color:var(--muted);font-size:12px}@media(max-width:720px){.roadmap-tabs{grid-template-columns:repeat(2,1fr)}.roadmap-tab:nth-child(2){border-right:0}.roadmap-panel{grid-template-columns:1fr}.chat-mock,.web-mock{min-height:190px}.compact-result{grid-template-columns:1fr;gap:8px}}
 </style>
 </head>
 <body>
@@ -25,35 +27,34 @@
     <div class="eyebrow">Fine Tune Job Agent</div>
     <h1>Stop reading every job description <em>yourself.</em></h1>
     <p class="hero-copy">Give your AI coding agent your background, your standards, and one clear job-search goal. FTJA finds the LinkedIn roles worth your attention — and shows you why.</p>
-    <div class="hero-actions"><a class="primary" href="setup.html">Try FTJA <span aria-hidden="true">↗</span></a><a class="text-link" href="#how-it-works">See how it works</a></div>
+    <div class="hero-actions"><a class="primary" href="setup.html">Build your FTJA <span aria-hidden="true">↗</span></a><a class="text-link" href="#how-it-works">See how it works</a></div>
   </section>
   <section class="proof" aria-label="How FTJA helps">
-    <div class="proof-item"><div class="proof-num">01</div><div class="proof-title">Your background</div><div class="proof-copy">Start with your resume and portfolio, not a generic job board profile.</div></div>
+    <div class="proof-item"><div class="proof-num">01</div><div class="proof-title">Your background</div><div class="proof-copy">Upload your resume and portfolio, then shape your profile through a conversation with FTJA.</div></div>
     <div class="proof-item"><div class="proof-num">02</div><div class="proof-title">Agent judgment</div><div class="proof-copy">Evaluate public LinkedIn jobs against criteria you can see and edit.</div></div>
-    <div class="proof-item"><div class="proof-num">03</div><div class="proof-title">Better next searches</div><div class="proof-copy">Record your decisions and review suggested changes before your criteria evolve.</div></div>
+    <div class="proof-item"><div class="proof-num">03</div><div class="proof-title">Better next searches</div><div class="proof-copy">Your apply/skip decisions and reasons are used to make the next search better.</div></div>
   </section>
   <section class="section" id="how-it-works">
     <div class="section-kicker">How it works</div>
     <h2>Less scanning. More signal.</h2>
     <p class="section-intro">FTJA turns your own background and judgment into a local, reviewable search loop. It does not decide your career for you; it clears the noise so your attention goes to the roles that deserve it.</p>
-    <div class="steps">
-      <div class="step"><div class="step-icon">◌</div><div class="step-number">01 / GROUND</div><h3>Start with your story</h3><p>Bring a resume, portfolio, or other files. FTJA distills them into a profile your judge can actually use.</p></div>
-      <div class="step"><div class="step-icon">⌁</div><div class="step-number">02 / SHAPE</div><h3>Make your standard explicit</h3><p>Confirm suggested roles and keywords, then define the signals, preferences, and dealbreakers behind a real yes.</p></div>
-      <div class="step"><div class="step-icon">↘</div><div class="step-number">03 / FILTER</div><h3>Spend judgment where it matters</h3><p>Public LinkedIn postings move through a fast keyword filter, a lightweight sentence check, and a deeper profile match.</p></div>
-      <div class="step"><div class="step-icon">↻</div><div class="step-number">04 / LEARN</div><h3>Keep the loop yours</h3><p>Record apply or skip and why. FTJA proposes a rubric change for your review instead of silently rewriting your standard.</p></div>
+    <div class="roadmap" id="product-walkthrough">
+      <div class="roadmap-tabs" role="tablist" aria-label="FTJA journey">
+        <button class="roadmap-tab active" role="tab" aria-selected="true" data-step="0"><span>01</span>Connect</button>
+        <button class="roadmap-tab" role="tab" aria-selected="false" data-step="1"><span>02</span>Shape</button>
+        <button class="roadmap-tab" role="tab" aria-selected="false" data-step="2"><span>03</span>Run</button>
+        <button class="roadmap-tab" role="tab" aria-selected="false" data-step="3"><span>04</span>Learn</button>
+      </div>
+      <div class="roadmap-panel">
+        <div class="chat-mock"><div class="mock-label">AI AGENT</div><div class="bubble agent" id="walk-agent">I’ll create a local FTJA workspace and open the web setup. I won’t guess your preferences.</div><div class="bubble user" id="walk-user">Use my resume and portfolio to start.</div><div class="mock-command mono" id="walk-command">/ftja-setup</div></div>
+        <div class="web-mock"><div class="mock-label">FTJA / <span id="walk-view-label">SETUP</span></div><div class="web-title" id="walk-title">Bring your background</div><div class="web-copy" id="walk-copy">Choose the files that explain what you have built. FTJA turns them into a profile you can review.</div><div class="web-ui" id="walk-ui"><div class="ui-line long"></div><div class="ui-line medium"></div><div class="ui-button">Choose files</div></div></div>
+      </div>
     </div>
   </section>
   <section class="section signal-section">
-    <div class="section-kicker">What the output feels like</div>
-    <h2>A long feed becomes a short, explainable shortlist.</h2>
-    <p class="section-intro">The exact numbers depend on your search and the day. The point is the shape: broad discovery first, expensive judgment last, with evidence attached to every recommendation.</p>
-    <div class="funnel" aria-label="Example FTJA filtering funnel">
-      <div class="funnel-row"><span class="funnel-bar wide"></span><div><strong>1,000</strong><small>public LinkedIn postings discovered</small></div></div>
-      <div class="funnel-row"><span class="funnel-bar medium"></span><div><strong>56</strong><small>match your language, exclusions, and concrete search signals</small></div></div>
-      <div class="funnel-row"><span class="funnel-bar narrow"></span><div><strong>20</strong><small>survive the lightweight sentence-level judgment</small></div></div>
-      <div class="funnel-row"><span class="funnel-bar final"></span><div><strong>9</strong><small>fit your profile and rubric closely enough to read</small></div></div>
-    </div>
-    <div class="mock-result"><div class="mock-top"><span class="mono">TODAY'S DIGEST · 09:20</span><span class="pass-pill">PASSED</span></div><h3>Founding Product Builder · Northstar Labs</h3><p>“Built 0→1 products with hands-on customer discovery and shipped prototypes...”</p><div class="mock-tags"><span>0→1</span><span>builder role</span><span>evidence attached</span></div><div class="mock-foot">Why it passed: your rubric prioritizes founder-facing product work, ambiguity, and direct shipping.</div></div>
+    <div class="section-kicker">The output</div>
+    <h2>From a crowded feed to a few roles worth your attention.</h2>
+    <div class="compact-result"><span class="mono">TODAY'S DIGEST</span><strong>9 roles to read</strong><span>Each one includes evidence and reasoning matched to your rubric.</span></div>
   </section>
   <section class="section" id="install">
     <div class="section-kicker">Start in your AI coding agent</div>
@@ -73,5 +74,7 @@
 const promptText = document.getElementById('setup-prompt').childNodes[0].textContent.trim();
 document.getElementById('copy-prompt').addEventListener('click', async () => { try { await navigator.clipboard.writeText(promptText); document.getElementById('copy-status').textContent = 'Copied. Paste it into a new Claude Code or Codex session.'; } catch { document.getElementById('copy-status').textContent = 'Select and copy the prompt above.'; } });
 </script>
+
+<script>const walkData=[{label:'SETUP',title:'Bring your background',copy:'Choose the files that explain what you have built. FTJA turns them into a profile you can review.',agent:'I’ll create a local FTJA workspace and open the web setup. I won’t guess your preferences.',user:'Use my resume and portfolio to start.',command:'/ftja-setup',ui:'files'},{label:'PIPELINE',title:'Shape your standard',copy:'Confirm suggested roles, keywords, preferences, and dealbreakers before the first run.',agent:'I found signals in your background. Let’s confirm what a strong role means to you.',user:'Prioritize 0→1 builder work. Exclude pure sales roles.',command:'criteria.json + rubric.md',ui:'criteria'},{label:'RESULTS',title:'Read the evidence',copy:'A broad public LinkedIn search becomes a short list with evidence and reasoning attached.',agent:'The run is complete. I found 9 roles that deserve your attention.',user:'Show me why this one passed.',command:'/ftja-run',ui:'results'},{label:'REVIEW',title:'Make the next search better',copy:'Record whether you would apply and why. Review the proposed change before your standard evolves.',agent:'You skipped this role because it lacked hands-on shipping. Add that as a stronger preference?',user:'Yes — suggest it for my review.',command:'/ftja-review',ui:'review'}];function renderWalk(i){const d=walkData[i];document.querySelectorAll('.roadmap-tab').forEach((b,n)=>{b.classList.toggle('active',n===i);b.setAttribute('aria-selected',n===i)});for(const [id,key] of [['walk-view-label','label'],['walk-title','title'],['walk-copy','copy'],['walk-agent','agent'],['walk-user','user'],['walk-command','command']])document.getElementById(id).textContent=d[key];document.getElementById('walk-ui').innerHTML='<div class="ui-line long"></div><div class="ui-line medium"></div><div class="ui-button">'+({files:'Choose files',criteria:'Review criteria',results:'9 passed roles',review:'Review suggestion'}[d.ui])+'</div>'}document.querySelectorAll('.roadmap-tab').forEach(b=>b.addEventListener('click',()=>renderWalk(Number(b.dataset.step))));</script>
 </body>
 </html>
