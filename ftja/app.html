@@ -294,11 +294,49 @@ select.sort-select {
   .results-layout { flex-direction: column; }
   .run-sidebar { width: 100%; }
 }
+
+/* ---- first-run onboarding ---- */
+.onboarding-shell { max-width: 760px; margin: 0 auto; }
+.onboarding-progress { display: flex; gap: 8px; margin: 0 0 42px; }
+.onboarding-progress span { width: 34px; height: 3px; background: var(--border); }
+.onboarding-progress span.active { background: var(--accent); }
+.onboarding-kicker { color: var(--accent-text); font: 10px 'IBM Plex Mono', monospace; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 12px; }
+.onboarding-title { font: 400 38px/1.05 'Instrument Serif', Georgia, serif; letter-spacing: -.02em; margin-bottom: 12px; }
+.onboarding-copy { color: var(--text2); font-size: 14px; line-height: 1.7; max-width: 620px; margin-bottom: 26px; }
+.onboarding-card { background: var(--surface); border: 1px solid var(--border); padding: 22px; margin-top: 18px; }
+.onboarding-card h3 { font-size: 13px; margin-bottom: 6px; }
+.onboarding-card p { color: var(--text3); font-size: 12px; margin-bottom: 16px; }
+.onboarding-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 28px; }
+.onboarding-actions .secondary { color: var(--text3); background: none; border: 0; cursor: pointer; font: 11px 'IBM Plex Mono', monospace; }
+.onboarding-actions .primary { background: var(--accent); color: var(--on-accent); border: 0; border-radius: 2px; padding: 11px 18px; cursor: pointer; font: 600 11px 'IBM Plex Mono', monospace; }
+.onboarding-actions .primary:disabled { opacity: .45; cursor: not-allowed; }
+.onboarding-field { margin-top: 16px; }
+.onboarding-field label { display: block; color: var(--text3); font: 11px 'IBM Plex Mono', monospace; margin-bottom: 6px; }
+.onboarding-field input, .onboarding-field textarea, .onboarding-field select { width: 100%; border: 1px solid var(--border); border-radius: 2px; padding: 10px 11px; color: var(--text); background: var(--surface); font: 13px inherit; }
+.onboarding-field textarea { min-height: 92px; resize: vertical; line-height: 1.55; }
+.onboarding-field input:focus, .onboarding-field textarea:focus, .onboarding-field select:focus { outline: none; border-color: var(--accent); }
+.onboarding-source-list { display: grid; gap: 8px; margin-top: 10px; }
+.onboarding-source { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; background: var(--surface2); border: 1px solid var(--border); font-size: 12px; }
+.onboarding-source small { color: var(--text3); display: block; margin-top: 2px; font: 10px 'IBM Plex Mono', monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 500px; }
+.onboarding-source button { border: 0; background: none; color: var(--accent-text); cursor: pointer; font: 11px 'IBM Plex Mono', monospace; }
+.onboarding-pills { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
+.onboarding-pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border: 1px solid var(--accent-border); background: var(--accent-dim); color: var(--accent-text); border-radius: 999px; font-size: 11px; }
+.onboarding-pill button { border: 0; background: none; color: inherit; cursor: pointer; }
+.onboarding-summary { background: var(--surface2); border: 1px solid var(--border); padding: 16px; white-space: pre-wrap; line-height: 1.65; font-size: 12px; }
+.onboarding-error { color: var(--danger-text); background: var(--danger-bg); border: 1px solid var(--danger); padding: 10px 12px; margin-top: 16px; font-size: 12px; }
 </style>
 </head>
 <body>
 <h1 class="serif">FTJA</h1>
 <div class="subtitle mono">Fine Tune Job Agent</div>
+
+
+<div id="view-onboarding" class="view">
+  <div class="onboarding-shell">
+    <div class="onboarding-progress" id="onboarding-progress"></div>
+    <div id="onboarding-content"></div>
+  </div>
+</div>
 
 <div class="main-tabs">
   <div class="main-tab mono" data-view="results">Results</div>
@@ -348,6 +386,109 @@ function esc(s) {
 }
 function fmtN(n) { return n === null || n === undefined ? "-" : n.toLocaleString(); }
 function fmtDate(iso) { return iso ? iso.slice(0, 10) : "no date recorded"; }
+
+
+// ---- first-run onboarding ----
+let onboardingStep = 0;
+let onboardingDraft = { profile_sources: [], search_terms: [], tier1: [], exclude_keywords: [], languages: ['en'], location: '', is_remote: true, hours_old: 72, results_wanted: 100, pass: '', fail: '', preferences: '' };
+const ONBOARDING_STEPS = ['Background', 'Search', 'Criteria', 'Review'];
+
+function onboardingTags(values, key) {
+  return `<div class="onboarding-pills">${(values || []).map((v, i) => `<span class="onboarding-pill">${esc(v)} <button type="button" data-remove="${key}" data-index="${i}">×</button></span>`).join('')}</div>`;
+}
+function onboardingStepMarkup() {
+  if (onboardingStep === 0) return `
+    <div class="onboarding-kicker">Step 1 of 4 · Your background</div>
+    <h2 class="onboarding-title">Start with what you know.</h2>
+    <p class="onboarding-copy">Add your resume or portfolio first. FTJA will use them to suggest more relevant LinkedIn searches and judge whether a role fits your experience.</p>
+    <div class="onboarding-card">
+      <h3>Your source files</h3><p>Choose files from your computer. FTJA keeps the references in your local workspace.</p>
+      <div class="onboarding-actions" style="margin-top:0;justify-content:flex-start">
+        <button class="action-btn" type="button" data-pick-source="Resume">Add resume</button>
+        <button class="action-btn" type="button" data-pick-source="Portfolio">Add portfolio</button>
+      </div>
+      <div class="onboarding-source-list">${(onboardingDraft.profile_sources || []).map((x, i) => `<div class="onboarding-source"><div><b>${esc(x.label)}</b><small>${esc(x.path)}</small></div><button type="button" data-remove-source="${i}">Remove</button></div>`).join('')}</div>
+    </div>
+    <div class="onboarding-actions"><button class="secondary" type="button" data-skip-onboarding>Skip for now</button><button class="primary" type="button" data-next>Continue</button></div>`;
+  if (onboardingStep === 1) return `
+    <div class="onboarding-kicker">Step 2 of 4 · LinkedIn search</div>
+    <h2 class="onboarding-title">Find the right direction.</h2>
+    <p class="onboarding-copy">FTJA currently searches public LinkedIn job postings. Start with the roles you want, then adjust the suggestions before the first run.</p>
+    <div class="onboarding-card">
+      <h3>Search terms</h3><p>Use the phrases you would actually type into LinkedIn.</p>
+      <div class="onboarding-field"><label for="search-term">Add a role or phrase</label><input id="search-term" placeholder="e.g. AI Product Manager"><div>${onboardingTags(onboardingDraft.search_terms, 'search_terms')}</div></div>
+      <div class="onboarding-field"><label for="location">Location</label><input id="location" value="${esc(onboardingDraft.location)}" placeholder="e.g. European Union"></div>
+      <div class="onboarding-field"><label for="hours-old">How recent should postings be?</label><select id="hours-old"><option value="24" ${onboardingDraft.hours_old===24?'selected':''}>Past 24 hours</option><option value="72" ${onboardingDraft.hours_old===72?'selected':''}>Past 72 hours</option><option value="168" ${onboardingDraft.hours_old===168?'selected':''}>Past 7 days</option></select></div>
+    </div>
+    <div class="onboarding-actions"><button class="secondary" type="button" data-back>Back</button><button class="primary" type="button" data-next>Continue</button></div>`;
+  if (onboardingStep === 2) return `
+    <div class="onboarding-kicker">Step 3 of 4 · Your judgment</div>
+    <h2 class="onboarding-title">Tell FTJA what matters.</h2>
+    <p class="onboarding-copy">These signals decide which LinkedIn roles deserve a closer look. You can change them later.</p>
+    <div class="onboarding-card">
+      <div class="onboarding-field"><label for="signal">What should make a role worth your attention?</label><input id="signal" placeholder="e.g. building an AI product from zero to one"><div>${onboardingTags(onboardingDraft.tier1, 'tier1')}</div></div>
+      <div class="onboarding-field"><label for="exclude">What should FTJA reject immediately?</label><input id="exclude" placeholder="e.g. German required"><div>${onboardingTags(onboardingDraft.exclude_keywords, 'exclude_keywords')}</div></div>
+      <div class="onboarding-field"><label for="preferences">Anything else that should influence the decision?</label><textarea id="preferences" placeholder="e.g. prefer early-stage companies and founder-facing work">${esc(onboardingDraft.preferences)}</textarea></div>
+    </div>
+    <div class="onboarding-actions"><button class="secondary" type="button" data-back>Back</button><button class="primary" type="button" data-next>Continue</button></div>`;
+  return `
+    <div class="onboarding-kicker">Step 4 of 4 · Review</div>
+    <h2 class="onboarding-title">Here is how FTJA will judge roles.</h2>
+    <p class="onboarding-copy">Review the draft in plain English. Nothing is saved until you confirm it.</p>
+    <div class="onboarding-card">
+      <div class="onboarding-field"><label for="pass">Worth reviewing when</label><textarea id="pass">${esc(onboardingDraft.pass || onboardingDraft.tier1.join(', '))}</textarea></div>
+      <div class="onboarding-field"><label for="fail">Reject when</label><textarea id="fail">${esc(onboardingDraft.fail || onboardingDraft.exclude_keywords.join(', '))}</textarea></div>
+      <div class="onboarding-field"><label for="review-preferences">Preferences</label><textarea id="review-preferences">${esc(onboardingDraft.preferences)}</textarea></div>
+      <div class="onboarding-summary"><b>Source</b>
+LinkedIn public job postings
+
+<b>Search</b>
+${esc(onboardingDraft.search_terms.join(', ') || 'No search terms yet')}
+
+<b>Location</b>
+${esc(onboardingDraft.location || 'Not set')}</div>
+    </div>
+    <div id="onboarding-error"></div>
+    <div class="onboarding-actions"><button class="secondary" type="button" data-back>Back</button><button class="primary" type="button" data-confirm>Confirm and continue</button></div>`;
+}
+function renderOnboarding() {
+  document.getElementById('onboarding-progress').innerHTML = ONBOARDING_STEPS.map((_, i) => `<span class="${i <= onboardingStep ? 'active' : ''}"></span>`).join('');
+  document.getElementById('onboarding-content').innerHTML = onboardingStepMarkup();
+  bindOnboarding();
+}
+function addOnboardingTag(inputId, key) {
+  const input = document.getElementById(inputId); if (!input) return;
+  const value = input.value.trim(); if (!value) return;
+  onboardingDraft[key] = [...new Set([...(onboardingDraft[key] || []), value])]; input.value = ''; renderOnboarding();
+}
+async function persistOnboarding(state, final=false) {
+  const criteria = { search_terms: onboardingDraft.search_terms, location: onboardingDraft.location, is_remote: onboardingDraft.is_remote, hours_old: onboardingDraft.hours_old, results_wanted: onboardingDraft.results_wanted, exact_phrase_search: true, exclude_keywords: onboardingDraft.exclude_keywords, languages: onboardingDraft.languages, keywords: {tier1: onboardingDraft.tier1} };
+  const rubric_md = `# FTJA judgment rubric\n\n## Pass\n${onboardingDraft.pass || 'Review roles that match the selected search signals.'}\n\n## Fail\n${onboardingDraft.fail || 'Reject roles that match the selected dealbreakers.'}\n\n## Preferences\n${onboardingDraft.preferences || 'Use the stated preferences as secondary context.'}\n`;
+  const res = await fetch('/api/onboarding', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({criteria, rubric_md, profile_sources: onboardingDraft.profile_sources, state: {step: state, status: final ? 'ready' : 'in_progress'}})});
+  if (!res.ok) throw new Error((await res.json().catch(()=>({}))).error || 'Could not save onboarding');
+}
+function bindOnboarding() {
+  document.querySelectorAll('[data-pick-source]').forEach(b => b.addEventListener('click', async () => {
+    const res = await fetch('/api/pick-profile-source', {method:'POST'}); if (res.status === 204) return;
+    if (!res.ok) { alert('Could not open the file picker.'); return; }
+    const picked = await res.json(); onboardingDraft.profile_sources = [...onboardingDraft.profile_sources.filter(x => x.path !== picked.path), {path:picked.path, label:b.dataset.pickSource, enabled:true}]; renderOnboarding();
+  }));
+  document.querySelectorAll('[data-remove-source]').forEach(b => b.addEventListener('click', () => { onboardingDraft.profile_sources.splice(Number(b.dataset.removeSource), 1); renderOnboarding(); }));
+  document.querySelectorAll('[data-remove]').forEach(b => b.addEventListener('click', () => { onboardingDraft[b.dataset.remove] = onboardingDraft[b.dataset.remove].filter((_, i) => i !== Number(b.dataset.index)); renderOnboarding(); }));
+  const term = document.getElementById('search-term'); if (term) term.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addOnboardingTag('search-term','search_terms'); } });
+  const signal = document.getElementById('signal'); if (signal) signal.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addOnboardingTag('signal','tier1'); } });
+  const exclude = document.getElementById('exclude'); if (exclude) exclude.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addOnboardingTag('exclude','exclude_keywords'); } });
+  const next = document.querySelector('[data-next]'); if (next) next.addEventListener('click', async () => { if (onboardingStep === 1) { onboardingDraft.location = document.getElementById('location').value.trim(); onboardingDraft.hours_old = Number(document.getElementById('hours-old').value); } if (onboardingStep === 2) { onboardingDraft.preferences = document.getElementById('preferences').value.trim(); } onboardingStep++; await persistOnboarding(ONBOARDING_STEPS[onboardingStep] || 'review'); renderOnboarding(); });
+  const back = document.querySelector('[data-back]'); if (back) back.addEventListener('click', () => { onboardingStep = Math.max(0, onboardingStep - 1); renderOnboarding(); });
+  const skip = document.querySelector('[data-skip-onboarding]'); if (skip) skip.addEventListener('click', () => { onboardingStep = 1; renderOnboarding(); });
+  const confirm = document.querySelector('[data-confirm]'); if (confirm) confirm.addEventListener('click', async () => { onboardingDraft.pass = document.getElementById('pass').value.trim(); onboardingDraft.fail = document.getElementById('fail').value.trim(); onboardingDraft.preferences = document.getElementById('review-preferences').value.trim(); try { await persistOnboarding('complete', true); location.reload(); } catch (e) { document.getElementById('onboarding-error').innerHTML = `<div class="onboarding-error">${esc(e.message)}</div>`; } });
+}
+async function maybeStartOnboarding() {
+  const res = await fetch('/api/onboarding'); const data = await res.json();
+  if (data.has_criteria && data.has_rubric) return false;
+  document.body.classList.add('onboarding-active'); document.querySelectorAll('.main-tab, .view:not(#view-onboarding)').forEach(x => x.style.display = 'none'); document.getElementById('view-onboarding').classList.add('active');
+  const c = data.config || {}; const criteria = c.criteria || {}; onboardingDraft = {...onboardingDraft, ...criteria, tier1: (criteria.keywords || {}).tier1 || [], search_terms: criteria.search_terms || [], profile_sources: c.profile_sources || [], preferences: ''}; renderOnboarding(); return true;
+}
 
 // ---- top-level tabs ----
 document.querySelectorAll('.main-tab').forEach(tab => {
@@ -911,9 +1052,7 @@ function renderKeywordSection() {
 }
 
 // ---- init ----
-document.querySelector('.main-tab[data-view="results"]').classList.add('active');
-document.getElementById('view-results').classList.add('active');
-loadRuns();
+(async () => { const onboarding = await maybeStartOnboarding(); if (!onboarding) { document.querySelector('.main-tab[data-view=\"results\"]').classList.add('active'); document.getElementById('view-results').classList.add('active'); loadRuns(); } })();
 </script>
 </body>
 </html>

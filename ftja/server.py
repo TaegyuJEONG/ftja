@@ -20,6 +20,7 @@ import json
 import os
 import subprocess
 import sys
+from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
@@ -30,6 +31,26 @@ from ftja.runs_view import list_runs
 DEFAULT_PORT = 8765
 APP_HTML_PATH = os.path.join(os.path.dirname(__file__), "app.html")
 PAGE_SIZE = 10
+ONBOARDING_STATE = "onboarding-state.json"
+
+
+def _onboarding_state(project_dir: str) -> dict:
+    path = os.path.join(project_dir, ONBOARDING_STATE)
+    if not os.path.exists(path):
+        return {"step": "background", "status": "not_started"}
+    try:
+        with open(path) as f:
+            value = json.load(f)
+        return value if isinstance(value, dict) else {"step": "background", "status": "not_started"}
+    except (OSError, json.JSONDecodeError):
+        return {"step": "background", "status": "error"}
+
+
+def _write_onboarding_state(project_dir: str, state: dict):
+    path = os.path.join(project_dir, ONBOARDING_STATE)
+    with open(path, "w") as f:
+        json.dump({**state, "updated_at": datetime.now(timezone.utc).isoformat()}, f, ensure_ascii=False, indent=2)
+        f.write("\n")
 
 
 def _fetch_jobs(db_path: str, run_id: str, status: str, page: int) -> dict:
@@ -132,6 +153,15 @@ def make_handler(db_path: str, project_dir: str):
                     self._send_json(400, {"error": "run_id required"})
                     return
                 self._send_json(200, _fetch_jobs(db_path, run_id, status, page))
+            elif path == "/api/onboarding":
+                config = read_config(project_dir)
+                self._send_json(200, {
+                    "state": _onboarding_state(project_dir),
+                    "has_criteria": os.path.isfile(os.path.join(project_dir, "criteria.json")),
+                    "has_rubric": os.path.isfile(os.path.join(project_dir, "rubric.md")),
+                    "has_profile": bool(config.get("profile_sources")) or bool(config.get("profile_md")),
+                    "config": config,
+                })
             elif path == "/api/pipeline":
                 self._send_json(200, {
                     **read_config(project_dir),
@@ -163,6 +193,24 @@ def make_handler(db_path: str, project_dir: str):
                 with connect(db_path) as conn:
                     update_decision(conn, job_url, user_action=user_action, user_reason=user_reason)
                 self._send_json(200, {"ok": True})
+            elif self.path == "/api/onboarding":
+                criteria = data.get("criteria")
+                rubric_md = data.get("rubric_md")
+                profile_md = data.get("profile_md")
+                profile_sources = data.get("profile_sources")
+                state = data.get("state")
+                if criteria is None and rubric_md is None and profile_md is None and profile_sources is None:
+                    self._send_json(400, {"error": "at least one onboarding field required"})
+                    return
+                try:
+                    write_config(project_dir, criteria=criteria, rubric_md=rubric_md,
+                                 profile_md=profile_md, profile_sources=profile_sources)
+                    if isinstance(state, dict):
+                        _write_onboarding_state(project_dir, state)
+                except (TypeError, ValueError, OSError) as e:
+                    self._send_json(400, {"error": f"invalid onboarding data: {e}"})
+                    return
+                self._send_json(200, {"ok": True, "state": _onboarding_state(project_dir)})
             elif self.path == "/api/config":
                 # Pipeline tab's Save buttons — writes whichever of
                 # criteria/rubric_md/profile_md was included, same as
