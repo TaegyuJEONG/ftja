@@ -26,11 +26,13 @@ venv/bin/python -m ftja.onboarding . message agent "..."
 venv/bin/python -m ftja.onboarding . set-state --stage profile --phase profile_summary --status waiting --json '{"profile":{"summary":"...","sources":[...]}}'
 ```
 
-The web writes user decisions to `onboarding-action.json` through
-`POST /api/onboarding-action`. Read that file before continuing; do not assume
-the user accepted a proposal. The action types are `confirm_profile`,
-`confirm_stage0`, `confirm_stage1`, and `confirm_stage2`. After applying an
-action, write the next state and a chat message so both surfaces move together.
+The web sends decisions to `POST /api/onboarding-action`. The server is the
+onboarding state machine: it validates the current stage and revision, rejects
+stale or out-of-order actions, and writes the next `onboarding-state.json`
+state atomically. The action types are `set_profile_sources`,
+`set_profile_summary`, `confirm_profile`, `confirm_stage0`, `confirm_stage1`,
+and `confirm_stage2`. The agent/LLM may produce drafts, but it must not choose
+the next stage or promote unconfirmed data into active configuration.
 
 The only onboarding order is:
 

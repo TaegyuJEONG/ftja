@@ -27,7 +27,7 @@ from urllib.parse import urlparse, parse_qs
 from ftja.state import connect, update_decision, VALID_USER_ACTIONS
 from ftja.pipeline_view import read_config, write_config, keyword_stats
 from ftja.runs_view import list_runs
-from ftja.onboarding import read_state, write_action, write_state
+from ftja.onboarding import OnboardingError, apply_action, read_state, write_action, write_state
 
 DEFAULT_PORT = 8765
 APP_HTML_PATH = os.path.join(os.path.dirname(__file__), "app.html")
@@ -206,25 +206,27 @@ def make_handler(db_path: str, project_dir: str):
                     update_decision(conn, job_url, user_action=user_action, user_reason=user_reason)
                 self._send_json(200, {"ok": True})
             elif self.path == "/api/onboarding-action":
-                if not isinstance(data, dict) or not data.get("type"):
-                    self._send_json(400, {"error": "action type required"})
+                try:
+                    state = apply_action(project_dir, data)
+                except (OnboardingError, TypeError, ValueError) as e:
+                    self._send_json(409, {"error": str(e), "state": read_state(project_dir)})
                     return
-                write_action(project_dir, data)
-                self._send_json(200, {"ok": True, "action": data})
+                self._send_json(200, {"ok": True, "state": state})
             elif self.path == "/api/onboarding":
                 criteria = data.get("criteria")
                 rubric_md = data.get("rubric_md")
                 profile_md = data.get("profile_md")
                 profile_sources = data.get("profile_sources")
                 state = data.get("state")
+                if state is not None:
+                    self._send_json(409, {"error": "onboarding state changes must use /api/onboarding-action"})
+                    return
                 if criteria is None and rubric_md is None and profile_md is None and profile_sources is None:
                     self._send_json(400, {"error": "at least one onboarding field required"})
                     return
                 try:
                     write_config(project_dir, criteria=criteria, rubric_md=rubric_md,
                                  profile_md=profile_md, profile_sources=profile_sources)
-                    if isinstance(state, dict):
-                        write_state(project_dir, **state)
                 except (TypeError, ValueError, OSError) as e:
                     self._send_json(400, {"error": f"invalid onboarding data: {e}"})
                     return

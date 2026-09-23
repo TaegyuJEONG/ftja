@@ -13,14 +13,98 @@ ACTION_FILE = "onboarding-action.json"
 
 DEFAULT_STATE: dict[str, Any] = {
     "version": 1,
+    "revision": 0,
     "stage": "profile",
     "phase": "sources",
     "status": "waiting",
+    "allowed_actions": ["set_profile_sources"],
     "messages": [],
     "profile": {"sources": [], "summary": "", "titles": [], "criteria": {}},
     "cards": {},
 }
 
+
+
+class OnboardingError(ValueError):
+    """A requested transition is not valid for the current state."""
+
+
+def _require(state: dict[str, Any], stage: str, phase: str) -> None:
+    if state.get("stage") != stage or state.get("phase") != phase:
+        raise OnboardingError(f"action is not allowed in {state.get('stage')}/{state.get('phase')}")
+
+
+def _clean_list(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [str(item).strip() for item in value if str(item).strip()]
+
+
+def _clean_sources(value: Any) -> list[dict[str, Any]]:
+    if not isinstance(value, list) or not value:
+        raise OnboardingError("at least one profile source is required")
+    result = []
+    for source in value:
+        if not isinstance(source, dict) or not source.get("path"):
+            raise OnboardingError("each profile source needs a path")
+        path = str(source["path"])
+        result.append({"path": path, "label": str(source.get("label") or os.path.basename(path)), "enabled": source.get("enabled", True) is not False})
+    return result
+
+
+def apply_action(project_dir: str, action: dict[str, Any]) -> dict[str, Any]:
+    """Apply one legal transition; the browser cannot skip or reorder steps."""
+    if not isinstance(action, dict) or not action.get("type"):
+        raise OnboardingError("action type required")
+    state = read_state(project_dir)
+    expected = action.get("expected_revision")
+    if expected is not None and int(expected) != int(state.get("revision", 0)):
+        raise OnboardingError("stale onboarding revision; reload and try again")
+    kind = action["type"]
+    profile = state["profile"]
+    cards = state.get("cards", {})
+    if kind == "set_profile_sources":
+        _require(state, "profile", "sources")
+        profile = {**profile, "sources": _clean_sources(action.get("sources"))}
+        state.update(phase="profile_summary", allowed_actions=["set_profile_summary"], profile=profile)
+    elif kind == "set_profile_summary":
+        _require(state, "profile", "profile_summary")
+        summary = str(action.get("summary") or "").strip()
+        if not summary:
+            raise OnboardingError("profile summary is required")
+        profile = {**profile, "summary": summary}
+        state.update(phase="title_proposal", allowed_actions=["confirm_profile"], profile=profile, cards={**cards, "profile": {"summary": summary}})
+    elif kind == "confirm_profile":
+        _require(state, "profile", "title_proposal")
+        titles = _clean_list(action.get("titles"))
+        location = str(action.get("location") or "").strip()
+        if not titles or not location:
+            raise OnboardingError("at least one title and a location are required")
+        criteria = {**profile.get("criteria", {}), "search_terms": titles, "location": location, "is_remote": bool(action.get("is_remote", False)), "hours_old": int(action.get("hours_old", 24)), "results_wanted": 100, "exact_phrase_search": True, "languages": [], "exclude_keywords": [], "keywords": {"tier1": []}}
+        profile = {**profile, "titles": titles, "criteria": criteria}
+        state.update(stage="rubric", phase="stage0", allowed_actions=["confirm_stage0"], profile=profile, cards={**cards, "stage0": {"keywords": [], "languages": [], "exclude_keywords": []}})
+    elif kind == "confirm_stage0":
+        _require(state, "rubric", "stage0")
+        keywords = _clean_list(action.get("keywords")); languages = _clean_list(action.get("languages")); excludes = _clean_list(action.get("exclude_keywords"))
+        criteria = {**profile.get("criteria", {}), "languages": languages, "exclude_keywords": excludes, "keywords": {"tier1": keywords}}
+        state.update(phase="stage1", allowed_actions=["confirm_stage1"], profile={**profile, "criteria": criteria}, cards={**cards, "stage0": {"keywords": keywords, "languages": languages, "exclude_keywords": excludes}})
+    elif kind == "confirm_stage1":
+        _require(state, "rubric", "stage1"); state.update(phase="stage2", allowed_actions=["confirm_stage2"])
+    elif kind == "confirm_stage2":
+        _require(state, "rubric", "stage2")
+        rubric = str(action.get("rubric_md") or "").strip()
+        if not rubric and not os.path.isfile(_path(project_dir, "rubric.md")):
+            raise OnboardingError("rubric draft is required before confirmation")
+        if rubric:
+            from ftja.pipeline_view import write_config
+            write_config(project_dir, criteria=profile.get("criteria", {}), rubric_md=rubric, profile_md=profile.get("summary", ""), profile_sources=profile.get("sources", []))
+        state.update(stage="run", phase="ready", status="ready", allowed_actions=[])
+    else:
+        raise OnboardingError(f"unknown onboarding action: {kind}")
+    state["revision"] = int(state.get("revision", 0)) + 1
+    state["updated_at"] = datetime.now(timezone.utc).isoformat()
+    write_json(project_dir, STATE_FILE, state)
+    return state
 
 def _path(project_dir: str, name: str) -> str:
     return os.path.join(project_dir, name)
@@ -56,6 +140,8 @@ def read_state(project_dir: str) -> dict[str, Any]:
     merged["profile"] = {**DEFAULT_STATE["profile"], **(state.get("profile") or {})}
     merged["cards"] = state.get("cards") or {}
     merged["messages"] = state.get("messages") or []
+    merged["revision"] = int(state.get("revision", 0))
+    merged["allowed_actions"] = state.get("allowed_actions") or DEFAULT_STATE["allowed_actions"]
     return merged
 
 
