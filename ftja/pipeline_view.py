@@ -52,9 +52,10 @@ def _profile_sources(project_dir: str) -> list[dict]:
         absolute = os.path.abspath(os.path.join(project_dir, rel_path))
         result.append({
             "path": rel_path,
-            "label": source.get("label") or os.path.basename(rel_path),
+            "label": source.get("label") or os.path.basename(os.path.normpath(rel_path)),
+            "kind": "folder" if source.get("kind") == "folder" or os.path.isdir(absolute) else "file",
             "enabled": source.get("enabled", True) is not False,
-            "exists": os.path.isfile(absolute),
+            "exists": os.path.exists(absolute),
         })
     return result
 
@@ -99,7 +100,8 @@ def write_config(project_dir: str = ".", criteria: dict | None = None,
                 raise ValueError("profile source paths cannot traverse parent directories")
             clean_sources.append({
                 "path": path,
-                "label": str(source.get("label") or os.path.basename(path)),
+                "label": str(source.get("label") or os.path.basename(os.path.normpath(path))),
+                "kind": "folder" if source.get("kind") == "folder" or os.path.isdir(path) else "file",
                 "enabled": source.get("enabled", True) is not False,
             })
         with open(f"{project_dir}/profile/sources.json", "w") as f:

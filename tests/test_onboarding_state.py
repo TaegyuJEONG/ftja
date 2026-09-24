@@ -41,6 +41,17 @@ class OnboardingStateTests(unittest.TestCase):
         self.assertEqual((state["stage"], state["phase"], state["status"]), ("run", "ready", "ready"))
         self.assertTrue((self.root / "rubric.md").exists())
 
+    def test_profile_sources_can_grow_after_first_selection(self):
+        first = {"path": str(self.root / "resume.txt"), "kind": "file"}
+        state = self.act("set_profile_sources", sources=[first])
+        self.assertEqual(state["phase"], "profile_summary")
+        second_dir = self.root / "portfolio"
+        second_dir.mkdir()
+        state = self.act("set_profile_sources", sources=[first, {"path": str(second_dir), "kind": "folder"}])
+        self.assertEqual(state["phase"], "profile_summary")
+        self.assertEqual([source["path"] for source in state["profile"]["sources"]], [first["path"], str(second_dir)])
+        self.assertEqual(state["profile"]["sources"][1]["kind"], "folder")
+
     def test_stale_revision_is_rejected(self):
         apply_action(str(self.root), {"type": "set_profile_sources", "expected_revision": 0, "sources": [{"path": str(self.root / "resume.txt")}]})
         with self.assertRaises(OnboardingError):

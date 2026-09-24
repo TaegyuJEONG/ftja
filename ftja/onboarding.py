@@ -48,7 +48,8 @@ def _clean_sources(value: Any) -> list[dict[str, Any]]:
         if not isinstance(source, dict) or not source.get("path"):
             raise OnboardingError("each profile source needs a path")
         path = str(source["path"])
-        result.append({"path": path, "label": str(source.get("label") or os.path.basename(path)), "enabled": source.get("enabled", True) is not False})
+        kind = "folder" if source.get("kind") == "folder" else "file"
+        result.append({"path": path, "label": str(source.get("label") or os.path.basename(os.path.normpath(path))), "kind": kind, "enabled": source.get("enabled", True) is not False})
     return result
 
 
@@ -64,9 +65,15 @@ def apply_action(project_dir: str, action: dict[str, Any]) -> dict[str, Any]:
     profile = state["profile"]
     cards = state.get("cards", {})
     if kind == "set_profile_sources":
-        _require(state, "profile", "sources")
-        profile = {**profile, "sources": _clean_sources(action.get("sources"))}
-        state.update(phase="profile_summary", allowed_actions=["set_profile_summary"], profile=profile)
+        if state.get("stage") != "profile" or state.get("phase") not in {"sources", "profile_summary"}:
+            raise OnboardingError(f"action is not allowed in {state.get('stage')}/{state.get('phase')}")
+        sources = _clean_sources(action.get("sources"))
+        profile = {**profile, "sources": sources}
+        state.update(
+            phase="profile_summary",
+            allowed_actions=["set_profile_sources", "set_profile_summary"],
+            profile=profile,
+        )
     elif kind == "set_profile_summary":
         _require(state, "profile", "profile_summary")
         summary = str(action.get("summary") or "").strip()

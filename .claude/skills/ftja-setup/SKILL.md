@@ -57,6 +57,53 @@ A stage is complete only after the corresponding local action has been read and
 its next state has been written. The browser must be safe to reload: it should
 resume from `onboarding-state.json`, not localStorage or a guessed step.
 
+## Mandatory first-turn order
+
+Before asking any onboarding question or reading profile material, follow this
+order exactly. A shell `cd` changes one command's working directory; it does
+**not** attach the Claude Code session to the workspace.
+
+1. Resolve the absolute path of the cloned FTJA repository from the actual
+   session context. Preserve the user's path and capitalization exactly; do
+   not guess between similarly named folders.
+2. Call `mcp__ccd_directory__change_directory` with that exact absolute path.
+   Continue only when the result confirms `Folder access granted`. If the tool
+   is unavailable or permission is denied, stop and report that the session
+   folder is not connected; do not continue with a scratch workspace.
+3. Initialize or resume `onboarding-state.json` from that connected folder.
+4. Start the local server from that folder if `http://127.0.0.1:8765/` is not
+   responding. Verify it with `curl` before proceeding.
+5. Open the viewer immediately. Call
+   `mcp__Claude_Browser__preview_start` with `http://127.0.0.1:8765`, then call
+   `mcp__Claude_Browser__get_page_text` to verify the page. On macOS also run
+   `open http://127.0.0.1:8765` so the user gets a visible browser without
+   needing to click an `Open` card. Do not describe the viewer as open until a
+   navigation/page-text check succeeds.
+6. Only after the viewer is ready, tell the user to add source materials in
+   the web view. Do not ask for a path in chat.
+
+If the Claude client header still says `No folder` after a successful
+`Folder access granted` result, report that the client label did not refresh;
+the internal working directory and the visible client association are separate
+states. Never claim the header says FTJA unless it actually does.
+
+## Web-driven profile sources
+
+The web view is the only source-material input surface. Never use
+`AskUserQuestion` to ask where a resume or portfolio lives, and never ask
+for an absolute source path in chat. Tell the user to add one or more files
+and/or folders in the web view;
+the web action records local paths, not file contents. After the action appears,
+read every path from `onboarding-state.json`, then inspect/copy the selected
+sources into the gitignored `profile/` folder as needed. Do not require a
+resume/portfolio label: the UI uses the selected file or folder name.
+
+After opening the viewer, send one short instruction to add source materials and
+wait. Do not continue the profile interview, write a summary, or ask another
+source question until at least one source is present in `onboarding-state.json`.
+If the user adds more sources while the profile is being prepared, re-read the
+full source list before writing `profile/summary.md`.
+
 ## What you need to learn
 
 **For `criteria.json` (Rubric stage, after Profile — Stage 0 deterministic, used by `ftja/scrape.py` and
@@ -103,9 +150,10 @@ resume from `onboarding-state.json`, not localStorage or a guessed step.
 - Dealbreakers (things that auto-fail regardless of everything else)
 - Preferences that matter but aren't dealbreakers (comp range, remote policy,
   company stage, etc.)
-- Ask where their resume/portfolio files live — copy or symlink them into
-  `profile/` (already gitignored) rather than leaving paths to reference
-  elsewhere.
+- The web source picker is the only way to provide profile sources. It accepts
+  one or more files or folders and records local paths without uploading
+  contents. Read those paths from `onboarding-state.json`; do not ask for them
+  in chat and do not require a resume/portfolio label.
 
 ## Write the files
 

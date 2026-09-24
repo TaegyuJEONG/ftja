@@ -125,17 +125,30 @@ def make_handler(db_path: str, project_dir: str):
             self.end_headers()
             self.wfile.write(body)
 
-        def _pick_profile_source(self):
-            if sys.platform != "darwin":
-                self._send_json(501, {"error": "native file picking is currently supported on macOS only"})
+        def _pick_profile_source(self, kind="file"):
+            if kind not in {"file", "folder"}:
+                self._send_json(400, {"error": "source kind must be file or folder"})
                 return
-            script = 'POSIX path of (choose file with prompt "Select a profile source")'
+            if sys.platform != "darwin":
+                self._send_json(501, {"error": "native source picking is currently supported on macOS only"})
+                return
+            if kind == "folder":
+                script = 'POSIX path of (choose folder with prompt "Select a source folder")'
+            else:
+                script = 'POSIX path of (choose file with prompt "Select a source file")'
             result = subprocess.run(["osascript", "-e", script], capture_output=True, text=True)
             if result.returncode != 0:
                 self._send_json(204, {})
                 return
             path = result.stdout.strip()
-            self._send_json(200, {"path": path, "label": os.path.basename(path)})
+            if not path or not os.path.exists(path):
+                self._send_json(400, {"error": "the selected source no longer exists"})
+                return
+            self._send_json(200, {
+                "path": path,
+                "label": os.path.basename(os.path.normpath(path)),
+                "kind": kind,
+            })
 
         def do_GET(self):
             parsed = urlparse(self.path)
@@ -209,7 +222,8 @@ def make_handler(db_path: str, project_dir: str):
                 return
 
             if self.path == "/api/pick-profile-source":
-                self._pick_profile_source()
+                kind = str(data.get("kind") or "file")
+                self._pick_profile_source(kind)
             elif self.path == "/api/decide":
                 job_url = data.get("job_url", "")
                 user_action = data.get("user_action")

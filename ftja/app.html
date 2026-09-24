@@ -318,7 +318,14 @@ select.sort-select {
 .onboarding-source-list { display: grid; gap: 8px; margin-top: 10px; }
 .onboarding-source { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; background: var(--surface2); border: 1px solid var(--border); font-size: 12px; }
 .onboarding-source small { color: var(--text3); display: block; margin-top: 2px; font: 10px 'IBM Plex Mono', monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 500px; }
+.onboarding-source-kind { color: var(--text3); font: 9px 'IBM Plex Mono', monospace; margin-left: 6px; text-transform: uppercase; }
 .onboarding-source button { border: 0; background: none; color: var(--accent-text); cursor: pointer; font: 11px 'IBM Plex Mono', monospace; }
+.onboarding-source-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.onboarding-source-actions button { border: 1px solid var(--accent); border-radius: 2px; padding: 10px 13px; cursor: pointer; font: 600 11px 'IBM Plex Mono', monospace; }
+.onboarding-source-actions .primary { background: var(--accent); color: var(--on-accent); }
+.onboarding-source-actions .secondary { background: transparent; color: var(--accent-text); }
+.onboarding-source-actions button:disabled { opacity: .5; cursor: wait; }
+.onboarding-source-note { color: var(--text3); font-size: 11px; line-height: 1.55; margin: 12px 0 0; }
 .onboarding-pills { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
 .onboarding-pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border: 1px solid var(--accent-border); background: var(--accent-dim); color: var(--accent-text); border-radius: 999px; font-size: 11px; }
 .onboarding-pill button { border: 0; background: none; color: inherit; cursor: pointer; }
@@ -409,7 +416,7 @@ function onboardingTags(values, key, editable = true) {
   return `<div class="onboarding-pills">${(values || []).map((v, i) => `<span class="onboarding-pill">${esc(v)}${editable ? ` <button type="button" data-remove="${key}" data-index="${i}">×</button>` : ''}</span>`).join('')}</div>`;
 }
 function sourceRows(state) {
-  return ((state?.profile || {}).sources || []).map(source => `<div class="onboarding-source"><div><b>${esc(source.label || source.path || 'Source')}</b><small>${esc(source.path || '')}</small></div><span class="source-status">✓</span></div>`).join('') || '<div class="source-empty">Waiting for resume and portfolio files from the setup chat.</div>';
+  return ((state?.profile || {}).sources || []).map(source => `<div class="onboarding-source"><div><b>${esc(source.label || source.path || 'Source')}<span class="onboarding-source-kind">${source.kind === 'folder' ? 'Folder' : 'File'}</span></b><small>${esc(source.path || '')}</small></div><span class="source-status">✓</span></div>`).join('') || '<div class="source-empty">No source materials added yet.</div>';
 }
 function profileCard(state) {
   const profile = state.profile || {};
@@ -417,7 +424,8 @@ function profileCard(state) {
   const summary = profile.summary || '';
   const titles = onboardingDraft.titles.length ? onboardingDraft.titles : (profile.titles || []);
   if (phase === 'title_proposal' || phase === 'scrape_card') return `<div class="onboarding-card"><h3>Search draft from your profile</h3><p>${esc(latestOnboardingMessage(state))}</p><div class="onboarding-field"><label>Suggested job titles</label>${onboardingTags(titles, 'titles')}<div class="field-row"><input id="title-input" type="text" placeholder="Add a title"><button class="save-btn" type="button" data-title-add>Add</button></div></div><div class="onboarding-field"><label for="profile-location">Location</label><input id="profile-location" value="${esc(onboardingDraft.location || profile.criteria?.location || 'Europe')}" placeholder="e.g. Europe"></div><div class="field-row"><label class="check-label"><input id="profile-remote" type="checkbox" ${onboardingDraft.is_remote ? 'checked' : ''}> Remote only</label><div class="onboarding-field" style="margin-top:0;flex:1"><label for="profile-hours">Posting age</label><select id="profile-hours"><option value="24" ${onboardingDraft.hours_old === 24 ? 'selected' : ''}>Past 24 hours</option><option value="72" ${onboardingDraft.hours_old === 72 ? 'selected' : ''}>Past 72 hours</option><option value="168" ${onboardingDraft.hours_old === 168 ? 'selected' : ''}>Past 7 days</option></select></div></div>${phase === 'scrape_card' ? '<div class="onboarding-summary"><b>Scraping criteria</b>\nTitles, Europe, non-remote, past 24 hours</div>' : '<button class="primary" type="button" data-confirm-profile>Confirm profile and search draft</button>'}</div>`;
-  return `<div class="onboarding-card"><h3>Your source files</h3><p>${esc(latestOnboardingMessage(state))}</p><div class="onboarding-source-list">${sourceRows(state)}</div>${phase === 'sources' ? '<button class="primary" type="button" data-choose-onboarding-source>Choose resume or portfolio file</button>' : ''}${summary ? `<div class="onboarding-summary" style="margin-top:14px"><b>Profile summary</b>\n${esc(summary)}</div>` : ''}</div>`;
+  const sourceActions = ['sources', 'profile_summary'].includes(phase) ? '<div class="onboarding-source-actions"><button class="primary" type="button" data-add-onboarding-source="file">+ Add files</button><button class="secondary" type="button" data-add-onboarding-source="folder">+ Add a folder</button></div><p class="onboarding-source-note">Add any files or folders that help FTJA understand your background. You can add more than one. Nothing is uploaded; FTJA passes the local selections to your setup agent.</p>' : '';
+  return `<div class="onboarding-card"><h3>Your source materials</h3><p>${esc(latestOnboardingMessage(state))}</p><div class="onboarding-source-list">${sourceRows(state)}</div>${sourceActions}${summary ? `<div class="onboarding-summary" style="margin-top:14px"><b>Profile summary</b>\n${esc(summary)}</div>` : ''}</div>`;
 }
 function rubricCard(state) {
   const cards = state.cards || {};
@@ -449,13 +457,32 @@ function renderOnboarding() {
 }
 async function postOnboardingAction(type, payload = {}) {
   const res = await fetch('/api/onboarding-action', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({type, expected_revision: onboardingState?.revision ?? 0, ...payload})});
-  if (!res.ok) throw new Error('Could not send this decision to the setup chat.');
-  document.getElementById('onboarding-content').insertAdjacentHTML('beforeend', '<div class="saved-note" style="display:block">Sent to your setup chat.</div>');
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error || 'Could not send this decision to the setup chat.');
+  if (body.state) {
+    onboardingState = body.state;
+    onboardingVersion = body.state.updated_at || JSON.stringify(body.state);
+    renderOnboarding();
+  }
+}
+async function addOnboardingSource(kind, button) {
+  button.disabled = true;
+  try {
+    const source = await chooseProfileSource(kind);
+    if (!source) return;
+    const current = [...((onboardingState?.profile || {}).sources || [])];
+    if (current.some(item => item.path === source.path)) return;
+    await postOnboardingAction('set_profile_sources', {sources: [...current, source]});
+  } catch (error) {
+    alert(error.message || 'Could not add this source.');
+  } finally {
+    button.disabled = false;
+  }
 }
 function bindOnboarding() {
   document.querySelectorAll('[data-remove]').forEach(button => button.addEventListener('click', () => { const key = button.dataset.remove; onboardingDraft[key].splice(Number(button.dataset.index), 1); renderOnboarding(); }));
   const add = document.querySelector('[data-title-add]'); if (add) add.addEventListener('click', () => { const input = document.getElementById('title-input'); const value = input.value.trim(); if (value && !onboardingDraft.titles.includes(value)) onboardingDraft.titles.push(value); renderOnboarding(); });
-  const chooseSource = document.querySelector('[data-choose-onboarding-source]'); if (chooseSource) chooseSource.addEventListener('click', async () => { const source = await chooseProfileSource(); if (source) await postOnboardingAction('set_profile_sources', {sources: [source]}); });
+  document.querySelectorAll('[data-add-onboarding-source]').forEach(button => button.addEventListener('click', () => addOnboardingSource(button.dataset.addOnboardingSource, button)));
   const confirmProfile = document.querySelector('[data-confirm-profile]'); if (confirmProfile) confirmProfile.addEventListener('click', () => postOnboardingAction('confirm_profile', {titles: onboardingDraft.titles, location: document.getElementById('profile-location').value.trim(), is_remote: document.getElementById('profile-remote').checked, hours_old: Number(document.getElementById('profile-hours').value)}));
   const confirmStage0 = document.querySelector('[data-confirm-stage0]'); if (confirmStage0) confirmStage0.addEventListener('click', () => postOnboardingAction('confirm_stage0', {keywords: onboardingDraft.tier1, languages: onboardingDraft.languages, exclude_keywords: onboardingDraft.exclude_keywords}));
   document.querySelectorAll('[data-confirm-rubric]').forEach(button => button.addEventListener('click', () => postOnboardingAction(`confirm_${button.dataset.confirmRubric}`)));
@@ -815,10 +842,10 @@ async function saveConfig(payload, btn) {
 }
 
 let pendingSourcePath = '';
-async function chooseProfileSource() {
-  const res = await fetch('/api/pick-profile-source', {method: 'POST'});
+async function chooseProfileSource(kind = 'file') {
+  const res = await fetch('/api/pick-profile-source', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({kind})});
   if (res.status === 204) return null;
-  if (!res.ok) { const err = await res.json().catch(() => ({})); alert(err.error || 'Could not open file picker'); return null; }
+  if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || 'Could not open the source picker'); }
   return res.json();
 }
 function renderProfileSources() {

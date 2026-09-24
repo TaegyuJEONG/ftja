@@ -9,6 +9,30 @@ You are executing one pass of the FTJA pipeline defined in `SPEC.md`. Follow
 these steps in order. Every python call below uses `venv/bin/python` — if
 `venv/` doesn't exist yet, run `python3 -m venv venv && venv/bin/pip install -r requirements.txt` first.
 
+## 0a. Reattach the existing workspace and viewer
+
+When `/ftja-run` is invoked in a new Claude Code session, reconnect the existing
+FTJA repository before running anything:
+
+1. Run `pwd` and `git rev-parse --show-toplevel`. Continue only if the resolved
+   repository is the user's existing FTJA workspace. Do not clone a new copy or
+   choose a similarly named folder.
+2. Call `mcp__ccd_directory__change_directory` with that exact absolute repo
+   path and require the `Folder access granted` result. A shell `cd` alone is
+   not enough. If the repo is not the active workspace, stop and tell the user
+   to open/connect the existing FTJA folder; never run against a scratch folder.
+3. Check `http://127.0.0.1:8765/`. If the server is not responding, start it
+   from the connected repo, verify it with `curl`, then call
+   `mcp__Claude_Browser__preview_start` followed by
+   `mcp__Claude_Browser__get_page_text`. On macOS also run
+   `open http://127.0.0.1:8765` so the viewer is visible without an extra
+   `Open` click.
+
+Do not claim the Claude header is connected unless it visibly shows the folder.
+If the directory tool confirms access but the header remains `No folder`, report
+that client UI limitation separately and continue only with the confirmed repo
+path.
+
 ## 0. Preflight
 
 - Check `rubric.md` and `criteria.json` exist in the project root. If either
