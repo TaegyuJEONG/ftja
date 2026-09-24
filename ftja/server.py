@@ -31,7 +31,16 @@ from ftja.onboarding import OnboardingError, apply_action, read_state, write_act
 
 DEFAULT_PORT = 8765
 APP_HTML_PATH = os.path.join(os.path.dirname(__file__), "app.html")
-LANDING_HTML_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "landing.html")
+REPO_ROOT = os.path.dirname(os.path.dirname(__file__))
+LANDING_HTML_PATH = os.path.join(REPO_ROOT, "landing.html")
+VALUE_ASSETS = {
+    f"/assets/value/{name}": os.path.join(REPO_ROOT, "assets", "value", name)
+    for name in (
+        "your-background.svg",
+        "agent-judgment.svg",
+        "better-next-searches.svg",
+    )
+}
 PAGE_SIZE = 10
 ONBOARDING_STATE = "onboarding-state.json"
 
@@ -132,7 +141,16 @@ def make_handler(db_path: str, project_dir: str):
             parsed = urlparse(self.path)
             path, qs = parsed.path, parse_qs(parsed.query)
 
-            if path in ("/landing", "/landing.html"):
+            if path in VALUE_ASSETS:
+                with open(VALUE_ASSETS[path], "rb") as f:
+                    body = f.read()
+                self.send_response(200)
+                self.send_header("Content-Type", "image/svg+xml")
+                self.send_header("Content-Length", str(len(body)))
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
+                self.wfile.write(body)
+            elif path in ("/landing", "/landing.html"):
                 with open(LANDING_HTML_PATH, "rb") as f:
                     body = f.read()
                 self.send_response(200)
