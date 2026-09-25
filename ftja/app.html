@@ -350,7 +350,23 @@ select.sort-select {
 .onboarding-confirm-guide code { color: var(--accent-text); font: 10px 'IBM Plex Mono', monospace; }
 .onboarding-pills { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
 .onboarding-pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border: 1px solid var(--accent-border); background: var(--accent-dim); color: var(--accent-text); border-radius: 999px; font-size: 11px; }
-.onboarding-pill button { border: 0; background: none; color: inherit; cursor: pointer; }
+.onboarding-pill button { border: 0; background: none; color: inherit; cursor: pointer; font-size: 14px; line-height: 1; padding: 0 1px; }
+.onboarding-editor { margin-top: 9px; }
+.onboarding-add-row { display: flex; align-items: flex-start; gap: 8px; margin-top: 10px; }
+.onboarding-input-wrap { position: relative; flex: 1 1 auto; min-width: 0; }
+.onboarding-input-wrap input { width: 100%; height: 36px; border: 1px solid var(--border); border-radius: 2px; padding: 8px 10px; color: var(--text); background: var(--surface); font: 12px inherit; }
+.onboarding-input-wrap input:focus { outline: none; border-color: var(--accent); }
+.onboarding-add-row > button { flex: 0 0 auto; height: 36px; border: 1px solid var(--accent); border-radius: 2px; padding: 0 13px; background: transparent; color: var(--accent-text); cursor: pointer; font: 600 11px 'IBM Plex Mono', monospace; }
+.onboarding-add-row > button:hover { background: var(--accent-dim); }
+.onboarding-language-options { display: none; position: absolute; z-index: 30; top: calc(100% + 5px); left: 0; right: 0; max-height: 210px; overflow-y: auto; padding: 5px; background: var(--surface); border: 1px solid var(--border2); box-shadow: 0 8px 22px rgba(29,27,25,.12); }
+.onboarding-language-options.open { display: block; }
+.onboarding-language-option { display: flex; justify-content: space-between; gap: 12px; width: 100%; padding: 8px 10px; border: 0; background: transparent; color: var(--text); text-align: left; cursor: pointer; font: 12px 'IBM Plex Mono', monospace; }
+.onboarding-language-option:hover, .onboarding-language-option:focus { background: var(--accent-dim); outline: none; }
+.onboarding-language-option .code { color: var(--text3); font-size: 10px; }
+.onboarding-language-empty { padding: 9px 10px; color: var(--text3); font-size: 11px; }
+.onboarding-confirm-actions { justify-content: flex-start; margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--border); }
+.onboarding-card > .primary, .onboarding-confirm-actions .primary { background: var(--accent); color: var(--on-accent); border: 0; border-radius: 2px; padding: 11px 18px; cursor: pointer; font: 600 11px 'IBM Plex Mono', monospace; }
+.onboarding-card > .primary:disabled, .onboarding-confirm-actions .primary:disabled { opacity: .45; cursor: not-allowed; }
 .onboarding-summary { background: var(--surface2); border: 1px solid var(--border); padding: 16px; white-space: pre-wrap; line-height: 1.65; font-size: 12px; }
 .onboarding-error { color: var(--danger-text); background: var(--danger-bg); border: 1px solid var(--danger); padding: 10px 12px; margin-top: 16px; font-size: 12px; }
 </style>
@@ -459,7 +475,12 @@ function recoveryPhrase(actionType) {
   return phrases[actionType] || 'I confirmed the latest card, continue the setup';
 }
 function onboardingTags(values, key, editable = true) {
-  return `<div class="onboarding-pills">${(values || []).map((v, i) => `<span class="onboarding-pill">${esc(v)}${editable ? ` <button type="button" data-remove="${key}" data-index="${i}">×</button>` : ''}</span>`).join('')}</div>`;
+  const labelFor = key === 'languages' ? (v => languageLabel(v)) : (v => v);
+  const pills = (values || []).map((v, i) => `<span class="onboarding-pill">${esc(labelFor(v))}${editable ? ` <button type="button" data-remove="${key}" data-index="${i}" aria-label="Remove ${esc(labelFor(v))}">×</button>` : ''}</span>`).join('');
+  if (!editable || !['tier1', 'languages', 'exclude_keywords'].includes(key)) return `<div class="onboarding-pills">${pills}</div>`;
+  const placeholders = {tier1: 'Add a keyword', languages: 'Search or add a language', exclude_keywords: 'Add a word to exclude'};
+  const picker = key === 'languages' ? '<div class="onboarding-language-options" role="listbox"></div>' : '';
+  return `<div class="onboarding-editor" data-onboarding-editor="${key}"><div class="onboarding-pills">${pills}</div><div class="onboarding-add-row"><div class="onboarding-input-wrap"><input type="text" data-onboarding-input="${key}" placeholder="${placeholders[key]}" autocomplete="off">${picker}</div><button type="button" data-onboarding-add="${key}">Add</button></div></div>`;
 }
 function sourceRows(state) {
   return ((state?.profile || {}).sources || []).map(source => `<div class="onboarding-source"><div><b>${esc(source.label || source.path || 'Source')}<span class="onboarding-source-kind">${source.kind === 'folder' ? 'Folder' : 'File'}</span></b><small>${esc(source.path || '')}</small></div><span class="source-status">✓</span></div>`).join('') || '<div class="source-empty">No source materials added yet.</div>';
@@ -489,10 +510,10 @@ function rubricCard(state) {
   const stage0 = cards.stage0 || {};
   const stage1 = cards.stage1 || {};
   const stage2 = cards.stage2 || {};
-  const stage0Keywords = Array.isArray(stage0.keywords) && stage0.keywords.length ? stage0.keywords : (profile.criteria?.keywords?.tier1 || []);
-  const stage0Languages = Array.isArray(stage0.languages) && stage0.languages.length ? stage0.languages : (profile.criteria?.languages?.length ? profile.criteria.languages : ['en']);
-  const stage0Excludes = Array.isArray(stage0.exclude_keywords) ? stage0.exclude_keywords : (profile.criteria?.exclude_keywords || []);
-  const stage0View = `<div class="onboarding-card"><h3>Code-based filter</h3><p>Review the first screen before LLM judgment. Matching keywords, readable languages, and excluded words are applied here.</p><div class="onboarding-field"><label>Keywords to match</label>${onboardingTags(stage0Keywords, 'tier1', phase === 'stage0')}</div><div class="onboarding-field"><label>Languages you use</label>${onboardingTags(stage0Languages, 'languages', phase === 'stage0')}</div><div class="onboarding-field"><label>Words to exclude</label>${onboardingTags(stage0Excludes, 'exclude_keywords', phase === 'stage0')}</div>${phase === 'stage0' ? '<button class="primary" type="button" data-confirm-stage0>Confirm filter</button>' : '<div class="source-status">READY ✓</div>'}</div>`;
+  const stage0Keywords = phase === 'stage0' ? onboardingDraft.tier1 : (Array.isArray(stage0.keywords) ? stage0.keywords : (profile.criteria?.keywords?.tier1 || []));
+  const stage0Languages = phase === 'stage0' ? onboardingDraft.languages : (Array.isArray(stage0.languages) ? stage0.languages : (profile.criteria?.languages || ['en']));
+  const stage0Excludes = phase === 'stage0' ? onboardingDraft.exclude_keywords : (Array.isArray(stage0.exclude_keywords) ? stage0.exclude_keywords : (profile.criteria?.exclude_keywords || []));
+  const stage0View = `<div class="onboarding-card"><h3>Code-based filter</h3><p>Review the first screen before LLM judgment. Matching keywords, readable languages, and excluded words are applied here.</p><div class="onboarding-field"><label>Keywords to match</label>${onboardingTags(stage0Keywords, 'tier1', phase === 'stage0')}</div><div class="onboarding-field"><label>Languages you use</label>${onboardingTags(stage0Languages, 'languages', phase === 'stage0')}</div><div class="onboarding-field"><label>Words to exclude</label>${onboardingTags(stage0Excludes, 'exclude_keywords', phase === 'stage0')}</div>${phase === 'stage0' ? '<div class="onboarding-actions onboarding-confirm-actions"><button class="primary" type="button" data-confirm-stage0>Confirm filter</button></div>' : '<div class="source-status">READY ✓</div>'}</div>`;
   if (phase === 'stage0') return stage0View;
   if (phase === 'stage1') return `${stage0View}<div class="onboarding-card"><h3>Stage 1 · rough model</h3><p>${esc(stage1.description || 'A rough model reads the matched sentence and nearby evidence only.')}</p><div class="onboarding-summary">Profile and rubric signals are used to make the first judgment.</div><button class="primary" type="button" data-confirm-rubric="stage1">Confirm Stage 1</button></div>`;
   return `${stage0View}<div class="onboarding-card"><h3>Stage 1 · rough model</h3><p>${esc(stage1.description || 'A rough model reads matched evidence only.')}</p><div class="source-status">READY ✓</div></div><div class="onboarding-card"><h3>Stage 2 · middle model</h3><p>${esc(stage2.description || 'A middle model reads the full job description together with your profile summary and rubric.')}</p><div class="onboarding-summary"><b>Input</b> Full job description + profile summary + confirmed rubric</div>${phase === 'stage2' ? '<button class="primary" type="button" data-confirm-rubric="stage2">Confirm Stage 2</button>' : '<div class="source-status">READY ✓</div>'}</div>`;
@@ -549,8 +570,49 @@ async function submitOnboardingAction(button, type, payload = {}) {
     alert(error.message || 'Could not send this decision to the setup chat.');
   }
 }
+function addOnboardingValue(key, rawValue) {
+  let value = String(rawValue || '').trim();
+  if (!value) return;
+  if (key === 'languages') {
+    const match = LANGUAGE_OPTIONS.find(item => item.name.toLowerCase() === value.toLowerCase() || item.code === value.toLowerCase());
+    value = match ? match.code : value;
+  }
+  const current = Array.isArray(onboardingDraft[key]) ? [...onboardingDraft[key]] : [];
+  if (!current.some(item => item.toLowerCase() === value.toLowerCase())) current.push(value);
+  onboardingDraft[key] = current;
+  renderOnboarding();
+}
+function renderOnboardingLanguageOptions(input) {
+  const editor = input.closest('[data-onboarding-editor]');
+  const options = editor.querySelector('.onboarding-language-options');
+  const query = input.value.trim().toLowerCase();
+  const selected = new Set(onboardingDraft.languages || []);
+  const filtered = LANGUAGE_OPTIONS.filter(item => !selected.has(item.code) && (!query || `${item.name} ${item.code}`.toLowerCase().includes(query)));
+  const exactMatch = LANGUAGE_OPTIONS.some(item => item.name.toLowerCase() === query || item.code === query);
+  const custom = query && !exactMatch ? `<button type="button" class="onboarding-language-option" data-language-value="${esc(input.value.trim())}" role="option"><span>Use “${esc(input.value.trim())}”</span><span class="code">custom</span></button>` : '';
+  options.innerHTML = filtered.map(item => `<button type="button" class="onboarding-language-option" data-language-value="${item.code}" role="option"><span>${esc(item.name)}</span><span class="code">${item.code}</span></button>`).join('') + custom || '<div class="onboarding-language-empty">No matching languages</div>';
+  options.querySelectorAll('[data-language-value]').forEach(option => option.addEventListener('click', () => addOnboardingValue('languages', option.dataset.languageValue)));
+}
 function bindOnboarding() {
-  document.querySelectorAll('[data-remove]').forEach(button => button.addEventListener('click', () => { const key = button.dataset.remove; onboardingDraft[key].splice(Number(button.dataset.index), 1); renderOnboarding(); }));
+  document.querySelectorAll('[data-remove]').forEach(button => button.addEventListener('click', () => { const key = button.dataset.remove; const values = Array.isArray(onboardingDraft[key]) ? onboardingDraft[key] : []; values.splice(Number(button.dataset.index), 1); onboardingDraft[key] = values; renderOnboarding(); }));
+  document.querySelectorAll('[data-onboarding-input]').forEach(input => {
+    const key = input.dataset.onboardingInput;
+    const addFromInput = () => { const value = input.value.trim(); if (value) addOnboardingValue(key, value); };
+    if (key === 'languages') {
+      const options = input.closest('[data-onboarding-editor]').querySelector('.onboarding-language-options');
+      const open = () => { renderOnboardingLanguageOptions(input); options.classList.add('open'); };
+      input.addEventListener('focus', open); input.addEventListener('click', open); input.addEventListener('input', open);
+      input.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); const first = options.querySelector('[data-language-value]'); if (first) first.click(); else addFromInput(); } });
+      input.addEventListener('blur', () => setTimeout(() => options.classList.remove('open'), 120));
+    } else {
+      input.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ',') { event.preventDefault(); addFromInput(); } });
+      input.addEventListener('blur', addFromInput);
+    }
+  });
+  document.querySelectorAll('[data-onboarding-add]').forEach(button => button.addEventListener('click', () => {
+    const input = button.closest('[data-onboarding-editor]').querySelector('[data-onboarding-input]');
+    addOnboardingValue(button.dataset.onboardingAdd, input.value);
+  }));
   const add = document.querySelector('[data-title-add]'); if (add) add.addEventListener('click', () => { const input = document.getElementById('title-input'); const value = input.value.trim(); if (value && !onboardingDraft.titles.includes(value)) onboardingDraft.titles.push(value); renderOnboarding(); });
   document.querySelectorAll('[data-add-onboarding-source]').forEach(button => button.addEventListener('click', () => addOnboardingSource(button.dataset.addOnboardingSource, button)));
   const confirmSources = document.querySelector('[data-confirm-profile-sources]'); if (confirmSources) confirmSources.addEventListener('click', () => submitOnboardingAction(confirmSources, 'confirm_profile_sources'));
@@ -566,7 +628,11 @@ async function refreshOnboarding(force = false) {
   if (!force && version === onboardingVersion) return;
   onboardingVersion = version; onboardingState = state;
   const profile = state.profile || {}; const criteria = profile.criteria || data.config?.criteria || {};
-  onboardingDraft = {...onboardingDraft, titles: profile.titles || onboardingDraft.titles, location: criteria.location || onboardingDraft.location, is_remote: criteria.is_remote ?? onboardingDraft.is_remote, hours_old: criteria.hours_old || onboardingDraft.hours_old, tier1: criteria.keywords?.tier1 || onboardingDraft.tier1, languages: criteria.languages || onboardingDraft.languages, exclude_keywords: criteria.exclude_keywords || onboardingDraft.exclude_keywords};
+  const stage0 = state.cards?.stage0 || {};
+  const stage0Keywords = Array.isArray(stage0.keywords) ? stage0.keywords : (criteria.keywords?.tier1 || onboardingDraft.tier1);
+  const stage0Languages = Array.isArray(stage0.languages) ? stage0.languages : (criteria.languages || onboardingDraft.languages);
+  const stage0Excludes = Array.isArray(stage0.exclude_keywords) ? stage0.exclude_keywords : (criteria.exclude_keywords || onboardingDraft.exclude_keywords);
+  onboardingDraft = {...onboardingDraft, titles: profile.titles || onboardingDraft.titles, location: criteria.location || onboardingDraft.location, is_remote: criteria.is_remote ?? onboardingDraft.is_remote, hours_old: criteria.hours_old || onboardingDraft.hours_old, tier1: stage0Keywords, languages: stage0Languages, exclude_keywords: stage0Excludes};
   renderOnboarding();
 }
 async function maybeStartOnboarding() {
