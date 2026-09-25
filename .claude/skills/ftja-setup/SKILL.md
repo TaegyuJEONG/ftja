@@ -98,11 +98,21 @@ read every path from `onboarding-state.json`, then inspect/copy the selected
 sources into the gitignored `profile/` folder as needed. Do not require a
 resume/portfolio label: the UI uses the selected file or folder name.
 
-After opening the viewer, send one short instruction to add source materials and
-wait. Do not continue the profile interview, write a summary, or ask another
-source question until at least one source is present in `onboarding-state.json`.
-If the user adds more sources while the profile is being prepared, re-read the
-full source list before writing `profile/summary.md`.
+After opening the viewer, tell the user to add source materials and click
+**Confirm sources** when finished. Keep this setup turn alive with the bounded
+file bridge:
+
+```bash
+venv/bin/python -m ftja.onboarding . wait-for-source-confirm --timeout 900
+```
+
+Do not continue the profile interview, write a summary, or ask another source
+question until that command returns `status: confirmed`. When it returns, read
+every path from `onboarding-state.json` and continue in this same setup session.
+If it returns `status: timeout`, tell the user to type `I uploaded my background
+files, continue the setup` in the FTJA setup chat and then resume from the state
+file. If the user adds more sources before confirming, re-read the full source
+list before writing `profile/summary.md`.
 
 ## What you need to learn
 

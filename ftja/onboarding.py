@@ -5,6 +5,7 @@ import argparse
 import json
 import os
 import tempfile
+import time
 from datetime import datetime, timezone
 from typing import Any
 
@@ -19,7 +20,7 @@ DEFAULT_STATE: dict[str, Any] = {
     "status": "waiting",
     "allowed_actions": ["set_profile_sources"],
     "messages": [],
-    "profile": {"sources": [], "summary": "", "titles": [], "criteria": {}},
+    "profile": {"sources": [], "summary": "", "titles": [], "criteria": {}, "sources_confirmed": False},
     "cards": {},
 }
 
@@ -67,15 +68,30 @@ def apply_action(project_dir: str, action: dict[str, Any]) -> dict[str, Any]:
     if kind == "set_profile_sources":
         if state.get("stage") != "profile" or state.get("phase") not in {"sources", "profile_summary"}:
             raise OnboardingError(f"action is not allowed in {state.get('stage')}/{state.get('phase')}")
+        if profile.get("sources_confirmed"):
+            raise OnboardingError("profile sources are already confirmed")
         sources = _clean_sources(action.get("sources"))
-        profile = {**profile, "sources": sources}
+        profile = {**profile, "sources": sources, "sources_confirmed": False}
         state.update(
             phase="profile_summary",
-            allowed_actions=["set_profile_sources", "set_profile_summary"],
+            allowed_actions=["set_profile_sources", "confirm_profile_sources", "set_profile_summary"],
+            profile=profile,
+        )
+    elif kind == "confirm_profile_sources":
+        if state.get("stage") != "profile" or state.get("phase") not in {"sources", "profile_summary"}:
+            raise OnboardingError(f"action is not allowed in {state.get('stage')}/{state.get('phase')}")
+        if not profile.get("sources"):
+            raise OnboardingError("at least one profile source is required")
+        profile = {**profile, "sources_confirmed": True}
+        state.update(
+            phase="profile_summary",
+            allowed_actions=["set_profile_summary"],
             profile=profile,
         )
     elif kind == "set_profile_summary":
         _require(state, "profile", "profile_summary")
+        if not profile.get("sources_confirmed"):
+            raise OnboardingError("confirm the profile sources before writing a summary")
         summary = str(action.get("summary") or "").strip()
         if not summary:
             raise OnboardingError("profile summary is required")
@@ -176,6 +192,29 @@ def write_action(project_dir: str, action: dict[str, Any]) -> None:
     write_json(project_dir, ACTION_FILE, {**action, "at": datetime.now(timezone.utc).isoformat()})
 
 
+def wait_for_source_confirm(project_dir: str, timeout_seconds: int = 900) -> dict[str, Any]:
+    """Wait for the web Confirm action written in the connected project folder."""
+    if not 1 <= timeout_seconds <= 3600:
+        raise ValueError("timeout_seconds must be between 1 and 3600")
+    initial = read_state(project_dir)
+    initial_revision = int(initial.get("revision", 0))
+    deadline = time.monotonic() + timeout_seconds
+    while time.monotonic() < deadline:
+        action = read_action(project_dir)
+        if action and action.get("type") == "confirm_profile_sources":
+            state = read_state(project_dir)
+            action_revision = int(action.get("expected_revision", -1))
+            current_revision = int(state.get("revision", 0))
+            if (
+                state.get("profile", {}).get("sources_confirmed")
+                and current_revision > initial_revision
+                and initial_revision <= action_revision < current_revision
+            ):
+                return {"status": "confirmed", "state": state}
+        time.sleep(0.5)
+    return {"status": "timeout", "state": read_state(project_dir)}
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Coordinate FTJA chat and web onboarding")
     parser.add_argument("project_dir", nargs="?", default=".")
@@ -188,12 +227,16 @@ def main() -> None:
     set_state.add_argument("--status", default="waiting")
     set_state.add_argument("--message", default="")
     set_state.add_argument("--json", default="{}")
+    wait = sub.add_parser("wait-for-source-confirm", help="Wait for the web Confirm action")
+    wait.add_argument("--timeout", type=int, default=900)
     add = sub.add_parser("message")
     add.add_argument("role", choices=["agent", "user", "system"])
     add.add_argument("text")
     args = parser.parse_args()
     if args.command == "init":
         write_state(args.project_dir, **({"messages": [{"role": "agent", "text": args.message}]} if args.message else {}))
+    elif args.command == "wait-for-source-confirm":
+        print(json.dumps(wait_for_source_confirm(args.project_dir, args.timeout), ensure_ascii=False, indent=2))
     elif args.command == "message":
         add_message(args.project_dir, args.role, args.text)
     else:

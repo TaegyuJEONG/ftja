@@ -46,6 +46,42 @@ class ProfileSourceTests(unittest.TestCase):
                 server.server_close()
                 thread.join(timeout=3)
 
+    def test_confirm_action_is_written_for_the_setup_helper(self):
+        with TemporaryDirectory() as tmp:
+            source = Path(tmp) / "resume.txt"
+            source.write_text("experience", encoding="utf-8")
+            server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(
+                str(Path(tmp) / "seen.db"), tmp
+            ))
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            try:
+                def post(payload):
+                    request = Request(
+                        f"http://127.0.0.1:{server.server_port}/api/onboarding-action",
+                        data=json.dumps(payload).encode(),
+                        headers={"Content-Type": "application/json"},
+                        method="POST",
+                    )
+                    with urlopen(request, timeout=3) as response:
+                        return json.load(response)
+
+                first = post({
+                    "type": "set_profile_sources",
+                    "expected_revision": 0,
+                    "sources": [{"path": str(source), "kind": "file"}],
+                })
+                self.assertEqual(first["state"]["revision"], 1)
+                self.assertEqual(json.loads((Path(tmp) / "onboarding-action.json").read_text())["type"], "set_profile_sources")
+                second = post({"type": "confirm_profile_sources", "expected_revision": 1})
+                self.assertTrue(second["state"]["profile"]["sources_confirmed"])
+                action = json.loads((Path(tmp) / "onboarding-action.json").read_text())
+                self.assertEqual(action["type"], "confirm_profile_sources")
+            finally:
+                server.shutdown()
+                server.server_close()
+                thread.join(timeout=3)
+
     def test_pipeline_registry_preserves_folder_sources(self):
         with TemporaryDirectory() as tmp:
             folder = Path(tmp) / "portfolio"
@@ -65,6 +101,9 @@ class ProfileSourceTests(unittest.TestCase):
         self.assertIn("Selected items stay on your computer. Your coding agent reads them locally.", html)
         self.assertIn("+ Add files", html)
         self.assertIn("+ Add a folder", html)
+        self.assertIn("Confirm sources", html)
+        self.assertIn("data-confirm-profile-sources", html)
+        self.assertIn("I uploaded my background files, continue the setup", html)
         self.assertIn("sources: [...current, source]", html)
         self.assertNotIn("Choose resume or portfolio file", html)
         self.assertNotIn("You can add more than one. Nothing is uploaded;", html)

@@ -1,8 +1,10 @@
 import tempfile
+import threading
+import time
 import unittest
 from pathlib import Path
 
-from ftja.onboarding import OnboardingError, apply_action, write_json, STATE_FILE, DEFAULT_STATE
+from ftja.onboarding import DEFAULT_STATE, STATE_FILE, OnboardingError, apply_action, read_state, wait_for_source_confirm, write_action, write_json
 
 
 class OnboardingStateTests(unittest.TestCase):
@@ -28,6 +30,8 @@ class OnboardingStateTests(unittest.TestCase):
     def test_normal_order_is_strict(self):
         state = self.act("set_profile_sources", sources=[{"path": str(self.root / "resume.txt")}])
         self.assertEqual((state["stage"], state["phase"]), ("profile", "profile_summary"))
+        state = self.act("confirm_profile_sources")
+        self.assertTrue(state["profile"]["sources_confirmed"])
         state = self.act("set_profile_summary", summary="Built products and shipped experiments.")
         self.assertEqual(state["phase"], "title_proposal")
         state = self.act("confirm_profile", titles=["Product Manager"], location="Europe")
@@ -51,6 +55,30 @@ class OnboardingStateTests(unittest.TestCase):
         self.assertEqual(state["phase"], "profile_summary")
         self.assertEqual([source["path"] for source in state["profile"]["sources"]], [first["path"], str(second_dir)])
         self.assertEqual(state["profile"]["sources"][1]["kind"], "folder")
+
+    def test_wait_for_source_confirm_handles_multiple_source_updates(self):
+        result = {}
+
+        def wait():
+            result.update(wait_for_source_confirm(str(self.root), timeout_seconds=2))
+
+        thread = threading.Thread(target=wait)
+        thread.start()
+        time.sleep(0.1)
+        first = {"path": str(self.root / "resume.txt"), "kind": "file"}
+        second_dir = self.root / "portfolio"
+        second_dir.mkdir()
+        self.act("set_profile_sources", sources=[first])
+        self.act("set_profile_sources", sources=[first, {"path": str(second_dir), "kind": "folder"}])
+        expected_revision = read_state(str(self.root))["revision"]
+        action = {"type": "confirm_profile_sources", "expected_revision": expected_revision}
+        apply_action(str(self.root), action)
+        write_action(str(self.root), action)
+        thread.join(timeout=3)
+
+        self.assertFalse(thread.is_alive())
+        self.assertEqual(result["status"], "confirmed")
+        self.assertTrue(result["state"]["profile"]["sources_confirmed"])
 
     def test_stale_revision_is_rejected(self):
         apply_action(str(self.root), {"type": "set_profile_sources", "expected_revision": 0, "sources": [{"path": str(self.root / "resume.txt")}]})

@@ -240,7 +240,8 @@ def make_handler(db_path: str, project_dir: str):
             elif self.path == "/api/onboarding-action":
                 try:
                     state = apply_action(project_dir, data)
-                except (OnboardingError, TypeError, ValueError) as e:
+                    write_action(project_dir, data)
+                except (OnboardingError, TypeError, ValueError, OSError) as e:
                     self._send_json(409, {"error": str(e), "state": read_state(project_dir)})
                     return
                 self._send_json(200, {"ok": True, "state": state})
