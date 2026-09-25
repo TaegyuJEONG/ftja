@@ -293,6 +293,7 @@ select.sort-select {
 @media (max-width: 720px) {
   .results-layout { flex-direction: column; }
   .run-sidebar { width: 100%; }
+  .profile-search-grid { grid-template-columns: 1fr; gap: 14px; }
 }
 
 /* ---- first-run onboarding ---- */
@@ -315,6 +316,22 @@ select.sort-select {
 .onboarding-field input, .onboarding-field textarea, .onboarding-field select { width: 100%; border: 1px solid var(--border); border-radius: 2px; padding: 10px 11px; color: var(--text); background: var(--surface); font: 13px inherit; }
 .onboarding-field textarea { min-height: 92px; resize: vertical; line-height: 1.55; }
 .onboarding-field input:focus, .onboarding-field textarea:focus, .onboarding-field select:focus { outline: none; border-color: var(--accent); }
+.profile-search-card { padding: 26px; }
+.profile-search-card h3 { margin-bottom: 22px; font-size: 14px; }
+.profile-search-card .onboarding-field { margin-top: 0; }
+.profile-title-field { margin-bottom: 24px; }
+.profile-title-add-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+.profile-title-add-row input { flex: 1; min-width: 0; }
+.profile-title-add-row .save-btn { height: 38px; }
+.profile-search-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(190px, .75fr); gap: 18px; align-items: start; }
+.profile-check-field { display: inline-flex; align-items: center; gap: 8px; margin-top: 18px; color: var(--text2); font-size: 12px; cursor: pointer; }
+.profile-check-field input { width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; }
+.profile-field-hint { color: var(--text3); font-size: 10.5px; line-height: 1.45; margin: 6px 0 0; }
+.profile-confirm-actions { justify-content: flex-start; margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--border); }
+.onboarding-action-notice { margin-top: 18px; padding: 13px 14px; background: var(--accent-dim); border: 1px solid var(--accent-border); color: var(--text2); font-size: 11px; line-height: 1.55; }
+.onboarding-action-notice b { display: block; color: var(--accent-text); margin-bottom: 4px; }
+.onboarding-action-notice p { margin: 0; }
+.onboarding-action-notice code { color: var(--accent-text); font: 10px 'IBM Plex Mono', monospace; }
 .onboarding-source-list { display: grid; gap: 8px; margin-top: 10px; }
 .onboarding-source { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; background: var(--surface2); border: 1px solid var(--border); font-size: 12px; }
 .onboarding-source small { color: var(--text3); display: block; margin-top: 2px; font: 10px 'IBM Plex Mono', monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 500px; }
@@ -417,6 +434,23 @@ function latestOnboardingMessage(state) {
   const messages = state?.messages || [];
   return messages.length ? messages[messages.length - 1].text : 'Keep this page open beside your coding agent. FTJA will update it as the setup chat moves forward.';
 }
+function onboardingCopy(state) {
+  if (state?.stage === 'profile' && ['title_proposal', 'scrape_card'].includes(state?.phase)) {
+    return 'Based on your background, FTJA suggests starting titles, a location, and search settings. Edit anything that needs changing, then confirm.';
+  }
+  return latestOnboardingMessage(state);
+}
+let onboardingActionNotice = '';
+function recoveryPhrase(actionType) {
+  const phrases = {
+    confirm_profile_sources: 'I uploaded my background files, continue the setup',
+    confirm_profile: 'I confirmed my search settings, continue the setup',
+    confirm_stage0: 'I confirmed Stage 0, continue the setup',
+    confirm_stage1: 'I confirmed Stage 1, continue the setup',
+    confirm_stage2: 'I confirmed Stage 2, continue the setup',
+  };
+  return phrases[actionType] || 'I confirmed the latest card, continue the setup';
+}
 function onboardingTags(values, key, editable = true) {
   return `<div class="onboarding-pills">${(values || []).map((v, i) => `<span class="onboarding-pill">${esc(v)}${editable ? ` <button type="button" data-remove="${key}" data-index="${i}">×</button>` : ''}</span>`).join('')}</div>`;
 }
@@ -428,7 +462,12 @@ function profileCard(state) {
   const phase = state.phase;
   const summary = profile.summary || '';
   const titles = onboardingDraft.titles.length ? onboardingDraft.titles : (profile.titles || []);
-  if (phase === 'title_proposal' || phase === 'scrape_card') return `<div class="onboarding-card"><h3>Search draft from your profile</h3><p>${esc(latestOnboardingMessage(state))}</p><div class="onboarding-field"><label>Suggested job titles</label>${onboardingTags(titles, 'titles')}<div class="field-row"><input id="title-input" type="text" placeholder="Add a title"><button class="save-btn" type="button" data-title-add>Add</button></div></div><div class="onboarding-field"><label for="profile-location">Location</label><input id="profile-location" value="${esc(onboardingDraft.location || profile.criteria?.location || 'Europe')}" placeholder="e.g. Europe"></div><div class="field-row"><label class="check-label"><input id="profile-remote" type="checkbox" ${onboardingDraft.is_remote ? 'checked' : ''}> Remote only</label><div class="onboarding-field" style="margin-top:0;flex:1"><label for="profile-hours">Posting age</label><select id="profile-hours"><option value="24" ${onboardingDraft.hours_old === 24 ? 'selected' : ''}>Past 24 hours</option><option value="72" ${onboardingDraft.hours_old === 72 ? 'selected' : ''}>Past 72 hours</option><option value="168" ${onboardingDraft.hours_old === 168 ? 'selected' : ''}>Past 7 days</option></select></div></div>${phase === 'scrape_card' ? '<div class="onboarding-summary"><b>Scraping criteria</b>\nTitles, Europe, non-remote, past 24 hours</div>' : '<button class="primary" type="button" data-confirm-profile>Confirm profile and search draft</button>'}</div>`;
+  if (phase === 'title_proposal' || phase === 'scrape_card') {
+    const confirmMarkup = phase === 'scrape_card'
+      ? '<div class="onboarding-summary"><b>Search settings ready</b>Review the settings above before your next run.</div>'
+      : '<div class="onboarding-actions profile-confirm-actions"><button class="primary" type="button" data-confirm-profile>Confirm search settings</button></div>';
+    return `<div class="onboarding-card profile-search-card"><h3>Your search settings</h3><div class="onboarding-field profile-title-field"><label>Suggested job titles</label>${onboardingTags(titles, 'titles')}<div class="profile-title-add-row"><input id="title-input" type="text" placeholder="Add a job title"><button class="save-btn" type="button" data-title-add>Add</button></div></div><div class="profile-search-grid"><div class="onboarding-field"><label for="profile-location">Location</label><input id="profile-location" value="${esc(onboardingDraft.location || profile.criteria?.location || 'Europe')}" placeholder="e.g. Europe"></div><div class="onboarding-field"><label for="profile-hours">Published within</label><select id="profile-hours"><option value="24" ${onboardingDraft.hours_old === 24 ? 'selected' : ''}>Past 24 hours (recommended)</option><option value="72" ${onboardingDraft.hours_old === 72 ? 'selected' : ''}>Past 72 hours</option><option value="168" ${onboardingDraft.hours_old === 168 ? 'selected' : ''}>Past 7 days</option></select><p class="profile-field-hint">For a daily run, FTJA recommends the past 24 hours.</p></div></div><label class="profile-check-field"><input id="profile-remote" type="checkbox" ${onboardingDraft.is_remote ? 'checked' : ''}><span>Remote only</span></label>${confirmMarkup}</div>`;
+  }
   const sourceIntro = ['sources', 'profile_summary'].includes(phase) ? '<p class="onboarding-source-note source-intro">Add any files or folders that help FTJA understand your background.</p>' : '';
   const sources = profile.sources || [];
   const sourceActions = ['sources', 'profile_summary'].includes(phase) && !profile.sources_confirmed ? `<div class="onboarding-source-actions"><button class="primary" type="button" data-add-onboarding-source="file">+ Add files</button><button class="secondary" type="button" data-add-onboarding-source="folder">+ Add a folder</button><button class="primary onboarding-source-confirm" type="button" data-confirm-profile-sources ${sources.length ? '' : 'disabled'}>Confirm sources</button></div><p class="onboarding-source-note">Selected items stay on your computer. Your coding agent reads them locally.</p>` : '';
@@ -455,7 +494,8 @@ function onboardingStepMarkup() {
   else if (state.stage === 'rubric') body = rubricCard(state);
   else if (state.stage === 'run') body = `<div class="onboarding-card"><h3>Run</h3><p>${esc(latestOnboardingMessage(state))}</p><div class="onboarding-summary"><b>Ready</b> Use <span class="mono">/ftja-run</span> in your coding-agent chat. Results will appear here without advancing the page manually.</div></div>`;
   else body = `<div class="onboarding-card"><h3>Learn</h3><p>${esc(latestOnboardingMessage(state))}</p><div class="onboarding-summary"><b>Learn from decisions</b> Mark apply or skip in Results and explain why. FTJA will propose rubric changes in a later interactive run.</div></div>`;
-  return `<div class="onboarding-kicker">Step ${onboardingStepIndex(state) + 1} of 4 · ${title}</div><h2 class="onboarding-title">${title === 'Profile' ? 'Add your background.' : title === 'Rubric' ? 'Make the judgment visible.' : title === 'Run' ? 'Run the pipeline.' : 'Teach FTJA carefully.'}</h2><p class="onboarding-copy">${esc(latestOnboardingMessage(state))}</p>${body}`;
+  const bridgeNotice = onboardingActionNotice && onboardingActionNotice !== 'confirm_profile_sources' ? `<div class="onboarding-action-notice"><b>Decision saved locally.</b><p>Your setup agent is checking this page. If nothing happens, type <code>${esc(recoveryPhrase(onboardingActionNotice))}</code> in the FTJA setup chat.</p></div>` : '';
+  return `<div class="onboarding-kicker">Step ${onboardingStepIndex(state) + 1} of 4 · ${title}</div><h2 class="onboarding-title">${title === 'Profile' ? (['title_proposal', 'scrape_card'].includes(state.phase) ? 'Fine-tune your job search.' : 'Add your background.') : title === 'Rubric' ? 'Make the judgment visible.' : title === 'Run' ? 'Run the pipeline.' : 'Teach FTJA carefully.'}</h2><p class="onboarding-copy">${esc(onboardingCopy(state))}</p>${body}${bridgeNotice}`;
 }
 function renderOnboarding() {
   const state = onboardingState || {stage: 'profile', phase: 'sources'};
@@ -468,6 +508,7 @@ async function postOnboardingAction(type, payload = {}) {
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(body.error || 'Could not send this decision to the setup chat.');
   if (body.state) {
+    if (type.startsWith('confirm_')) onboardingActionNotice = type;
     onboardingState = body.state;
     onboardingVersion = body.state.updated_at || JSON.stringify(body.state);
     renderOnboarding();
@@ -487,14 +528,23 @@ async function addOnboardingSource(kind, button) {
     button.disabled = false;
   }
 }
+async function submitOnboardingAction(button, type, payload = {}) {
+  button.disabled = true;
+  try {
+    await postOnboardingAction(type, payload);
+  } catch (error) {
+    button.disabled = false;
+    alert(error.message || 'Could not send this decision to the setup chat.');
+  }
+}
 function bindOnboarding() {
   document.querySelectorAll('[data-remove]').forEach(button => button.addEventListener('click', () => { const key = button.dataset.remove; onboardingDraft[key].splice(Number(button.dataset.index), 1); renderOnboarding(); }));
   const add = document.querySelector('[data-title-add]'); if (add) add.addEventListener('click', () => { const input = document.getElementById('title-input'); const value = input.value.trim(); if (value && !onboardingDraft.titles.includes(value)) onboardingDraft.titles.push(value); renderOnboarding(); });
   document.querySelectorAll('[data-add-onboarding-source]').forEach(button => button.addEventListener('click', () => addOnboardingSource(button.dataset.addOnboardingSource, button)));
-  const confirmSources = document.querySelector('[data-confirm-profile-sources]'); if (confirmSources) confirmSources.addEventListener('click', async () => { confirmSources.disabled = true; try { await postOnboardingAction('confirm_profile_sources'); } catch (error) { confirmSources.disabled = false; alert(error.message || 'Could not confirm these sources.'); } });
-  const confirmProfile = document.querySelector('[data-confirm-profile]'); if (confirmProfile) confirmProfile.addEventListener('click', () => postOnboardingAction('confirm_profile', {titles: onboardingDraft.titles, location: document.getElementById('profile-location').value.trim(), is_remote: document.getElementById('profile-remote').checked, hours_old: Number(document.getElementById('profile-hours').value)}));
-  const confirmStage0 = document.querySelector('[data-confirm-stage0]'); if (confirmStage0) confirmStage0.addEventListener('click', () => postOnboardingAction('confirm_stage0', {keywords: onboardingDraft.tier1, languages: onboardingDraft.languages, exclude_keywords: onboardingDraft.exclude_keywords}));
-  document.querySelectorAll('[data-confirm-rubric]').forEach(button => button.addEventListener('click', () => postOnboardingAction(`confirm_${button.dataset.confirmRubric}`)));
+  const confirmSources = document.querySelector('[data-confirm-profile-sources]'); if (confirmSources) confirmSources.addEventListener('click', () => submitOnboardingAction(confirmSources, 'confirm_profile_sources'));
+  const confirmProfile = document.querySelector('[data-confirm-profile]'); if (confirmProfile) confirmProfile.addEventListener('click', () => submitOnboardingAction(confirmProfile, 'confirm_profile', {titles: onboardingDraft.titles, location: document.getElementById('profile-location').value.trim(), is_remote: document.getElementById('profile-remote').checked, hours_old: Number(document.getElementById('profile-hours').value)}));
+  const confirmStage0 = document.querySelector('[data-confirm-stage0]'); if (confirmStage0) confirmStage0.addEventListener('click', () => submitOnboardingAction(confirmStage0, 'confirm_stage0', {keywords: onboardingDraft.tier1, languages: onboardingDraft.languages, exclude_keywords: onboardingDraft.exclude_keywords}));
+  document.querySelectorAll('[data-confirm-rubric]').forEach(button => button.addEventListener('click', () => submitOnboardingAction(button, `confirm_${button.dataset.confirmRubric}`)));
 }
 async function refreshOnboarding(force = false) {
   const res = await fetch('/api/onboarding?ts=' + Date.now(), {cache:'no-store'}); const data = await res.json();

@@ -4,7 +4,7 @@ import time
 import unittest
 from pathlib import Path
 
-from ftja.onboarding import DEFAULT_STATE, STATE_FILE, OnboardingError, apply_action, read_state, wait_for_source_confirm, write_action, write_json
+from ftja.onboarding import DEFAULT_STATE, STATE_FILE, OnboardingError, apply_action, read_state, wait_for_action, wait_for_source_confirm, write_action, write_json
 
 
 class OnboardingStateTests(unittest.TestCase):
@@ -79,6 +79,64 @@ class OnboardingStateTests(unittest.TestCase):
         self.assertFalse(thread.is_alive())
         self.assertEqual(result["status"], "confirmed")
         self.assertTrue(result["state"]["profile"]["sources_confirmed"])
+
+    def test_generic_wait_handles_later_profile_confirmation(self):
+        self.act("set_profile_sources", sources=[{"path": str(self.root / "resume.txt"), "kind": "file"}])
+        self.act("confirm_profile_sources")
+        self.act("set_profile_summary", summary="Built products and shipped experiments.")
+        result = {}
+
+        def wait():
+            result.update(wait_for_action(str(self.root), ["confirm_profile"], timeout_seconds=2))
+
+        thread = threading.Thread(target=wait)
+        thread.start()
+        time.sleep(0.1)
+        action = {
+            "type": "confirm_profile",
+            "expected_revision": read_state(str(self.root))["revision"],
+            "titles": ["Product Manager"],
+            "location": "Europe",
+            "is_remote": False,
+            "hours_old": 24,
+        }
+        apply_action(str(self.root), action)
+        write_action(str(self.root), action)
+        thread.join(timeout=3)
+
+        self.assertFalse(thread.is_alive())
+        self.assertEqual(result["status"], "confirmed")
+        self.assertEqual(result["action"]["type"], "confirm_profile")
+        self.assertEqual(result["state"]["phase"], "stage0")
+
+    def test_wait_bridge_covers_every_confirm_action(self):
+        self.act("set_profile_sources", sources=[{"path": str(self.root / "resume.txt"), "kind": "file"}])
+        self.act("confirm_profile_sources")
+        self.act("set_profile_summary", summary="Built products and shipped experiments.")
+
+        def wait_then_confirm(kind, **payload):
+            result = {}
+
+            def wait():
+                result.update(wait_for_action(str(self.root), [kind], timeout_seconds=2))
+
+            thread = threading.Thread(target=wait)
+            thread.start()
+            time.sleep(0.1)
+            action = {"type": kind, "expected_revision": read_state(str(self.root))["revision"], **payload}
+            state = apply_action(str(self.root), action)
+            write_action(str(self.root), action)
+            thread.join(timeout=3)
+            self.assertFalse(thread.is_alive())
+            self.assertEqual(result["status"], "confirmed")
+            self.assertEqual(result["action"]["type"], kind)
+            return state
+
+        wait_then_confirm("confirm_profile", titles=["Product Manager"], location="Europe", is_remote=False, hours_old=24)
+        wait_then_confirm("confirm_stage0", keywords=["AI builder"], languages=["en"], exclude_keywords=[])
+        wait_then_confirm("confirm_stage1")
+        state = wait_then_confirm("confirm_stage2", rubric_md="Pass if the role is a clear product-building fit.")
+        self.assertEqual((state["stage"], state["phase"]), ("run", "ready"))
 
     def test_stale_revision_is_rejected(self):
         apply_action(str(self.root), {"type": "set_profile_sources", "expected_revision": 0, "sources": [{"path": str(self.root / "resume.txt")}]})

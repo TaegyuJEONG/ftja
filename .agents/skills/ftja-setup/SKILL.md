@@ -28,11 +28,13 @@ venv/bin/python -m ftja.onboarding . set-state --stage profile --phase profile_s
 
 The web sends decisions to `POST /api/onboarding-action`. The server is the
 onboarding state machine: it validates the current stage and revision, rejects
-stale or out-of-order actions, and writes the next `onboarding-state.json`
-state atomically. The action types are `set_profile_sources`,
+stale or out-of-order actions, writes the next `onboarding-state.json` state
+atomically, and records every web action in `onboarding-action.json`. The action
+types are `set_profile_sources`, `confirm_profile_sources`,
 `set_profile_summary`, `confirm_profile`, `confirm_stage0`, `confirm_stage1`,
 and `confirm_stage2`. The agent/LLM may produce drafts, but it must not choose
 the next stage or promote unconfirmed data into active configuration.
+
 
 The only onboarding order is:
 
@@ -95,15 +97,19 @@ for an absolute source path in chat. Tell the user to add one or more files
 and/or folders in the web view;
 the web action records local paths, not file contents. After the action appears,
 read every path from `onboarding-state.json`, then inspect/copy the selected
-sources into the gitignored `profile/` folder as needed. Do not require a
-resume/portfolio label: the UI uses the selected file or folder name.
+sources into the gitignored `profile/` folder as needed. This folder is a private
+local cache and derived workspace for repeatable daily runs; it is not an upload,
+public snapshot, or Git commit. Do not require a resume/portfolio label: the UI
+uses the selected file or folder name.
 
-After opening the viewer, tell the user to add source materials and click
-**Confirm sources** when finished. Keep this setup turn alive with the bounded
-file bridge:
+Before asking the user to choose sources, send the instruction in the active
+agent chat, then start the bounded file bridge in the same setup session. In
+Claude Code, use `mcp__ccd_session_mgmt__send_message` when available so the
+user sees the instruction before the blocking wait begins; do not put the
+instruction only in a final response and then stop the session.
 
 ```bash
-venv/bin/python -m ftja.onboarding . wait-for-source-confirm --timeout 900
+venv/bin/python -m ftja.onboarding . wait-for-action --type confirm_profile_sources --timeout 900
 ```
 
 Do not continue the profile interview, write a summary, or ask another source
@@ -113,6 +119,24 @@ If it returns `status: timeout`, tell the user to type `I uploaded my background
 files, continue the setup` in the FTJA setup chat and then resume from the state
 file. If the user adds more sources before confirming, re-read the full source
 list before writing `profile/summary.md`.
+
+The same bridge applies to every later web decision. Before waiting for a card,
+send the instruction in the active agent chat, then run the matching command:
+
+```bash
+venv/bin/python -m ftja.onboarding . wait-for-action --type confirm_profile --timeout 900
+venv/bin/python -m ftja.onboarding . wait-for-action --type confirm_stage0 --timeout 900
+venv/bin/python -m ftja.onboarding . wait-for-action --type confirm_stage1 --timeout 900
+venv/bin/python -m ftja.onboarding . wait-for-action --type confirm_stage2 --timeout 900
+```
+
+Use only the command for the card currently shown. After `status: confirmed`,
+read the returned `action` and the full `onboarding-state.json` before writing
+the next draft or message. Never assume that a changed web card reached the
+setup chat without the helper result. If a later wait times out, tell the user
+the matching recovery phrase shown by the web card (for example, `I confirmed
+my search settings, continue the setup`) and do not claim that the chat resumed.
+
 
 ## What you need to learn
 

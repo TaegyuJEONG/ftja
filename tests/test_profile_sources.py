@@ -97,6 +97,11 @@ class ProfileSourceTests(unittest.TestCase):
     def test_onboarding_ui_exposes_add_file_and_folder_actions(self):
         html = Path(__file__).parents[1].joinpath("ftja", "app.html").read_text()
         self.assertIn("Add your background.", html)
+        self.assertIn("Fine-tune your job search.", html)
+        self.assertIn("Your search settings", html)
+        self.assertIn("Published within", html)
+        self.assertIn("Past 24 hours (recommended)", html)
+        self.assertIn("Confirm search settings", html)
         self.assertIn("Add any files or folders that help FTJA understand your background.", html)
         self.assertIn("Selected items stay on your computer. Your coding agent reads them locally.", html)
         self.assertIn("+ Add files", html)
@@ -107,7 +112,19 @@ class ProfileSourceTests(unittest.TestCase):
         self.assertIn("sources: [...current, source]", html)
         self.assertNotIn("Choose resume or portfolio file", html)
         self.assertNotIn("You can add more than one. Nothing is uploaded;", html)
+        self.assertNotIn("Start with what you know.", html)
+        self.assertNotIn("Confirm profile and search draft", html)
+        self.assertNotIn("Posting age", html)
         self.assertNotIn("<h3>Your source materials</h3><p>${esc(latestOnboardingMessage(state))}", html)
+
+    def test_public_demo_uses_the_same_profile_language(self):
+        index = Path(__file__).parents[1].joinpath("index.html").read_text()
+        landing = Path(__file__).parents[1].joinpath("landing.html").read_text()
+        self.assertEqual(index, landing)
+        for text in ["Fine-tune your job search.", "Suggested job titles", "Published within", "Confirm search settings"]:
+            self.assertIn(text, index)
+        for text in ["Start with what you know.", "Confirm titles", "Posting age", "PROFILE SEARCH DRAFT CONFIRMED"]:
+            self.assertNotIn(text, index)
 
 
 if __name__ == "__main__":
