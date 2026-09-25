@@ -31,15 +31,16 @@ onboarding state machine: it validates the current stage and revision, rejects
 stale or out-of-order actions, writes the next `onboarding-state.json` state
 atomically, and records every web action in `onboarding-action.json`. The action
 types are `set_profile_sources`, `confirm_profile_sources`,
-`set_profile_summary`, `confirm_profile`, `confirm_stage0`, `confirm_stage1`,
-and `confirm_stage2`. The agent/LLM may produce drafts, but it must not choose
+`set_profile_summary`, `confirm_profile_summary`, `confirm_profile`,
+`confirm_stage0`, `confirm_stage1`, and `confirm_stage2`. The agent/LLM may produce drafts, but it must not choose
 the next stage or promote unconfirmed data into active configuration.
 
 
 The only onboarding order is:
 
 1. **Profile** — wait for resume and portfolio files, write a concise
-   `profile/summary.md`, then propose editable job titles. Propose location from
+   `profile/summary.md`, get an explicit profile-summary confirmation, then
+   propose editable job titles. Propose location from
    the user's country as a starting point, but use **Europe** in the public
    example; propose non-remote and postings from the past 24 hours as defaults.
    Do not save these defaults until the user confirms them in the web card.
@@ -120,7 +121,24 @@ files, continue the setup` in the FTJA setup chat and then resume from the state
 file. If the user adds more sources before confirming, re-read the full source
 list before writing `profile/summary.md`.
 
-The same bridge applies to every later web decision. Before waiting for a card,
+After writing `profile/summary.md`, the web must show the summary for an explicit
+`Confirm profile summary` decision. Send a short review instruction, then wait:
+
+```bash
+venv/bin/python -m ftja.onboarding . wait-for-action --type confirm_profile_summary --timeout 900
+```
+
+Only after that action returns `status: confirmed` should you propose titles,
+location, remote preference, and published-within settings. After
+`confirm_profile` returns, derive Stage 0 defaults from the confirmed profile and
+write them before asking for review:
+
+```bash
+venv/bin/python -m ftja.onboarding . set-state --stage rubric --phase stage0 --status waiting --json '{"profile":{"criteria":{"keywords":{"tier1":["..."]},"languages":["en"],"exclude_keywords":["..."]}},"cards":{"stage0":{"keywords":["..."],"languages":["en"],"exclude_keywords":["..."]}}}'
+```
+
+The `set-state` helper records this as a draft; it does not confirm Stage 0. The
+same bridge applies to every later web decision. Before waiting for a card,
 send the instruction in the active agent chat, then run the matching command:
 
 ```bash

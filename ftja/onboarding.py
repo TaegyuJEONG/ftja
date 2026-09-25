@@ -20,7 +20,7 @@ DEFAULT_STATE: dict[str, Any] = {
     "status": "waiting",
     "allowed_actions": ["set_profile_sources"],
     "messages": [],
-    "profile": {"sources": [], "summary": "", "titles": [], "criteria": {}, "sources_confirmed": False},
+    "profile": {"sources": [], "summary": "", "titles": [], "criteria": {}, "sources_confirmed": False, "summary_confirmed": False},
     "cards": {},
 }
 
@@ -71,7 +71,7 @@ def apply_action(project_dir: str, action: dict[str, Any]) -> dict[str, Any]:
         if profile.get("sources_confirmed"):
             raise OnboardingError("profile sources are already confirmed")
         sources = _clean_sources(action.get("sources"))
-        profile = {**profile, "sources": sources, "sources_confirmed": False}
+        profile = {**profile, "sources": sources, "sources_confirmed": False, "summary_confirmed": False}
         state.update(
             phase="profile_summary",
             allowed_actions=["set_profile_sources", "confirm_profile_sources"],
@@ -95,10 +95,17 @@ def apply_action(project_dir: str, action: dict[str, Any]) -> dict[str, Any]:
         summary = str(action.get("summary") or "").strip()
         if not summary:
             raise OnboardingError("profile summary is required")
-        profile = {**profile, "summary": summary}
-        state.update(phase="title_proposal", allowed_actions=["confirm_profile"], profile=profile, cards={**cards, "profile": {"summary": summary}})
+        profile = {**profile, "summary": summary, "summary_confirmed": False}
+        state.update(phase="profile_summary_review", allowed_actions=["confirm_profile_summary"], profile=profile, cards={**cards, "profile": {"summary": summary}})
+    elif kind == "confirm_profile_summary":
+        _require(state, "profile", "profile_summary_review")
+        if not profile.get("summary"):
+            raise OnboardingError("profile summary is required")
+        state.update(phase="title_proposal", allowed_actions=["confirm_profile"], profile={**profile, "summary_confirmed": True})
     elif kind == "confirm_profile":
         _require(state, "profile", "title_proposal")
+        if not profile.get("summary_confirmed"):
+            raise OnboardingError("confirm the profile summary before setting search conditions")
         titles = _clean_list(action.get("titles"))
         location = str(action.get("location") or "").strip()
         if not titles or not location:
@@ -106,6 +113,16 @@ def apply_action(project_dir: str, action: dict[str, Any]) -> dict[str, Any]:
         criteria = {**profile.get("criteria", {}), "search_terms": titles, "location": location, "is_remote": bool(action.get("is_remote", False)), "hours_old": int(action.get("hours_old", 24)), "results_wanted": 100, "exact_phrase_search": True, "languages": [], "exclude_keywords": [], "keywords": {"tier1": []}}
         profile = {**profile, "titles": titles, "criteria": criteria}
         state.update(stage="rubric", phase="stage0", allowed_actions=["confirm_stage0"], profile=profile, cards={**cards, "stage0": {"keywords": [], "languages": [], "exclude_keywords": []}})
+    elif kind == "set_stage0_draft":
+        _require(state, "rubric", "stage0")
+        draft = action.get("card") or {}
+        current = cards.get("stage0") or {}
+        stage0 = {
+            "keywords": _clean_list(draft.get("keywords", current.get("keywords", []))),
+            "languages": _clean_list(draft.get("languages", current.get("languages", []))),
+            "exclude_keywords": _clean_list(draft.get("exclude_keywords", current.get("exclude_keywords", []))),
+        }
+        state.update(cards={**cards, "stage0": stage0}, allowed_actions=["confirm_stage0"])
     elif kind == "confirm_stage0":
         _require(state, "rubric", "stage0")
         keywords = _clean_list(action.get("keywords")); languages = _clean_list(action.get("languages")); excludes = _clean_list(action.get("exclude_keywords"))
@@ -255,13 +272,15 @@ def main() -> None:
             apply_action(args.project_dir, {"type": "set_profile_sources", "sources": profile.get("sources")})
         elif (state["stage"], state["phase"]) == ("profile", "profile_summary"):
             apply_action(args.project_dir, {"type": "set_profile_summary", "summary": profile.get("summary")})
+        elif (state["stage"], state["phase"]) == ("profile", "profile_summary_review"):
+            apply_action(args.project_dir, {"type": "confirm_profile_summary"})
         elif (state["stage"], state["phase"]) == ("profile", "title_proposal"):
             criteria = profile.get("criteria") or {}
             apply_action(args.project_dir, {"type": "confirm_profile", "titles": profile.get("titles") or criteria.get("search_terms"), "location": criteria.get("location"), "is_remote": criteria.get("is_remote", False), "hours_old": criteria.get("hours_old", 24)})
         elif (state["stage"], state["phase"]) == ("rubric", "stage0"):
             card = (payload.get("cards") or {}).get("stage0", {})
             criteria = profile.get("criteria") or {}
-            apply_action(args.project_dir, {"type": "confirm_stage0", "keywords": card.get("keywords", criteria.get("keywords", {}).get("tier1", [])), "languages": card.get("languages", criteria.get("languages", [])), "exclude_keywords": card.get("exclude_keywords", criteria.get("exclude_keywords", []))})
+            apply_action(args.project_dir, {"type": "set_stage0_draft", "card": {"keywords": card.get("keywords", criteria.get("keywords", {}).get("tier1", [])), "languages": card.get("languages", criteria.get("languages", [])), "exclude_keywords": card.get("exclude_keywords", criteria.get("exclude_keywords", []))}})
         elif (state["stage"], state["phase"]) == ("rubric", "stage1"):
             apply_action(args.project_dir, {"type": "confirm_stage1"})
         elif (state["stage"], state["phase"]) == ("rubric", "stage2"):

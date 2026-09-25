@@ -33,10 +33,14 @@ class OnboardingStateTests(unittest.TestCase):
         state = self.act("confirm_profile_sources")
         self.assertTrue(state["profile"]["sources_confirmed"])
         state = self.act("set_profile_summary", summary="Built products and shipped experiments.")
+        state = self.act("confirm_profile_summary")
         self.assertEqual(state["phase"], "title_proposal")
         state = self.act("confirm_profile", titles=["Product Manager"], location="Europe")
         self.assertEqual((state["stage"], state["phase"]), ("rubric", "stage0"))
-        state = self.act("confirm_stage0", keywords=["AI builder"], languages=["en"], exclude_keywords=[])
+        state = self.act("set_stage0_draft", card={"keywords": ["AI builder"], "languages": ["en", "fr"], "exclude_keywords": ["pure sales"]})
+        self.assertEqual(state["cards"]["stage0"]["keywords"], ["AI builder"])
+        self.assertEqual(state["cards"]["stage0"]["languages"], ["en", "fr"])
+        state = self.act("confirm_stage0", keywords=["AI builder"], languages=["en", "fr"], exclude_keywords=["pure sales"])
         self.assertEqual(state["phase"], "stage1")
         self.assertEqual(self.act("confirm_stage1")["phase"], "stage2")
         with self.assertRaises(OnboardingError):
@@ -44,6 +48,15 @@ class OnboardingStateTests(unittest.TestCase):
         state = self.act("confirm_stage2", rubric_md="Pass if the role is a clear product-building fit.")
         self.assertEqual((state["stage"], state["phase"], state["status"]), ("run", "ready", "ready"))
         self.assertTrue((self.root / "rubric.md").exists())
+
+    def test_profile_summary_must_be_confirmed_before_search_settings(self):
+        self.act("set_profile_sources", sources=[{"path": str(self.root / "resume.txt")}])
+        self.act("confirm_profile_sources")
+        self.act("set_profile_summary", summary="Built products and shipped experiments.")
+        with self.assertRaises(OnboardingError):
+            self.act("confirm_profile", titles=["Product Manager"], location="Europe")
+        state = self.act("confirm_profile_summary")
+        self.assertEqual(state["phase"], "title_proposal")
 
     def test_profile_sources_can_grow_after_first_selection(self):
         first = {"path": str(self.root / "resume.txt"), "kind": "file"}
@@ -84,6 +97,7 @@ class OnboardingStateTests(unittest.TestCase):
         self.act("set_profile_sources", sources=[{"path": str(self.root / "resume.txt"), "kind": "file"}])
         self.act("confirm_profile_sources")
         self.act("set_profile_summary", summary="Built products and shipped experiments.")
+        self.act("confirm_profile_summary")
         result = {}
 
         def wait():
@@ -113,6 +127,7 @@ class OnboardingStateTests(unittest.TestCase):
         self.act("set_profile_sources", sources=[{"path": str(self.root / "resume.txt"), "kind": "file"}])
         self.act("confirm_profile_sources")
         self.act("set_profile_summary", summary="Built products and shipped experiments.")
+        self.act("confirm_profile_summary")
 
         def wait_then_confirm(kind, **payload):
             result = {}

@@ -121,7 +121,7 @@ class ProfileSourceTests(unittest.TestCase):
         index = Path(__file__).parents[1].joinpath("index.html").read_text()
         landing = Path(__file__).parents[1].joinpath("landing.html").read_text()
         self.assertEqual(index, landing)
-        for text in ["Fine-tune your job search.", "Suggested job titles", "Published within", "Confirm search settings"]:
+        for text in ["Review your profile summary.", "Confirm profile summary", "Fine-tune your job search.", "Suggested job titles", "Published within", "Confirm search settings"]:
             self.assertIn(text, index)
         for text in ["Start with what you know.", "Confirm titles", "Posting age", "PROFILE SEARCH DRAFT CONFIRMED"]:
             self.assertNotIn(text, index)
