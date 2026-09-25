@@ -60,10 +60,15 @@ class ProfileSourceTests(unittest.TestCase):
 
     def test_onboarding_ui_exposes_add_file_and_folder_actions(self):
         html = Path(__file__).parents[1].joinpath("ftja", "app.html").read_text()
+        self.assertIn("Add your background.", html)
+        self.assertIn("Add any files or folders that help FTJA understand your background.", html)
+        self.assertIn("Selected items stay on your computer. Your coding agent reads them locally.", html)
         self.assertIn("+ Add files", html)
         self.assertIn("+ Add a folder", html)
         self.assertIn("sources: [...current, source]", html)
         self.assertNotIn("Choose resume or portfolio file", html)
+        self.assertNotIn("You can add more than one. Nothing is uploaded;", html)
+        self.assertNotIn("<h3>Your source materials</h3><p>${esc(latestOnboardingMessage(state))}", html)
 
 
 if __name__ == "__main__":
