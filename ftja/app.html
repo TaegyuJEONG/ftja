@@ -299,7 +299,8 @@ select.sort-select {
 /* ---- first-run onboarding ---- */
 .onboarding-shell { max-width: 760px; margin: 0 auto; }
 .onboarding-progress { display: flex; gap: 8px; margin: 0 0 42px; }
-.onboarding-progress span { width: 34px; height: 3px; background: var(--border); }
+.onboarding-progress span { width: 34px; height: 3px; background: var(--border); transition: background .2s ease; }
+.onboarding-progress span.completed { background: var(--accent-border); }
 .onboarding-progress span.active { background: var(--accent); }
 .onboarding-kicker { color: var(--accent-text); font: 10px 'IBM Plex Mono', monospace; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 12px; }
 .onboarding-title { font: 400 38px/1.05 'Instrument Serif', Georgia, serif; letter-spacing: -.02em; margin-bottom: 12px; }
@@ -465,6 +466,14 @@ const ONBOARDING_STEPS = ['Profile', 'Rubric', 'Run', 'Learn'];
 function onboardingStepIndex(state) {
   return Math.max(0, ONBOARDING_STEPS.indexOf(state?.stage || 'profile'));
 }
+function onboardingProgressIndex(state) {
+  const phase = state?.phase || 'sources';
+  if (phase === 'sources' || phase === 'profile') return 0;
+  if (phase === 'profile_summary_review' || phase === 'profile_summary') return 1;
+  if (phase === 'title_proposal' || phase === 'scrape_card') return 2;
+  return 3;
+}
+
 function onboardingPhaseLabel(state) {
   const labels = {sources: 'Waiting for your files', profile_summary: 'Preparing your profile', profile_summary_review: 'Review your profile summary', title_proposal: 'Review your search settings', scrape_card: 'Search settings ready', stage0: 'Review your first filter', questions: 'Shape your judgment', rubric_review: 'Confirm your rubric', ready: 'Ready to run'};
   return labels[state?.phase] || 'Working with your agent';
@@ -701,7 +710,9 @@ function applyOnboardingBridgeGate() {
 }
 function renderOnboarding() {
   const state = onboardingState || {stage: 'profile', phase: 'sources'};
-  document.getElementById('onboarding-progress').innerHTML = ONBOARDING_STEPS.map((_, i) => `<span class="${i === onboardingStepIndex(state) ? 'active' : ''}"></span>`).join('');
+  const progressIndex = onboardingProgressIndex(state);
+  const progressLabels = ['Background', 'Profile summary', 'Search settings', 'Rubric'];
+  document.getElementById('onboarding-progress').innerHTML = progressLabels.map((label, i) => `<span class="${i < progressIndex ? 'completed' : ''} ${i === progressIndex ? 'active' : ''}" title="${label}"></span>`).join('');
   document.getElementById('onboarding-content').innerHTML = onboardingStepMarkup();
   bindOnboarding();
   applyOnboardingBridgeGate();
