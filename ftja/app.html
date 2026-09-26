@@ -819,7 +819,7 @@ function bindOnboarding() {
 async function refreshOnboarding(force = false) {
   const res = await fetch('/api/onboarding?ts=' + Date.now(), {cache:'no-store'}); const data = await res.json();
   const state = {...(data.state || {}), bridge: data.bridge || {status: 'stopped'}};
-  const version = state.updated_at || JSON.stringify(state);
+  const version = [state.updated_at, state.revision, state.bridge?.status, state.bridge?.updated_at, state.bridge?.pid].join('|');
   if (!force && version === onboardingVersion) return;
   onboardingVersion = version; onboardingState = state;
   const profile = state.profile || {}; const criteria = profile.criteria || data.config?.criteria || {};

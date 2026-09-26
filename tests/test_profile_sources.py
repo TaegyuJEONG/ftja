@@ -150,6 +150,7 @@ class ProfileSourceTests(unittest.TestCase):
         self.assertIn("data-confirm-profile-sources", html)
         self.assertIn("applyOnboardingBridgeGate", html)
         self.assertIn("Waiting for the setup agent", html)
+        self.assertIn("state.bridge?.updated_at", html)
         self.assertIn("I uploaded my background files, continue the setup", html)
         self.assertIn("sources: [...current, source]", html)
         self.assertNotIn("Choose resume or portfolio file", html)
