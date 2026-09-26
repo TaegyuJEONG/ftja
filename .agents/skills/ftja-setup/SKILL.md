@@ -84,6 +84,13 @@ order exactly. A shell `cd` changes one command's working directory; it does
    navigation/page-text check succeeds.
 6. Only after the viewer is ready, tell the user to add source materials in
    the web view. Do not ask for a path in chat.
+7. In this same turn, send the source-material instruction through
+   `mcp__ccd_session_mgmt__send_message` when available, then immediately run
+   the blocking `wait-for-action --type confirm_profile_sources` command below.
+   Do not put the instruction only in the final assistant response. Do not end
+   the turn, report that you are waiting, or ask the user to click before the
+   wait command is running. The web card's recovery phrase is a fallback for a
+   delayed turn, not the normal startup path.
 
 If the Claude client header still says `No folder` after a successful
 `Folder access granted` result, report that the client label did not refresh;
