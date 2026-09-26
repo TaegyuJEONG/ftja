@@ -23,6 +23,12 @@ class OnboardingStateTests(unittest.TestCase):
         payload["expected_revision"] = read_state(str(self.root))["revision"]
         return apply_action(str(self.root), payload)
 
+    def test_stage0_draft_rejects_blank_proposal(self):
+        from ftja.onboarding import validate_stage0_draft
+        with self.assertRaises(OnboardingError):
+            validate_stage0_draft({"keywords": [], "languages": [], "exclude_keywords": []})
+        validate_stage0_draft({"keywords": ["AI product"], "languages": ["English"], "exclude_keywords": []})
+
     def test_cannot_skip_profile(self):
         with self.assertRaises(OnboardingError):
             self.act("confirm_profile", titles=["Product Manager"], location="Europe")

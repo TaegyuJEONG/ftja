@@ -141,16 +141,35 @@ venv/bin/python -m ftja.onboarding . wait-for-action --type confirm_profile_summ
 
 Only after that action returns `status: confirmed` should you propose titles,
 location, remote preference, and published-within settings. After
-`confirm_profile` returns, derive Stage 0 defaults from the confirmed profile and
-write them before asking for review:
+`confirm_profile` returns, **read the confirmed profile summary and derive a
+concrete Stage 0 proposal from it before touching the browser state**. Do not
+write empty arrays, `...` placeholders, or generic defaults. The proposal must
+contain at least one keyword, one readable language, and an exclude list (the
+exclude list may be empty only when the profile review gives no defensible
+negative signal). Use evidence from the profile: target roles and product/AI
+work become matching keywords; languages the candidate can actually read become
+language filters; explicit dealbreakers or clearly non-target work become
+exclude words. Keep the proposal editable and label it as a suggestion, not a
+confirmed preference.
+
+For example, a profile describing AI product building, Python/LLM work, and
+English/French fluency should produce real values such as `AI product`, `LLM`,
+`Product Builder`, `Python`, `English`, and `French`—not an empty filter card.
+Do not invent a language or exclusion merely to satisfy the minimum; if a field
+cannot be supported by the profile, ask a focused follow-up before writing it.
+
+Write the fully populated draft before asking the user to review it:
 
 ```bash
-venv/bin/python -m ftja.onboarding . set-state --stage rubric --phase stage0 --status waiting --json '{"profile":{"criteria":{"keywords":{"tier1":["..."]},"languages":["en"],"exclude_keywords":["..."]}},"cards":{"stage0":{"keywords":["..."],"languages":["en"],"exclude_keywords":["..."]}}}'
+venv/bin/python -m ftja.onboarding . set-state --stage rubric --phase stage0 --status waiting --json '{"profile":{"criteria":{"keywords":{"tier1":["AI product","LLM","Product Builder"]},"languages":["English","French"],"exclude_keywords":[]}},"cards":{"stage0":{"keywords":["AI product","LLM","Product Builder"],"languages":["English","French"],"exclude_keywords":[]}}}'
 ```
 
-The `set-state` helper records this as a draft; it does not confirm Stage 0. The
-same bridge applies to every later web decision. Before waiting for a card,
-send the instruction in the active agent chat, then run the matching command:
+The `set-state` helper records this as a draft; it does not confirm Stage 0. Verify
+`onboarding-state.json` contains the same non-empty proposal and that the browser
+renders those chips before sending the review instruction. The instruction must
+say that the values were proposed from the confirmed profile and can be edited.
+Then send that instruction in the active agent chat **before** waiting for a
+card, and run the matching command:
 
 ```bash
 venv/bin/python -m ftja.onboarding . wait-for-action --type confirm_profile --timeout 900

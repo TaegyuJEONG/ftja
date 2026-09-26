@@ -56,6 +56,20 @@ def _clean_list(value: Any) -> list[str]:
     return [str(item).strip() for item in value if str(item).strip()]
 
 
+def validate_stage0_draft(card: dict[str, Any]) -> dict[str, list[str]]:
+    """Require a profile-derived, reviewable Stage 0 proposal."""
+    if not isinstance(card, dict):
+        raise OnboardingError("Stage 0 draft must be an object")
+    keywords = _clean_list(card.get("keywords"))
+    languages = _clean_list(card.get("languages"))
+    excludes = _clean_list(card.get("exclude_keywords"))
+    if not keywords:
+        raise OnboardingError("Stage 0 draft needs at least one proposed keyword")
+    if not languages:
+        raise OnboardingError("Stage 0 draft needs at least one readable language")
+    return {"keywords": keywords, "languages": languages, "exclude_keywords": excludes}
+
+
 def _clean_sources(value: Any) -> list[dict[str, Any]]:
     if not isinstance(value, list) or not value:
         raise OnboardingError("at least one profile source is required")
@@ -363,7 +377,12 @@ def main() -> None:
         elif (state["stage"], state["phase"]) == ("rubric", "stage0"):
             card = (payload.get("cards") or {}).get("stage0", {})
             criteria = profile.get("criteria") or {}
-            apply_action(args.project_dir, {"type": "set_stage0_draft", "card": {"keywords": card.get("keywords", criteria.get("keywords", {}).get("tier1", [])), "languages": card.get("languages", criteria.get("languages", [])), "exclude_keywords": card.get("exclude_keywords", criteria.get("exclude_keywords", []))}})
+            draft = validate_stage0_draft({
+                "keywords": card.get("keywords", criteria.get("keywords", {}).get("tier1", [])),
+                "languages": card.get("languages", criteria.get("languages", [])),
+                "exclude_keywords": card.get("exclude_keywords", criteria.get("exclude_keywords", [])),
+            })
+            apply_action(args.project_dir, {"type": "set_stage0_draft", "card": draft})
         else:
             raise OnboardingError("set-state cannot bypass the onboarding state machine")
         if args.message:
