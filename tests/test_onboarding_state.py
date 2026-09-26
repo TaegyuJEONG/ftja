@@ -95,6 +95,30 @@ class OnboardingStateTests(unittest.TestCase):
         self.assertEqual(result["status"], "confirmed")
         self.assertTrue(result["state"]["profile"]["sources_confirmed"])
 
+    def test_wait_recovers_a_web_action_that_finished_before_the_waiter_started(self):
+        self.act("set_profile_sources", sources=[{"path": str(self.root / "resume.txt"), "kind": "file"}])
+        expected_revision = read_state(str(self.root))["revision"]
+        action = {"type": "confirm_profile_sources", "expected_revision": expected_revision}
+        apply_action(str(self.root), action)
+        write_action(str(self.root), action)
+
+        result = wait_for_action(str(self.root), ["confirm_profile_sources"], timeout_seconds=1)
+
+        self.assertEqual(result["status"], "confirmed")
+        self.assertEqual(result["action"]["type"], "confirm_profile_sources")
+        self.assertTrue(result["state"]["profile"]["sources_confirmed"])
+
+    def test_wait_does_not_replay_an_older_action_file(self):
+        source = {"path": str(self.root / "resume.txt"), "kind": "file"}
+        self.act("set_profile_sources", sources=[source])
+        self.act("set_profile_sources", sources=[source])
+        action = {"type": "set_profile_sources", "expected_revision": 0}
+        write_action(str(self.root), action)
+
+        result = wait_for_action(str(self.root), ["set_profile_sources"], timeout_seconds=1)
+
+        self.assertEqual(result["status"], "timeout")
+
     def test_generic_wait_handles_later_profile_confirmation(self):
         self.act("set_profile_sources", sources=[{"path": str(self.root / "resume.txt"), "kind": "file"}])
         self.act("confirm_profile_sources")

@@ -107,7 +107,11 @@ Before asking the user to choose sources, send the instruction in the active
 agent chat, then start the bounded file bridge in the same setup session. In
 Claude Code, use `mcp__ccd_session_mgmt__send_message` when available so the
 user sees the instruction before the blocking wait begins; do not put the
-instruction only in a final response and then stop the session.
+instruction only in a final response and then stop the session. The wait must
+be running before the user can act. If a user message arrives saying they
+already acted, run the same wait command immediately anyway; it recovers the
+most recent valid action from the connected state instead of asking them to
+click again.
 
 ```bash
 venv/bin/python -m ftja.onboarding . wait-for-action --type confirm_profile_sources --timeout 900
@@ -148,10 +152,13 @@ venv/bin/python -m ftja.onboarding . wait-for-action --type answer_rubric_questi
 venv/bin/python -m ftja.onboarding . wait-for-action --type confirm_rubric --timeout 900
 ```
 
-Use only the command for the card currently shown. There are three sequential
-`answer_rubric_question` actions; after each one, re-read the state so the next
-web question remains the source of truth. After `status: confirmed`,
-read the returned `action` and the full `onboarding-state.json` before writing
+Use only the command for the card currently shown. The helper watches the
+connected project folder and also recovers an action that completed immediately
+before the helper started, so a delayed chat turn does not lose a web decision.
+There are three sequential `answer_rubric_question` actions; after each one,
+re-read the state so the next web question remains the source of truth. After
+`status: confirmed`, read the returned `action` and the full
+`onboarding-state.json` before writing
 the next draft or message. Never assume that a changed web card reached the
 setup chat without the helper result. If a later wait times out, tell the user
 the matching recovery phrase shown by the web card (for example, `I confirmed

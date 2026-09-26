@@ -249,7 +249,15 @@ def wait_for_action(project_dir: str, action_types: list[str], timeout_seconds: 
             state = read_state(project_dir)
             action_revision = int(action.get("expected_revision", -1))
             current_revision = int(state.get("revision", 0))
-            if initial_revision <= action_revision < current_revision and current_revision > initial_revision:
+            observed_after_wait_started = (
+                initial_revision <= action_revision < current_revision
+                and current_revision > initial_revision
+            )
+            just_completed_before_wait_started = (
+                current_revision > 0
+                and action_revision == current_revision - 1
+            )
+            if observed_after_wait_started or just_completed_before_wait_started:
                 return {"status": "confirmed", "action": action, "state": state}
         time.sleep(0.5)
     return {"status": "timeout", "state": read_state(project_dir)}
