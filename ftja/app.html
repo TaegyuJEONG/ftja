@@ -315,8 +315,8 @@ select.sort-select {
 .onboarding-field label { display: block; color: var(--text3); font: 11px 'IBM Plex Mono', monospace; margin-bottom: 6px; }
 .onboarding-field input, .onboarding-field textarea, .onboarding-field select { width: 100%; border: 1px solid var(--border); border-radius: 2px; padding: 10px 11px; color: var(--text); background: var(--surface); font: 13px inherit; }
 .onboarding-field textarea { min-height: 92px; resize: vertical; line-height: 1.55; }
-.profile-summary-review textarea[data-profile-summary] { min-height: 250px; max-height: 520px; font-size: 13px; line-height: 1.7; padding: 14px 15px; }
-.profile-summary-preview { margin-top: 14px; padding: 18px 20px; background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-size: 13px; line-height: 1.7; }
+.profile-summary-review textarea[data-profile-summary] { min-height: 180px; max-height: 240px; font-size: 13px; line-height: 1.7; padding: 14px 15px; }
+.profile-summary-preview { margin-top: 14px; max-height: 360px; overflow-y: auto; padding: 18px 20px; background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-size: 13px; line-height: 1.7; }
 .profile-summary-preview:empty::before { content: 'Preview will appear here as you edit.'; color: var(--text3); font-style: italic; }
 .profile-summary-preview h1, .profile-summary-preview h2, .profile-summary-preview h3 { color: var(--text); font-weight: 600; line-height: 1.25; margin: 0 0 9px; }
 .profile-summary-preview h1 { font-size: 20px; }
@@ -482,6 +482,7 @@ function onboardingCopy(state) {
 let onboardingActionNotice = '';
 let profileSummaryDraft = null;
 let profileSummarySaved = '';
+let profileSummaryHasSaved = false;
 function markdownInline(value) {
   return esc(value)
     .replace(/`([^`]+)`/g, '<code>$1</code>')
@@ -531,10 +532,14 @@ function updateProfileSummaryEditor() {
   const dirty = value !== profileSummarySaved;
   const ready = onboardingState?.bridge?.status === 'ready';
   if (preview) preview.innerHTML = renderSimpleMarkdown(value);
-  if (save) { save.disabled = !dirty || !ready; save.textContent = dirty ? 'Save draft' : 'Saved'; }
+  if (save) { save.disabled = !dirty || !ready; save.textContent = 'Save draft'; }
   if (confirm) { confirm.disabled = dirty || !value.trim() || !ready; confirm.title = dirty ? 'Save your draft before confirming' : ''; }
   const status = document.querySelector('[data-profile-summary-status]');
-  if (status) { status.textContent = dirty ? 'Unsaved changes' : 'Saved'; status.classList.toggle('is-dirty', dirty); }
+  if (status) {
+    status.textContent = dirty ? 'Unsaved changes' : (profileSummaryHasSaved ? 'Saved' : '');
+    status.classList.toggle('is-dirty', dirty);
+    status.hidden = !dirty && !profileSummaryHasSaved;
+  }
 }
 
 function recoveryPhrase(actionType) {
@@ -567,7 +572,7 @@ function profileCard(state) {
   if (phase === 'profile_summary_review') {
     profileSummarySaved = summary;
     const value = profileSummaryDraft === null ? summary : profileSummaryDraft;
-    return `<div class="onboarding-card profile-summary-review"><h3>Profile summary</h3><div class="onboarding-field"><textarea id="profile-summary" data-profile-summary aria-label="Profile summary">${esc(value)}</textarea><div class="profile-summary-preview" data-profile-summary-preview aria-label="Formatted profile summary preview"></div></div><div class="onboarding-actions profile-confirm-actions"><div class="profile-summary-status" data-profile-summary-status>Saved</div><button class="secondary" type="button" data-save-profile-summary disabled>Saved</button><button class="primary" type="button" data-confirm-profile-summary>Confirm</button></div></div>`;
+    return `<div class="onboarding-card profile-summary-review"><h3>Profile summary</h3><div class="onboarding-field"><textarea id="profile-summary" data-profile-summary aria-label="Profile summary">${esc(value)}</textarea><div class="profile-summary-preview" data-profile-summary-preview aria-label="Formatted profile summary preview"></div></div><div class="onboarding-actions profile-confirm-actions"><div class="profile-summary-status" data-profile-summary-status hidden></div><button class="secondary" type="button" data-save-profile-summary disabled>Save draft</button><button class="primary" type="button" data-confirm-profile-summary>Confirm</button></div></div>`;
   }
 
   if (phase === 'title_proposal' || phase === 'scrape_card') {
@@ -645,6 +650,7 @@ async function postOnboardingAction(type, payload = {}) {
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(body.error || 'Could not send this decision to the setup chat.');
   if (body.state) {
+    if (type === 'set_profile_summary') profileSummaryHasSaved = true;
     if (type.startsWith('confirm_')) onboardingActionNotice = type;
     onboardingState = {...body.state, bridge: body.bridge || onboardingState?.bridge || {status: 'stopped'}};
     onboardingVersion = body.state.updated_at || JSON.stringify(body.state);
