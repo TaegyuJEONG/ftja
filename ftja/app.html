@@ -443,7 +443,7 @@ function onboardingStepIndex(state) {
   return Math.max(0, ONBOARDING_STEPS.indexOf(state?.stage || 'profile'));
 }
 function onboardingPhaseLabel(state) {
-  const labels = {sources: 'Waiting for your files', profile_summary: 'Preparing your profile', profile_summary_review: 'Review your profile summary', title_proposal: 'Review your search settings', scrape_card: 'Search settings ready', stage0: 'Review your first filter', stage1: 'Review the rough model', stage2: 'Review the middle model', ready: 'Ready to run'};
+  const labels = {sources: 'Waiting for your files', profile_summary: 'Preparing your profile', profile_summary_review: 'Review your profile summary', title_proposal: 'Review your search settings', scrape_card: 'Search settings ready', stage0: 'Review your first filter', questions: 'Shape your judgment', rubric_review: 'Confirm your rubric', ready: 'Ready to run'};
   return labels[state?.phase] || 'Working with your agent';
 }
 function latestOnboardingMessage(state) {
@@ -468,9 +468,9 @@ function recoveryPhrase(actionType) {
     confirm_profile_sources: 'I uploaded my background files, continue the setup',
     confirm_profile_summary: 'I confirmed my profile summary, continue the setup',
     confirm_profile: 'I confirmed my search settings, continue the setup',
-    confirm_stage0: 'I confirmed Stage 0, continue the setup',
-    confirm_stage1: 'I confirmed Stage 1, continue the setup',
-    confirm_stage2: 'I confirmed Stage 2, continue the setup',
+    confirm_stage0: 'I confirmed the code-based filter, continue the setup',
+    answer_rubric_question: 'I answered the rubric question, continue the setup',
+    confirm_rubric: 'I confirmed the rubric, continue the setup',
   };
   return phrases[actionType] || 'I confirmed the latest card, continue the setup';
 }
@@ -490,7 +490,7 @@ function profileCard(state) {
   const phase = state.phase;
   const summary = profile.summary || '';
   const titles = onboardingDraft.titles.length ? onboardingDraft.titles : (profile.titles || []);
-  if (phase === 'profile_summary_review') return `<div class="onboarding-card profile-summary-review"><h3>Review your profile summary</h3><p>FTJA drafted this from the files and folders you selected. Make sure it represents your background before continuing.</p><div class="onboarding-summary">${esc(summary)}</div><div class="onboarding-actions profile-confirm-actions"><button class="primary" type="button" data-confirm-profile-summary>Confirm profile summary</button></div></div>`;
+  if (phase === 'profile_summary_review') return `<div class="onboarding-card profile-summary-review"><h3>Review your profile summary</h3><p>FTJA drafted this from the files and folders you selected. Edit it until it represents your background, then confirm.</p><div class="onboarding-field"><label for="profile-summary">Profile summary</label><textarea id="profile-summary" data-profile-summary>${esc(summary)}</textarea></div><div class="onboarding-actions profile-confirm-actions"><button class="secondary" type="button" data-save-profile-summary>Save changes</button><button class="primary" type="button" data-confirm-profile-summary>Confirm profile summary</button></div></div>`;
   if (phase === 'title_proposal' || phase === 'scrape_card') {
     const confirmMarkup = phase === 'scrape_card'
       ? '<div class="onboarding-summary"><b>Search settings ready</b>Review the settings above before your next run.</div>'
@@ -515,8 +515,15 @@ function rubricCard(state) {
   const stage0Excludes = phase === 'stage0' ? onboardingDraft.exclude_keywords : (Array.isArray(stage0.exclude_keywords) ? stage0.exclude_keywords : (profile.criteria?.exclude_keywords || []));
   const stage0View = `<div class="onboarding-card"><h3>Code-based filter</h3><p>Review the first screen before LLM judgment. Matching keywords, readable languages, and excluded words are applied here.</p><div class="onboarding-field"><label>Keywords to match</label>${onboardingTags(stage0Keywords, 'tier1', phase === 'stage0')}</div><div class="onboarding-field"><label>Languages you use</label>${onboardingTags(stage0Languages, 'languages', phase === 'stage0')}</div><div class="onboarding-field"><label>Words to exclude</label>${onboardingTags(stage0Excludes, 'exclude_keywords', phase === 'stage0')}</div>${phase === 'stage0' ? '<div class="onboarding-actions onboarding-confirm-actions"><button class="primary" type="button" data-confirm-stage0>Confirm filter</button></div>' : '<div class="source-status">READY ✓</div>'}</div>`;
   if (phase === 'stage0') return stage0View;
-  if (phase === 'stage1') return `${stage0View}<div class="onboarding-card"><h3>Stage 1 · rough model</h3><p>${esc(stage1.description || 'A rough model reads the matched sentence and nearby evidence only.')}</p><div class="onboarding-summary">Profile and rubric signals are used to make the first judgment.</div><button class="primary" type="button" data-confirm-rubric="stage1">Confirm Stage 1</button></div>`;
-  return `${stage0View}<div class="onboarding-card"><h3>Stage 1 · rough model</h3><p>${esc(stage1.description || 'A rough model reads matched evidence only.')}</p><div class="source-status">READY ✓</div></div><div class="onboarding-card"><h3>Stage 2 · middle model</h3><p>${esc(stage2.description || 'A middle model reads the full job description together with your profile summary and rubric.')}</p><div class="onboarding-summary"><b>Input</b> Full job description + profile summary + confirmed rubric</div>${phase === 'stage2' ? '<button class="primary" type="button" data-confirm-rubric="stage2">Confirm Stage 2</button>' : '<div class="source-status">READY ✓</div>'}</div>`;
+  const questions = state.rubric_questions || [];
+  const currentIndex = questions.findIndex(question => !String(question.answer || '').trim());
+  if (phase === 'questions' && currentIndex >= 0) {
+    const question = questions[currentIndex];
+    return `${stage0View}<div class="onboarding-card rubric-question-card"><div class="onboarding-kicker">Answer ${currentIndex + 1} of ${questions.length}</div><h3>${esc(question.label)}</h3><p>${esc(question.hint)}</p><div class="onboarding-field"><label for="rubric-answer">Your answer</label><textarea id="rubric-answer" placeholder="Write a concise answer"></textarea></div><div class="onboarding-actions onboarding-confirm-actions"><button class="primary" type="button" data-answer-rubric-question data-question-id="${esc(question.id)}">Save answer</button></div></div>`;
+  }
+  const answers = questions.map(question => `<div class="onboarding-summary"><b>${esc(question.label)}</b>\n${esc(question.answer || '')}</div>`).join('');
+  const generatedRubric = state.rubric_draft || `# Judgment rubric\n\n## Clear yes\n${questions[0]?.answer || ''}\n\n## Dealbreakers\n${questions[1]?.answer || ''}\n\n## Preferences\n${questions[2]?.answer || ''}\n\n## Pass\nPass roles that are a clear match for the confirmed profile and answers above.\n\n## Fail\nFail roles that conflict with the dealbreakers above or do not show enough evidence of fit.`;
+  return `${stage0View}<div class="onboarding-card"><h3>Confirm your judgment rubric</h3><p>These answers will guide both model passes. Review the generated rubric once before FTJA saves it and opens Pipeline.</p>${answers}<div class="onboarding-field"><label for="rubric-draft">Judgment rubric</label><textarea id="rubric-draft">${esc(generatedRubric)}</textarea></div><div class="onboarding-actions onboarding-confirm-actions"><button class="primary" type="button" data-confirm-rubric>Confirm rubric and open Pipeline</button></div></div>`;
 }
 function onboardingStepMarkup() {
   const state = onboardingState || {stage: 'profile', phase: 'sources', profile: {}, messages: []};
@@ -526,7 +533,7 @@ function onboardingStepMarkup() {
   else if (state.stage === 'rubric') body = rubricCard(state);
   else if (state.stage === 'run') body = `<div class="onboarding-card"><h3>Run</h3><p>${esc(latestOnboardingMessage(state))}</p><div class="onboarding-summary"><b>Ready</b> Use <span class="mono">/ftja-run</span> in your coding-agent chat. Results will appear here without advancing the page manually.</div></div>`;
   else body = `<div class="onboarding-card"><h3>Learn</h3><p>${esc(latestOnboardingMessage(state))}</p><div class="onboarding-summary"><b>Learn from decisions</b> Mark apply or skip in Results and explain why. FTJA will propose rubric changes in a later interactive run.</div></div>`;
-  const pageTitle = state.stage === 'profile' && state.phase === 'profile_summary_review' ? 'Review your profile summary.' : state.stage === 'profile' && ['title_proposal', 'scrape_card'].includes(state.phase) ? 'Fine-tune your job search.' : state.stage === 'rubric' && state.phase === 'stage0' ? 'Set your code-based filter before LLM judgment.' : title === 'Profile' ? 'Add your background.' : title === 'Rubric' ? 'Make the judgment visible.' : title === 'Run' ? 'Run the pipeline.' : 'Teach FTJA carefully.';
+  const pageTitle = state.stage === 'profile' && state.phase === 'profile_summary_review' ? 'Review your profile summary.' : state.stage === 'profile' && ['title_proposal', 'scrape_card'].includes(state.phase) ? 'Fine-tune your job search.' : state.stage === 'rubric' && state.phase === 'stage0' ? 'Set your code-based screening before LLM is involved.' : state.stage === 'rubric' && state.phase === 'questions' ? 'Shape the judgment, one answer at a time.' : state.stage === 'rubric' && state.phase === 'rubric_review' ? 'Confirm the judgment rubric.' : title === 'Profile' ? 'Add your background.' : title === 'Rubric' ? 'Make the judgment visible.' : title === 'Run' ? 'Run the pipeline.' : 'Teach FTJA carefully.';
   const bridgeNotice = onboardingActionNotice && onboardingActionNotice !== 'confirm_profile_sources' ? `<div class="onboarding-action-notice"><b>Decision saved locally.</b><p>Your setup agent is checking this page. If nothing happens, type <code>${esc(recoveryPhrase(onboardingActionNotice))}</code> in the FTJA setup chat.</p></div>` : '';
   return `<div class="onboarding-kicker">Step ${onboardingStepIndex(state) + 1} of 4 · ${title}</div><h2 class="onboarding-title">${pageTitle}</h2><p class="onboarding-copy">${esc(onboardingCopy(state))}</p>${body}${bridgeNotice}`;
 }
@@ -616,10 +623,12 @@ function bindOnboarding() {
   const add = document.querySelector('[data-title-add]'); if (add) add.addEventListener('click', () => { const input = document.getElementById('title-input'); const value = input.value.trim(); if (value && !onboardingDraft.titles.includes(value)) onboardingDraft.titles.push(value); renderOnboarding(); });
   document.querySelectorAll('[data-add-onboarding-source]').forEach(button => button.addEventListener('click', () => addOnboardingSource(button.dataset.addOnboardingSource, button)));
   const confirmSources = document.querySelector('[data-confirm-profile-sources]'); if (confirmSources) confirmSources.addEventListener('click', () => submitOnboardingAction(confirmSources, 'confirm_profile_sources'));
+  const saveSummary = document.querySelector('[data-save-profile-summary]'); if (saveSummary) saveSummary.addEventListener('click', () => submitOnboardingAction(saveSummary, 'set_profile_summary', {summary: document.querySelector('[data-profile-summary]').value.trim()}));
   const confirmSummary = document.querySelector('[data-confirm-profile-summary]'); if (confirmSummary) confirmSummary.addEventListener('click', () => submitOnboardingAction(confirmSummary, 'confirm_profile_summary'));
   const confirmProfile = document.querySelector('[data-confirm-profile]'); if (confirmProfile) confirmProfile.addEventListener('click', () => submitOnboardingAction(confirmProfile, 'confirm_profile', {titles: onboardingDraft.titles, location: document.getElementById('profile-location').value.trim(), is_remote: document.getElementById('profile-remote').checked, hours_old: Number(document.getElementById('profile-hours').value)}));
   const confirmStage0 = document.querySelector('[data-confirm-stage0]'); if (confirmStage0) confirmStage0.addEventListener('click', () => submitOnboardingAction(confirmStage0, 'confirm_stage0', {keywords: onboardingDraft.tier1, languages: onboardingDraft.languages, exclude_keywords: onboardingDraft.exclude_keywords}));
-  document.querySelectorAll('[data-confirm-rubric]').forEach(button => button.addEventListener('click', () => submitOnboardingAction(button, `confirm_${button.dataset.confirmRubric}`)));
+  const answerQuestion = document.querySelector('[data-answer-rubric-question]'); if (answerQuestion) answerQuestion.addEventListener('click', () => submitOnboardingAction(answerQuestion, 'answer_rubric_question', {question_id: answerQuestion.dataset.questionId, answer: document.getElementById('rubric-answer').value.trim()}));
+  const confirmRubric = document.querySelector('[data-confirm-rubric]'); if (confirmRubric) confirmRubric.addEventListener('click', () => submitOnboardingAction(confirmRubric, 'confirm_rubric', {rubric_md: document.getElementById('rubric-draft').value.trim()}));
 }
 async function refreshOnboarding(force = false) {
   const res = await fetch('/api/onboarding?ts=' + Date.now(), {cache:'no-store'}); const data = await res.json();

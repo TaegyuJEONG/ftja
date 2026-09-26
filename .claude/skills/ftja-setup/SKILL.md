@@ -32,7 +32,7 @@ stale or out-of-order actions, writes the next `onboarding-state.json` state
 atomically, and records every web action in `onboarding-action.json`. The action
 types are `set_profile_sources`, `confirm_profile_sources`,
 `set_profile_summary`, `confirm_profile_summary`, `confirm_profile`,
-`confirm_stage0`, `confirm_stage1`, and `confirm_stage2`. The agent/LLM may produce drafts, but it must not choose
+`confirm_stage0`, `answer_rubric_question`, and `confirm_rubric`. The agent/LLM may produce drafts, but it must not choose
 the next stage or promote unconfirmed data into active configuration.
 
 
@@ -45,10 +45,10 @@ The only onboarding order is:
    example; propose non-remote and postings from the past 24 hours as defaults.
    Do not save these defaults until the user confirms them in the web card.
 2. **Rubric** — propose keywords, readable languages, and exclude words for
-   Stage 0; after confirmation, ask about dealbreakers and preferences using the
-   profile summary, then show Stage 1 and Stage 2 cards. Use plain model labels:
-   `rough model` for the evidence-only pass and `middle model` for the full-job
-   judgment. Do not expose vendor names in onboarding UI.
+   Stage 0. After confirmation, the web asks exactly one judgment question at a
+   time (clear yes, dealbreakers, then preferences). Wait for each answer before
+   proceeding. The web then shows one generated rubric for a final confirmation;
+   do not show separate Stage 1 or Stage 2 confirmation cards.
 3. **Run** — after the rubric is confirmed, tell the user to run `/ftja-run` in
    the agent chat. The existing Results/Pipeline surfaces remain the source of
    truth and update from local files.
@@ -144,11 +144,13 @@ send the instruction in the active agent chat, then run the matching command:
 ```bash
 venv/bin/python -m ftja.onboarding . wait-for-action --type confirm_profile --timeout 900
 venv/bin/python -m ftja.onboarding . wait-for-action --type confirm_stage0 --timeout 900
-venv/bin/python -m ftja.onboarding . wait-for-action --type confirm_stage1 --timeout 900
-venv/bin/python -m ftja.onboarding . wait-for-action --type confirm_stage2 --timeout 900
+venv/bin/python -m ftja.onboarding . wait-for-action --type answer_rubric_question --timeout 900
+venv/bin/python -m ftja.onboarding . wait-for-action --type confirm_rubric --timeout 900
 ```
 
-Use only the command for the card currently shown. After `status: confirmed`,
+Use only the command for the card currently shown. There are three sequential
+`answer_rubric_question` actions; after each one, re-read the state so the next
+web question remains the source of truth. After `status: confirmed`,
 read the returned `action` and the full `onboarding-state.json` before writing
 the next draft or message. Never assume that a changed web card reached the
 setup chat without the helper result. If a later wait times out, tell the user

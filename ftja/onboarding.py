@@ -22,7 +22,14 @@ DEFAULT_STATE: dict[str, Any] = {
     "messages": [],
     "profile": {"sources": [], "summary": "", "titles": [], "criteria": {}, "sources_confirmed": False, "summary_confirmed": False},
     "cards": {},
+    "rubric_questions": [],
 }
+
+DEFAULT_RUBRIC_QUESTIONS = [
+    {"id": "clear_yes", "label": "What makes a role a clear yes?", "hint": "Describe the work, team, and level that would make you want to apply."},
+    {"id": "dealbreakers", "label": "What should rule a role out?", "hint": "Name non-negotiables or dealbreakers that need judgment beyond the code-based filter."},
+    {"id": "preferences", "label": "What would make a good role even better?", "hint": "Add preferences FTJA should use to rank otherwise good roles."},
+]
 
 
 
@@ -89,14 +96,15 @@ def apply_action(project_dir: str, action: dict[str, Any]) -> dict[str, Any]:
             profile=profile,
         )
     elif kind == "set_profile_summary":
-        _require(state, "profile", "profile_summary")
+        if state.get("stage") != "profile" or state.get("phase") not in {"profile_summary", "profile_summary_review"}:
+            raise OnboardingError(f"action is not allowed in {state.get('stage')}/{state.get('phase')}")
         if not profile.get("sources_confirmed"):
             raise OnboardingError("confirm the profile sources before writing a summary")
         summary = str(action.get("summary") or "").strip()
         if not summary:
             raise OnboardingError("profile summary is required")
         profile = {**profile, "summary": summary, "summary_confirmed": False}
-        state.update(phase="profile_summary_review", allowed_actions=["confirm_profile_summary"], profile=profile, cards={**cards, "profile": {"summary": summary}})
+        state.update(phase="profile_summary_review", allowed_actions=["set_profile_summary", "confirm_profile_summary"], profile=profile, cards={**cards, "profile": {"summary": summary}})
     elif kind == "confirm_profile_summary":
         _require(state, "profile", "profile_summary_review")
         if not profile.get("summary"):
@@ -127,18 +135,35 @@ def apply_action(project_dir: str, action: dict[str, Any]) -> dict[str, Any]:
         _require(state, "rubric", "stage0")
         keywords = _clean_list(action.get("keywords")); languages = _clean_list(action.get("languages")); excludes = _clean_list(action.get("exclude_keywords"))
         criteria = {**profile.get("criteria", {}), "languages": languages, "exclude_keywords": excludes, "keywords": {"tier1": keywords}}
-        state.update(phase="stage1", allowed_actions=["confirm_stage1"], profile={**profile, "criteria": criteria}, cards={**cards, "stage0": {"keywords": keywords, "languages": languages, "exclude_keywords": excludes}})
-    elif kind == "confirm_stage1":
-        _require(state, "rubric", "stage1"); state.update(phase="stage2", allowed_actions=["confirm_stage2"])
-    elif kind == "confirm_stage2":
-        _require(state, "rubric", "stage2")
+        questions = [{**question, "answer": ""} for question in DEFAULT_RUBRIC_QUESTIONS]
+        state.update(phase="questions", allowed_actions=["answer_rubric_question"], profile={**profile, "criteria": criteria}, cards={**cards, "stage0": {"keywords": keywords, "languages": languages, "exclude_keywords": excludes}}, rubric_questions=questions)
+    elif kind == "answer_rubric_question":
+        _require(state, "rubric", "questions")
+        questions = list(state.get("rubric_questions") or [])
+        unanswered = next((question for question in questions if not str(question.get("answer") or "").strip()), None)
+        question_id = str(action.get("question_id") or "")
+        answer = str(action.get("answer") or "").strip()
+        if not unanswered or question_id != unanswered.get("id"):
+            raise OnboardingError("answer the current rubric question before moving on")
+        if not answer:
+            raise OnboardingError("an answer is required")
+        for question in questions:
+            if question.get("id") == question_id:
+                question["answer"] = answer
+        complete = all(str(question.get("answer") or "").strip() for question in questions)
+        state.update(phase="rubric_review" if complete else "questions", allowed_actions=["confirm_rubric"] if complete else ["answer_rubric_question"], rubric_questions=questions)
+    elif kind == "confirm_rubric":
+        _require(state, "rubric", "rubric_review")
+        questions = state.get("rubric_questions") or []
+        if not questions or any(not str(question.get("answer") or "").strip() for question in questions):
+            raise OnboardingError("answer every rubric question before confirmation")
         rubric = str(action.get("rubric_md") or "").strip()
-        if not rubric and not os.path.isfile(_path(project_dir, "rubric.md")):
+        if not rubric:
             raise OnboardingError("rubric draft is required before confirmation")
-        if rubric:
-            from ftja.pipeline_view import write_config
-            write_config(project_dir, criteria=profile.get("criteria", {}), rubric_md=rubric, profile_md=profile.get("summary", ""), profile_sources=profile.get("sources", []))
+        from ftja.pipeline_view import write_config
+        write_config(project_dir, criteria=profile.get("criteria", {}), rubric_md=rubric, profile_md=profile.get("summary", ""), profile_sources=profile.get("sources", []))
         state.update(stage="run", phase="ready", status="ready", allowed_actions=[])
+
     else:
         raise OnboardingError(f"unknown onboarding action: {kind}")
     state["revision"] = int(state.get("revision", 0)) + 1
@@ -181,7 +206,7 @@ def read_state(project_dir: str) -> dict[str, Any]:
     merged["cards"] = state.get("cards") or {}
     merged["messages"] = state.get("messages") or []
     merged["revision"] = int(state.get("revision", 0))
-    merged["allowed_actions"] = state.get("allowed_actions") or DEFAULT_STATE["allowed_actions"]
+    merged["allowed_actions"] = state["allowed_actions"] if isinstance(state.get("allowed_actions"), list) else DEFAULT_STATE["allowed_actions"]
     return merged
 
 
@@ -281,10 +306,6 @@ def main() -> None:
             card = (payload.get("cards") or {}).get("stage0", {})
             criteria = profile.get("criteria") or {}
             apply_action(args.project_dir, {"type": "set_stage0_draft", "card": {"keywords": card.get("keywords", criteria.get("keywords", {}).get("tier1", [])), "languages": card.get("languages", criteria.get("languages", [])), "exclude_keywords": card.get("exclude_keywords", criteria.get("exclude_keywords", []))}})
-        elif (state["stage"], state["phase"]) == ("rubric", "stage1"):
-            apply_action(args.project_dir, {"type": "confirm_stage1"})
-        elif (state["stage"], state["phase"]) == ("rubric", "stage2"):
-            apply_action(args.project_dir, {"type": "confirm_stage2", "rubric_md": payload.get("rubric_md", "")})
         else:
             raise OnboardingError("set-state cannot bypass the onboarding state machine")
         if args.message:

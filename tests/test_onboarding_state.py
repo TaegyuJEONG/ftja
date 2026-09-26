@@ -41,11 +41,13 @@ class OnboardingStateTests(unittest.TestCase):
         self.assertEqual(state["cards"]["stage0"]["keywords"], ["AI builder"])
         self.assertEqual(state["cards"]["stage0"]["languages"], ["en", "fr"])
         state = self.act("confirm_stage0", keywords=["AI builder"], languages=["en", "fr"], exclude_keywords=["pure sales"])
-        self.assertEqual(state["phase"], "stage1")
-        self.assertEqual(self.act("confirm_stage1")["phase"], "stage2")
+        self.assertEqual(state["phase"], "questions")
         with self.assertRaises(OnboardingError):
-            self.act("confirm_stage2")
-        state = self.act("confirm_stage2", rubric_md="Pass if the role is a clear product-building fit.")
+            self.act("confirm_rubric", rubric_md="Pass if the role is a clear product-building fit.")
+        self.act("answer_rubric_question", question_id="clear_yes", answer="Product-building role")
+        self.act("answer_rubric_question", question_id="dealbreakers", answer="Pure sales")
+        self.act("answer_rubric_question", question_id="preferences", answer="Small team")
+        state = self.act("confirm_rubric", rubric_md="Pass if the role is a clear product-building fit.")
         self.assertEqual((state["stage"], state["phase"], state["status"]), ("run", "ready", "ready"))
         self.assertTrue((self.root / "rubric.md").exists())
 
@@ -149,8 +151,10 @@ class OnboardingStateTests(unittest.TestCase):
 
         wait_then_confirm("confirm_profile", titles=["Product Manager"], location="Europe", is_remote=False, hours_old=24)
         wait_then_confirm("confirm_stage0", keywords=["AI builder"], languages=["en"], exclude_keywords=[])
-        wait_then_confirm("confirm_stage1")
-        state = wait_then_confirm("confirm_stage2", rubric_md="Pass if the role is a clear product-building fit.")
+        wait_then_confirm("answer_rubric_question", question_id="clear_yes", answer="Product-building role")
+        wait_then_confirm("answer_rubric_question", question_id="dealbreakers", answer="Pure sales")
+        wait_then_confirm("answer_rubric_question", question_id="preferences", answer="Small team")
+        state = wait_then_confirm("confirm_rubric", rubric_md="Pass if the role is a clear product-building fit.")
         self.assertEqual((state["stage"], state["phase"]), ("run", "ready"))
 
     def test_stale_revision_is_rejected(self):
