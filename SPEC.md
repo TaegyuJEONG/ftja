@@ -200,6 +200,12 @@ results (`osascript -e 'display notification'`) — no silent failures.
 
 ## Future Vision (deliberately deferred, with reasons)
 
+- **Structured candidate evidence** (thin project cards, source coverage,
+  incremental profile updates, requirement-to-evidence retrieval, and optional
+  experience visualization) is deliberately deferred until post-v1 feedback
+  shows that `profile/summary.md` loses material context. See
+  [`BACKLOG.md#structured-candidate-evidence`](BACKLOG.md#structured-candidate-evidence)
+  for the measured spike findings, activation criteria, and phased approach.
 - **Implicit/automatic rubric inference** (mining the whole conversation
   by hand and auto-applying it) — the `fine-tune-job-agent` prototype
   collapsed through several rewrites at exactly this point (automatic
