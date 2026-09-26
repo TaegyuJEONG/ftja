@@ -1,3 +1,6 @@
+import json
+import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -29,6 +32,72 @@ class OnboardingStateTests(unittest.TestCase):
             validate_stage0_draft({"keywords": [], "languages": [], "exclude_keywords": []})
         validate_stage0_draft({"keywords": ["AI product"], "languages": ["English"], "exclude_keywords": []})
 
+    def test_search_and_stage0_proposals_are_saved_together_without_skipping_confirmation(self):
+        self.act("set_profile_sources", sources=[{"path": str(self.root / "resume.txt")}])
+        self.act("confirm_profile_sources")
+        self.act("set_profile_summary", summary="AI Product Builder. English and French fluent.")
+        self.act("confirm_profile_summary")
+        proposal = {
+            "profile": {
+                "titles": ["Product Builder", "AI Product Manager"],
+                "criteria": {
+                    "search_terms": ["Product Builder", "AI Product Manager"],
+                    "location": "France",
+                    "is_remote": False,
+                    "hours_old": 24,
+                    "results_wanted": 100,
+                    "languages": ["en", "fr"],
+                    "exclude_keywords": ["pure sales"],
+                    "keywords": {"tier1": ["AI product", "LLM"]},
+                },
+            },
+            "cards": {
+                "stage0": {
+                    "keywords": ["AI product", "LLM"],
+                    "languages": ["en", "fr"],
+                    "exclude_keywords": ["pure sales"],
+                }
+            },
+        }
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "ftja.onboarding",
+                str(self.root),
+                "set-state",
+                "--stage",
+                "profile",
+                "--phase",
+                "title_proposal",
+                "--status",
+                "waiting",
+                "--json",
+                json.dumps(proposal),
+            ],
+            cwd=Path(__file__).parents[1],
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        state = read_state(str(self.root))
+        self.assertEqual((state["stage"], state["phase"]), ("profile", "title_proposal"))
+        self.assertEqual(state["profile"]["titles"], ["Product Builder", "AI Product Manager"])
+        self.assertEqual(state["profile"]["criteria"]["location"], "France")
+        self.assertEqual(state["cards"]["stage0"]["keywords"], ["AI product", "LLM"])
+        self.assertEqual(state["cards"]["stage0"]["languages"], ["en", "fr"])
+
+        state = self.act(
+            "confirm_profile",
+            titles=["Product Builder", "AI Product Manager"],
+            location="France",
+            is_remote=False,
+            hours_old=24,
+        )
+        self.assertEqual((state["stage"], state["phase"]), ("rubric", "stage0"))
+        self.assertEqual(state["cards"]["stage0"]["keywords"], ["AI product", "LLM"])
+        self.assertEqual(state["cards"]["stage0"]["languages"], ["en", "fr"])
+
     def test_cannot_skip_profile(self):
         with self.assertRaises(OnboardingError):
             self.act("confirm_profile", titles=["Product Manager"], location="Europe")
@@ -41,6 +110,7 @@ class OnboardingStateTests(unittest.TestCase):
         state = self.act("set_profile_summary", summary="Built products and shipped experiments.")
         state = self.act("confirm_profile_summary")
         self.assertEqual(state["phase"], "title_proposal")
+        self.act("set_profile_draft", titles=["Product Manager"], location="Europe", stage0={"keywords": ["AI builder"], "languages": ["en", "fr"], "exclude_keywords": ["pure sales"]})
         state = self.act("confirm_profile", titles=["Product Manager"], location="Europe")
         self.assertEqual((state["stage"], state["phase"]), ("rubric", "stage0"))
         state = self.act("set_stage0_draft", card={"keywords": ["AI builder"], "languages": ["en", "fr"], "exclude_keywords": ["pure sales"]})
@@ -147,6 +217,7 @@ class OnboardingStateTests(unittest.TestCase):
         self.act("confirm_profile_sources")
         self.act("set_profile_summary", summary="Built products and shipped experiments.")
         self.act("confirm_profile_summary")
+        self.act("set_profile_draft", titles=["Product Manager"], location="Europe", stage0={"keywords": ["AI builder"], "languages": ["en"], "exclude_keywords": []})
         result = {}
 
         def wait():
@@ -177,6 +248,7 @@ class OnboardingStateTests(unittest.TestCase):
         self.act("confirm_profile_sources")
         self.act("set_profile_summary", summary="Built products and shipped experiments.")
         self.act("confirm_profile_summary")
+        self.act("set_profile_draft", titles=["Product Manager"], location="Europe", stage0={"keywords": ["AI builder"], "languages": ["en"], "exclude_keywords": []})
 
         def wait_then_confirm(kind, **payload):
             result = {}

@@ -31,9 +31,11 @@ onboarding state machine: it validates the current stage and revision, rejects
 stale or out-of-order actions, writes the next `onboarding-state.json` state
 atomically, and records every web action in `onboarding-action.json`. The action
 types are `set_profile_sources`, `confirm_profile_sources`,
-`set_profile_summary`, `confirm_profile_summary`, `confirm_profile`,
-`confirm_stage0`, `answer_rubric_question`, and `confirm_rubric`. The agent/LLM may produce drafts, but it must not choose
-the next stage or promote unconfirmed data into active configuration.
+`set_profile_summary`, `confirm_profile_summary`, `set_profile_draft`,
+`confirm_profile`, `set_stage0_draft`, `confirm_stage0`,
+`answer_rubric_question`, and `confirm_rubric`. The agent/LLM may produce drafts,
+but it must not choose the next stage or promote unconfirmed data into active
+configuration.
 
 
 The only onboarding order is:
@@ -139,37 +141,53 @@ After writing `profile/summary.md`, the web must show the summary for an explici
 venv/bin/python -m ftja.onboarding . wait-for-action --type confirm_profile_summary --timeout 900
 ```
 
-Only after that action returns `status: confirmed` should you propose titles,
-location, remote preference, and published-within settings. After
-`confirm_profile` returns, **read the confirmed profile summary and derive a
-concrete Stage 0 proposal from it before touching the browser state**. Do not
-write empty arrays, `...` placeholders, or generic defaults. The proposal must
-contain at least one keyword, one readable language, and an exclude list (the
-exclude list may be empty only when the profile review gives no defensible
-negative signal). Use evidence from the profile: target roles and product/AI
-work become matching keywords; languages the candidate can actually read become
+Only after that action returns `status: confirmed`, read the confirmed profile
+summary and create **one structured proposal covering both upcoming deterministic
+screens**:
+
+1. scraping/search settings: titles, location, remote-only, published-within,
+   and results wanted;
+2. Stage 0: matching keywords, readable languages, and hard-exclude words.
+
+Do not show either screen until this combined proposal has been written to
+`onboarding-state.json`. This is a required protocol step, not optional LLM
+judgment. The LLM may derive candidate values from the profile, but the state
+machine validates their JSON shape and rejects missing required fields. Never
+write empty title, keyword, or language arrays, `...` placeholders, or generic
+blank defaults.
+
+Use profile evidence: target roles become search titles; the candidate's base
+location becomes the initial location; target roles and product/AI work become
+matching keywords; languages the candidate can actually read become ISO 639-1
 language filters; explicit dealbreakers or clearly non-target work become
-exclude words. Keep the proposal editable and label it as a suggestion, not a
-confirmed preference.
+exclude words. Excludes may be empty only when the profile provides no defensible
+negative signal. Do not invent unsupported values merely to satisfy validation;
+ask one focused follow-up first when required evidence is absent.
 
-For example, a profile describing AI product building, Python/LLM work, and
-English/French fluency should produce real values such as `AI product`, `LLM`,
-`Product Builder`, `Python`, `English`, and `French`—not an empty filter card.
-Do not invent a language or exclusion merely to satisfy the minimum; if a field
-cannot be supported by the profile, ask a focused follow-up before writing it.
-
-Write the fully populated draft before asking the user to review it:
+Write the complete combined proposal in a single command **before** instructing
+the user to review search settings:
 
 ```bash
-venv/bin/python -m ftja.onboarding . set-state --stage rubric --phase stage0 --status waiting --json '{"profile":{"criteria":{"keywords":{"tier1":["AI product","LLM","Product Builder"]},"languages":["English","French"],"exclude_keywords":[]}},"cards":{"stage0":{"keywords":["AI product","LLM","Product Builder"],"languages":["English","French"],"exclude_keywords":[]}}}'
+venv/bin/python -m ftja.onboarding . set-state --stage profile --phase title_proposal --status waiting --json '{"profile":{"titles":["Product Builder","AI Product Manager","Founding Product Manager"],"criteria":{"search_terms":["Product Builder","AI Product Manager","Founding Product Manager"],"location":"France","is_remote":false,"hours_old":24,"results_wanted":100,"keywords":{"tier1":["AI product","LLM","Product Builder"]},"languages":["en","fr"],"exclude_keywords":["pure sales"]}},"cards":{"stage0":{"keywords":["AI product","LLM","Product Builder"],"languages":["en","fr"],"exclude_keywords":["pure sales"]}}}'
 ```
 
-The `set-state` helper records this as a draft; it does not confirm Stage 0. Verify
-`onboarding-state.json` contains the same non-empty proposal and that the browser
-renders those chips before sending the review instruction. The instruction must
-say that the values were proposed from the confirmed profile and can be edited.
-Then send that instruction in the active agent chat **before** waiting for a
-card, and run the matching command:
+The `set-state` helper records drafts only. It must leave the state at
+`profile/title_proposal`; it must never call `confirm_profile` or move to Stage 0.
+Verify all of the following before starting the wait:
+
+- state is still `profile/title_proposal`;
+- the search-settings card contains the proposed titles and location;
+- `cards.stage0` already contains non-empty keywords and languages;
+- the browser renders the search-title chips.
+
+Tell the user both upcoming screens were prefilled from the confirmed profile and
+remain editable. Then wait for `confirm_profile`. When it returns, the state
+machine must transition to `rubric/stage0` while preserving the already-populated
+`cards.stage0`; verify the browser renders those chips before waiting for
+`confirm_stage0`. Never insert a blank intermediate Stage 0 state.
+
+Before each card, send the instruction in the active agent chat, then run only
+the matching command:
 
 ```bash
 venv/bin/python -m ftja.onboarding . wait-for-action --type confirm_profile --timeout 900

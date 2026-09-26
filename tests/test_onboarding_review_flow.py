@@ -27,6 +27,7 @@ class OnboardingReviewFlowTests(unittest.TestCase):
         state = self.act("set_profile_summary", summary="Edited summary")
         self.assertEqual(state["profile"]["summary"], "Edited summary")
         self.act("confirm_profile_summary")
+        self.act("set_profile_draft", titles=["Product Builder"], location="Europe", stage0={"keywords": ["AI builder"], "languages": ["en"], "exclude_keywords": []})
         self.act("confirm_profile", titles=["Product Builder"], location="Europe")
         return self.act("confirm_stage0", keywords=["AI builder"], languages=["en"], exclude_keywords=[])
 

@@ -131,31 +131,70 @@ def apply_action(project_dir: str, action: dict[str, Any]) -> dict[str, Any]:
         _require(state, "profile", "profile_summary_review")
         if not profile.get("summary"):
             raise OnboardingError("profile summary is required")
-        state.update(phase="title_proposal", allowed_actions=["confirm_profile"], profile={**profile, "summary_confirmed": True})
+        state.update(phase="title_proposal", allowed_actions=["set_profile_draft"], profile={**profile, "summary_confirmed": True})
+    elif kind == "set_profile_draft":
+        _require(state, "profile", "title_proposal")
+        if not profile.get("summary_confirmed"):
+            raise OnboardingError("confirm the profile summary before proposing search conditions")
+        titles = _clean_list(action.get("titles"))
+        location = str(action.get("location") or "").strip()
+        if not titles or not location:
+            raise OnboardingError("search settings draft needs at least one title and a location")
+        stage0 = validate_stage0_draft(action.get("stage0") or {})
+        criteria = {
+            **profile.get("criteria", {}),
+            "search_terms": titles,
+            "location": location,
+            "is_remote": bool(action.get("is_remote", False)),
+            "hours_old": int(action.get("hours_old", 24)),
+            "results_wanted": int(action.get("results_wanted", 100)),
+            "exact_phrase_search": True,
+            "languages": stage0["languages"],
+            "exclude_keywords": stage0["exclude_keywords"],
+            "keywords": {"tier1": stage0["keywords"]},
+        }
+        state.update(
+            allowed_actions=["set_profile_draft", "confirm_profile"],
+            profile={**profile, "titles": titles, "criteria": criteria},
+            cards={**cards, "stage0": stage0},
+        )
     elif kind == "confirm_profile":
         _require(state, "profile", "title_proposal")
         if not profile.get("summary_confirmed"):
             raise OnboardingError("confirm the profile summary before setting search conditions")
+        stage0 = validate_stage0_draft(cards.get("stage0") or {})
         titles = _clean_list(action.get("titles"))
         location = str(action.get("location") or "").strip()
         if not titles or not location:
             raise OnboardingError("at least one title and a location are required")
-        criteria = {**profile.get("criteria", {}), "search_terms": titles, "location": location, "is_remote": bool(action.get("is_remote", False)), "hours_old": int(action.get("hours_old", 24)), "results_wanted": 100, "exact_phrase_search": True, "languages": [], "exclude_keywords": [], "keywords": {"tier1": []}}
+        criteria = {
+            **profile.get("criteria", {}),
+            "search_terms": titles,
+            "location": location,
+            "is_remote": bool(action.get("is_remote", False)),
+            "hours_old": int(action.get("hours_old", 24)),
+            "results_wanted": int(profile.get("criteria", {}).get("results_wanted", 100)),
+            "exact_phrase_search": True,
+            "languages": stage0["languages"],
+            "exclude_keywords": stage0["exclude_keywords"],
+            "keywords": {"tier1": stage0["keywords"]},
+        }
         profile = {**profile, "titles": titles, "criteria": criteria}
-        state.update(stage="rubric", phase="stage0", allowed_actions=["confirm_stage0"], profile=profile, cards={**cards, "stage0": {"keywords": [], "languages": [], "exclude_keywords": []}})
+        state.update(stage="rubric", phase="stage0", allowed_actions=["confirm_stage0"], profile=profile, cards={**cards, "stage0": stage0})
     elif kind == "set_stage0_draft":
         _require(state, "rubric", "stage0")
-        draft = action.get("card") or {}
         current = cards.get("stage0") or {}
-        stage0 = {
-            "keywords": _clean_list(draft.get("keywords", current.get("keywords", []))),
-            "languages": _clean_list(draft.get("languages", current.get("languages", []))),
-            "exclude_keywords": _clean_list(draft.get("exclude_keywords", current.get("exclude_keywords", []))),
-        }
+        requested = action.get("card") or {}
+        stage0 = validate_stage0_draft({
+            "keywords": requested.get("keywords", current.get("keywords", [])),
+            "languages": requested.get("languages", current.get("languages", [])),
+            "exclude_keywords": requested.get("exclude_keywords", current.get("exclude_keywords", [])),
+        })
         state.update(cards={**cards, "stage0": stage0}, allowed_actions=["confirm_stage0"])
     elif kind == "confirm_stage0":
         _require(state, "rubric", "stage0")
-        keywords = _clean_list(action.get("keywords")); languages = _clean_list(action.get("languages")); excludes = _clean_list(action.get("exclude_keywords"))
+        stage0 = validate_stage0_draft({"keywords": action.get("keywords"), "languages": action.get("languages"), "exclude_keywords": action.get("exclude_keywords")})
+        keywords = stage0["keywords"]; languages = stage0["languages"]; excludes = stage0["exclude_keywords"]
         criteria = {**profile.get("criteria", {}), "languages": languages, "exclude_keywords": excludes, "keywords": {"tier1": keywords}}
         questions = [{**question, "answer": ""} for question in DEFAULT_RUBRIC_QUESTIONS]
         state.update(phase="questions", allowed_actions=["answer_rubric_question"], profile={**profile, "criteria": criteria}, cards={**cards, "stage0": {"keywords": keywords, "languages": languages, "exclude_keywords": excludes}}, rubric_questions=questions)
@@ -373,7 +412,21 @@ def main() -> None:
             apply_action(args.project_dir, {"type": "confirm_profile_summary"})
         elif (state["stage"], state["phase"]) == ("profile", "title_proposal"):
             criteria = profile.get("criteria") or {}
-            apply_action(args.project_dir, {"type": "confirm_profile", "titles": profile.get("titles") or criteria.get("search_terms"), "location": criteria.get("location"), "is_remote": criteria.get("is_remote", False), "hours_old": criteria.get("hours_old", 24)})
+            stage0_card = (payload.get("cards") or {}).get("stage0", {})
+            stage0 = validate_stage0_draft({
+                "keywords": stage0_card.get("keywords", criteria.get("keywords", {}).get("tier1", [])),
+                "languages": stage0_card.get("languages", criteria.get("languages", [])),
+                "exclude_keywords": stage0_card.get("exclude_keywords", criteria.get("exclude_keywords", [])),
+            })
+            apply_action(args.project_dir, {
+                "type": "set_profile_draft",
+                "titles": profile.get("titles") or criteria.get("search_terms"),
+                "location": criteria.get("location"),
+                "is_remote": criteria.get("is_remote", False),
+                "hours_old": criteria.get("hours_old", 24),
+                "results_wanted": criteria.get("results_wanted", 100),
+                "stage0": stage0,
+            })
         elif (state["stage"], state["phase"]) == ("rubric", "stage0"):
             card = (payload.get("cards") or {}).get("stage0", {})
             criteria = profile.get("criteria") or {}
