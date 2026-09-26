@@ -315,6 +315,19 @@ select.sort-select {
 .onboarding-field label { display: block; color: var(--text3); font: 11px 'IBM Plex Mono', monospace; margin-bottom: 6px; }
 .onboarding-field input, .onboarding-field textarea, .onboarding-field select { width: 100%; border: 1px solid var(--border); border-radius: 2px; padding: 10px 11px; color: var(--text); background: var(--surface); font: 13px inherit; }
 .onboarding-field textarea { min-height: 92px; resize: vertical; line-height: 1.55; }
+.profile-summary-review textarea[data-profile-summary] { min-height: 250px; max-height: 520px; font-size: 13px; line-height: 1.7; padding: 14px 15px; }
+.profile-summary-preview { margin-top: 14px; padding: 18px 20px; background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-size: 13px; line-height: 1.7; }
+.profile-summary-preview:empty::before { content: 'Preview will appear here as you edit.'; color: var(--text3); font-style: italic; }
+.profile-summary-preview h1, .profile-summary-preview h2, .profile-summary-preview h3 { color: var(--text); font-weight: 600; line-height: 1.25; margin: 0 0 9px; }
+.profile-summary-preview h1 { font-size: 20px; }
+.profile-summary-preview h2 { font-size: 16px; margin-top: 18px; }
+.profile-summary-preview h3 { font-size: 14px; margin-top: 14px; }
+.profile-summary-preview p { color: var(--text2); font-size: 13px; margin: 0 0 12px; }
+.profile-summary-preview ul, .profile-summary-preview ol { margin: 0 0 12px 20px; color: var(--text2); }
+.profile-summary-preview li { margin: 3px 0; }
+.profile-summary-preview blockquote { margin: 0 0 12px; padding: 7px 12px; border-left: 3px solid var(--accent-border); color: var(--text2); background: rgba(230,238,233,.5); }
+.profile-summary-preview code { padding: 2px 5px; color: var(--accent-text); background: var(--accent-dim); font: 11px 'IBM Plex Mono', monospace; }
+.profile-summary-preview .preview-empty-line { height: 7px; }
 .onboarding-field input:focus, .onboarding-field textarea:focus, .onboarding-field select:focus { outline: none; border-color: var(--accent); }
 .profile-search-card { padding: 26px; }
 .profile-search-card h3 { margin-bottom: 22px; font-size: 14px; }
@@ -328,6 +341,10 @@ select.sort-select {
 .profile-check-field input { width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; }
 .profile-field-hint { color: var(--text3); font-size: 10.5px; line-height: 1.45; margin: 6px 0 0; }
 .profile-confirm-actions { justify-content: flex-start; margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--border); }
+.profile-summary-status { margin-right: auto; color: var(--text3); font: 10px 'IBM Plex Mono', monospace; }
+.profile-summary-status.is-dirty { color: var(--warn-text); }
+.profile-summary-review .profile-confirm-actions .secondary { color: var(--accent-text); padding: 10px 0; }
+.profile-summary-review .profile-confirm-actions .secondary:disabled { color: var(--text3); cursor: default; opacity: .65; }
 .onboarding-action-notice { margin-top: 18px; padding: 13px 14px; background: var(--accent-dim); border: 1px solid var(--accent-border); color: var(--text2); font-size: 11px; line-height: 1.55; }
 .onboarding-action-notice b { display: block; color: var(--accent-text); margin-bottom: 4px; }
 .onboarding-action-notice p { margin: 0; }
@@ -463,6 +480,63 @@ function onboardingCopy(state) {
   return latestOnboardingMessage(state);
 }
 let onboardingActionNotice = '';
+let profileSummaryDraft = null;
+let profileSummarySaved = '';
+function markdownInline(value) {
+  return esc(value)
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/__([^_]+)__/g, '<strong>$1</strong>')
+    .replace(/\*([^*]+)\*/g, '<em>$1</em>');
+}
+function renderSimpleMarkdown(markdown) {
+  const lines = String(markdown || '').replace(/\r\n?/g, '\n').split('\n');
+  const output = [];
+  let paragraph = [];
+  let list = null;
+  const flushParagraph = () => {
+    if (paragraph.length) {
+      output.push(`<p>${markdownInline(paragraph.join(' '))}</p>`);
+      paragraph = [];
+    }
+  };
+  const closeList = () => {
+    if (list) { output.push(`</${list}>`); list = null; }
+  };
+  lines.forEach(line => {
+    const heading = line.match(/^(#{1,3})\s+(.+)$/);
+    const bullet = line.match(/^\s*[-*]\s+(.+)$/);
+    const numbered = line.match(/^\s*\d+[.)]\s+(.+)$/);
+    const quote = line.match(/^\s*>\s?(.*)$/);
+    if (!line.trim()) { flushParagraph(); closeList(); output.push('<div class="preview-empty-line"></div>'); return; }
+    if (heading) { flushParagraph(); closeList(); const level = heading[1].length; output.push(`<h${level}>${markdownInline(heading[2])}</h${level}>`); return; }
+    if (bullet || numbered) {
+      flushParagraph(); const nextList = bullet ? 'ul' : 'ol';
+      if (list !== nextList) { closeList(); list = nextList; output.push(`<${list}>`); }
+      output.push(`<li>${markdownInline((bullet || numbered)[1])}</li>`); return;
+    }
+    if (quote) { flushParagraph(); closeList(); output.push(`<blockquote>${markdownInline(quote[1])}</blockquote>`); return; }
+    closeList(); paragraph.push(line.trim());
+  });
+  flushParagraph(); closeList();
+  return output.join('');
+}
+function updateProfileSummaryEditor() {
+  const input = document.querySelector('[data-profile-summary]');
+  const preview = document.querySelector('[data-profile-summary-preview]');
+  const save = document.querySelector('[data-save-profile-summary]');
+  const confirm = document.querySelector('[data-confirm-profile-summary]');
+  if (!input) return;
+  const value = input.value;
+  const dirty = value !== profileSummarySaved;
+  const ready = onboardingState?.bridge?.status === 'ready';
+  if (preview) preview.innerHTML = renderSimpleMarkdown(value);
+  if (save) { save.disabled = !dirty || !ready; save.textContent = dirty ? 'Save draft' : 'Saved'; }
+  if (confirm) { confirm.disabled = dirty || !value.trim() || !ready; confirm.title = dirty ? 'Save your draft before confirming' : ''; }
+  const status = document.querySelector('[data-profile-summary-status]');
+  if (status) { status.textContent = dirty ? 'Unsaved changes' : 'Saved'; status.classList.toggle('is-dirty', dirty); }
+}
+
 function recoveryPhrase(actionType) {
   const phrases = {
     confirm_profile_sources: 'I uploaded my background files, continue the setup',
@@ -490,7 +564,12 @@ function profileCard(state) {
   const phase = state.phase;
   const summary = profile.summary || '';
   const titles = onboardingDraft.titles.length ? onboardingDraft.titles : (profile.titles || []);
-  if (phase === 'profile_summary_review') return `<div class="onboarding-card profile-summary-review"><h3>Review your profile summary</h3><p>FTJA drafted this from the files and folders you selected. Edit it until it represents your background, then confirm.</p><div class="onboarding-field"><label for="profile-summary">Profile summary</label><textarea id="profile-summary" data-profile-summary>${esc(summary)}</textarea></div><div class="onboarding-actions profile-confirm-actions"><button class="secondary" type="button" data-save-profile-summary>Save changes</button><button class="primary" type="button" data-confirm-profile-summary>Confirm profile summary</button></div></div>`;
+  if (phase === 'profile_summary_review') {
+    profileSummarySaved = summary;
+    const value = profileSummaryDraft === null ? summary : profileSummaryDraft;
+    return `<div class="onboarding-card profile-summary-review"><h3>Profile summary</h3><div class="onboarding-field"><textarea id="profile-summary" data-profile-summary aria-label="Profile summary">${esc(value)}</textarea><div class="profile-summary-preview" data-profile-summary-preview aria-label="Formatted profile summary preview"></div></div><div class="onboarding-actions profile-confirm-actions"><div class="profile-summary-status" data-profile-summary-status>Saved</div><button class="secondary" type="button" data-save-profile-summary disabled>Saved</button><button class="primary" type="button" data-confirm-profile-summary>Confirm</button></div></div>`;
+  }
+
   if (phase === 'title_proposal' || phase === 'scrape_card') {
     const confirmMarkup = phase === 'scrape_card'
       ? '<div class="onboarding-summary"><b>Search settings ready</b>Review the settings above before your next run.</div>'
@@ -537,7 +616,9 @@ function onboardingStepMarkup() {
   const bridgeReady = state.bridge?.status === 'ready';
   const bridgeGate = !bridgeReady ? '<div class="onboarding-action-notice"><b>Connecting your setup session.</b><p>FTJA will enable decisions when the setup agent is ready to receive them.</p></div>' : '';
   const bridgeNotice = onboardingActionNotice && onboardingActionNotice !== 'confirm_profile_sources' ? `<div class="onboarding-action-notice"><b>Decision saved locally.</b><p>Your setup agent is checking this page. If nothing happens, type <code>${esc(recoveryPhrase(onboardingActionNotice))}</code> in the FTJA setup chat.</p></div>` : '';
-  return `<div class="onboarding-kicker">Step ${onboardingStepIndex(state) + 1} of 4 · ${title}</div><h2 class="onboarding-title">${pageTitle}</h2><p class="onboarding-copy">${esc(onboardingCopy(state))}</p>${body}${bridgeGate}${bridgeNotice}`;
+  const phaseTitles = {sources: 'Add background', profile_summary: 'Add background', profile_summary_review: 'Profile summary', title_proposal: 'Search settings', scrape_card: 'Search settings', stage0: 'Screening filter', questions: 'Judgment questions', rubric_review: 'Judgment rubric', ready: 'Ready to run'};
+  const currentStep = phaseTitles[state.phase] || title;
+  return `<div class="onboarding-kicker">Setup · ${currentStep}</div><h2 class="onboarding-title">${pageTitle}</h2><p class="onboarding-copy">${esc(onboardingCopy(state))}</p>${body}${bridgeGate}${bridgeNotice}`;
 }
 function applyOnboardingBridgeGate() {
   const ready = onboardingState?.bridge?.status === 'ready';
@@ -553,6 +634,11 @@ function renderOnboarding() {
   document.getElementById('onboarding-content').innerHTML = onboardingStepMarkup();
   bindOnboarding();
   applyOnboardingBridgeGate();
+  if (document.querySelector('[data-profile-summary]')) {
+    const input = document.querySelector('[data-profile-summary]');
+    input.addEventListener('input', () => { profileSummaryDraft = input.value; updateProfileSummaryEditor(); });
+    updateProfileSummaryEditor();
+  }
 }
 async function postOnboardingAction(type, payload = {}) {
   const res = await fetch('/api/onboarding-action', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({type, expected_revision: onboardingState?.revision ?? 0, ...payload})});
@@ -634,7 +720,7 @@ function bindOnboarding() {
   const add = document.querySelector('[data-title-add]'); if (add) add.addEventListener('click', () => { const input = document.getElementById('title-input'); const value = input.value.trim(); if (value && !onboardingDraft.titles.includes(value)) onboardingDraft.titles.push(value); renderOnboarding(); });
   document.querySelectorAll('[data-add-onboarding-source]').forEach(button => button.addEventListener('click', () => addOnboardingSource(button.dataset.addOnboardingSource, button)));
   const confirmSources = document.querySelector('[data-confirm-profile-sources]'); if (confirmSources) confirmSources.addEventListener('click', () => submitOnboardingAction(confirmSources, 'confirm_profile_sources'));
-  const saveSummary = document.querySelector('[data-save-profile-summary]'); if (saveSummary) saveSummary.addEventListener('click', () => submitOnboardingAction(saveSummary, 'set_profile_summary', {summary: document.querySelector('[data-profile-summary]').value.trim()}));
+  const saveSummary = document.querySelector('[data-save-profile-summary]'); if (saveSummary) saveSummary.addEventListener('click', () => { const summary = document.querySelector('[data-profile-summary]').value.trim(); profileSummaryDraft = summary; submitOnboardingAction(saveSummary, 'set_profile_summary', {summary}); });
   const confirmSummary = document.querySelector('[data-confirm-profile-summary]'); if (confirmSummary) confirmSummary.addEventListener('click', () => submitOnboardingAction(confirmSummary, 'confirm_profile_summary'));
   const confirmProfile = document.querySelector('[data-confirm-profile]'); if (confirmProfile) confirmProfile.addEventListener('click', () => submitOnboardingAction(confirmProfile, 'confirm_profile', {titles: onboardingDraft.titles, location: document.getElementById('profile-location').value.trim(), is_remote: document.getElementById('profile-remote').checked, hours_old: Number(document.getElementById('profile-hours').value)}));
   const confirmStage0 = document.querySelector('[data-confirm-stage0]'); if (confirmStage0) confirmStage0.addEventListener('click', () => submitOnboardingAction(confirmStage0, 'confirm_stage0', {keywords: onboardingDraft.tier1, languages: onboardingDraft.languages, exclude_keywords: onboardingDraft.exclude_keywords}));
