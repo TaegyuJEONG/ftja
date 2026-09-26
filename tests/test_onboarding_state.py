@@ -4,7 +4,7 @@ import time
 import unittest
 from pathlib import Path
 
-from ftja.onboarding import DEFAULT_STATE, STATE_FILE, OnboardingError, apply_action, read_state, wait_for_action, wait_for_source_confirm, write_action, write_json
+from ftja.onboarding import DEFAULT_STATE, STATE_FILE, OnboardingError, apply_action, read_state, read_bridge, wait_for_action, wait_for_source_confirm, write_action, write_json
 
 
 class OnboardingStateTests(unittest.TestCase):
@@ -94,6 +94,23 @@ class OnboardingStateTests(unittest.TestCase):
         self.assertFalse(thread.is_alive())
         self.assertEqual(result["status"], "confirmed")
         self.assertTrue(result["state"]["profile"]["sources_confirmed"])
+
+    def test_wait_marks_the_bridge_ready_while_it_is_waiting(self):
+        result = {}
+
+        def wait():
+            result.update(wait_for_action(str(self.root), ["confirm_profile_sources"], timeout_seconds=1))
+
+        thread = threading.Thread(target=wait)
+        thread.start()
+        time.sleep(0.1)
+        bridge = read_bridge(str(self.root))
+        self.assertEqual(bridge["status"], "ready")
+        self.assertEqual(bridge["action_types"], ["confirm_profile_sources"])
+        thread.join(timeout=3)
+        self.assertFalse(thread.is_alive())
+        self.assertEqual(result["status"], "timeout")
+        self.assertEqual(read_bridge(str(self.root))["status"], "stopped")
 
     def test_wait_recovers_a_web_action_that_finished_before_the_waiter_started(self):
         self.act("set_profile_sources", sources=[{"path": str(self.root / "resume.txt"), "kind": "file"}])

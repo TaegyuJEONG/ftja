@@ -9,6 +9,7 @@ from urllib.request import Request, urlopen
 
 from ftja.pipeline_view import read_config, write_config
 from ftja.server import make_handler
+from ftja.onboarding import write_bridge, read_state, write_json
 
 
 class ProfileSourceTests(unittest.TestCase):
@@ -46,6 +47,37 @@ class ProfileSourceTests(unittest.TestCase):
                 server.server_close()
                 thread.join(timeout=3)
 
+    def test_web_actions_are_rejected_until_the_setup_bridge_is_ready(self):
+        with TemporaryDirectory() as tmp:
+            source = Path(tmp) / "resume.txt"
+            source.write_text("experience", encoding="utf-8")
+            server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(
+                str(Path(tmp) / "seen.db"), tmp
+            ))
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            try:
+                body = json.dumps({
+                    "type": "set_profile_sources",
+                    "expected_revision": 0,
+                    "sources": [{"path": str(source), "kind": "file"}],
+                }).encode()
+                request = Request(
+                    f"http://127.0.0.1:{server.server_port}/api/onboarding-action",
+                    data=body,
+                    headers={"Content-Type": "application/json"},
+                    method="POST",
+                )
+                from urllib.error import HTTPError
+                with self.assertRaises(HTTPError) as error:
+                    urlopen(request, timeout=3)
+                self.assertEqual(error.exception.code, 409)
+                self.assertIn("bridge", error.exception.read().decode().lower())
+            finally:
+                server.shutdown()
+                server.server_close()
+                thread.join(timeout=3)
+
     def test_confirm_action_is_written_for_the_setup_helper(self):
         with TemporaryDirectory() as tmp:
             source = Path(tmp) / "resume.txt"
@@ -56,6 +88,8 @@ class ProfileSourceTests(unittest.TestCase):
             thread = threading.Thread(target=server.serve_forever, daemon=True)
             thread.start()
             try:
+                write_bridge(tmp, "ready", ["set_profile_sources", "confirm_profile_sources"], __import__("os").getpid())
+
                 def post(payload):
                     request = Request(
                         f"http://127.0.0.1:{server.server_port}/api/onboarding-action",
@@ -114,6 +148,8 @@ class ProfileSourceTests(unittest.TestCase):
         self.assertIn("+ Add a folder", html)
         self.assertIn("Confirm sources", html)
         self.assertIn("data-confirm-profile-sources", html)
+        self.assertIn("applyOnboardingBridgeGate", html)
+        self.assertIn("Waiting for the setup agent", html)
         self.assertIn("I uploaded my background files, continue the setup", html)
         self.assertIn("sources: [...current, source]", html)
         self.assertNotIn("Choose resume or portfolio file", html)

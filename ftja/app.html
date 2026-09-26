@@ -534,14 +534,25 @@ function onboardingStepMarkup() {
   else if (state.stage === 'run') body = `<div class="onboarding-card"><h3>Run</h3><p>${esc(latestOnboardingMessage(state))}</p><div class="onboarding-summary"><b>Ready</b> Use <span class="mono">/ftja-run</span> in your coding-agent chat. Results will appear here without advancing the page manually.</div></div>`;
   else body = `<div class="onboarding-card"><h3>Learn</h3><p>${esc(latestOnboardingMessage(state))}</p><div class="onboarding-summary"><b>Learn from decisions</b> Mark apply or skip in Results and explain why. FTJA will propose rubric changes in a later interactive run.</div></div>`;
   const pageTitle = state.stage === 'profile' && state.phase === 'profile_summary_review' ? 'Review your profile summary.' : state.stage === 'profile' && ['title_proposal', 'scrape_card'].includes(state.phase) ? 'Fine-tune your job search.' : state.stage === 'rubric' && state.phase === 'stage0' ? 'Set your code-based screening before LLM is involved.' : state.stage === 'rubric' && state.phase === 'questions' ? 'Shape the judgment, one answer at a time.' : state.stage === 'rubric' && state.phase === 'rubric_review' ? 'Confirm the judgment rubric.' : title === 'Profile' ? 'Add your background.' : title === 'Rubric' ? 'Make the judgment visible.' : title === 'Run' ? 'Run the pipeline.' : 'Teach FTJA carefully.';
+  const bridgeReady = state.bridge?.status === 'ready';
+  const bridgeGate = !bridgeReady ? '<div class="onboarding-action-notice"><b>Connecting your setup session.</b><p>FTJA will enable decisions when the setup agent is ready to receive them.</p></div>' : '';
   const bridgeNotice = onboardingActionNotice && onboardingActionNotice !== 'confirm_profile_sources' ? `<div class="onboarding-action-notice"><b>Decision saved locally.</b><p>Your setup agent is checking this page. If nothing happens, type <code>${esc(recoveryPhrase(onboardingActionNotice))}</code> in the FTJA setup chat.</p></div>` : '';
-  return `<div class="onboarding-kicker">Step ${onboardingStepIndex(state) + 1} of 4 · ${title}</div><h2 class="onboarding-title">${pageTitle}</h2><p class="onboarding-copy">${esc(onboardingCopy(state))}</p>${body}${bridgeNotice}`;
+  return `<div class="onboarding-kicker">Step ${onboardingStepIndex(state) + 1} of 4 · ${title}</div><h2 class="onboarding-title">${pageTitle}</h2><p class="onboarding-copy">${esc(onboardingCopy(state))}</p>${body}${bridgeGate}${bridgeNotice}`;
+}
+function applyOnboardingBridgeGate() {
+  const ready = onboardingState?.bridge?.status === 'ready';
+  const selector = '[data-add-onboarding-source],[data-confirm-profile-sources],[data-save-profile-summary],[data-confirm-profile-summary],[data-confirm-profile],[data-confirm-stage0],[data-answer-rubric-question],[data-confirm-rubric]';
+  document.querySelectorAll(selector).forEach(button => {
+    button.disabled = !ready;
+    button.title = ready ? '' : 'Waiting for the setup agent';
+  });
 }
 function renderOnboarding() {
   const state = onboardingState || {stage: 'profile', phase: 'sources'};
   document.getElementById('onboarding-progress').innerHTML = ONBOARDING_STEPS.map((_, i) => `<span class="${i === onboardingStepIndex(state) ? 'active' : ''}"></span>`).join('');
   document.getElementById('onboarding-content').innerHTML = onboardingStepMarkup();
   bindOnboarding();
+  applyOnboardingBridgeGate();
 }
 async function postOnboardingAction(type, payload = {}) {
   const res = await fetch('/api/onboarding-action', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({type, expected_revision: onboardingState?.revision ?? 0, ...payload})});
@@ -549,7 +560,7 @@ async function postOnboardingAction(type, payload = {}) {
   if (!res.ok) throw new Error(body.error || 'Could not send this decision to the setup chat.');
   if (body.state) {
     if (type.startsWith('confirm_')) onboardingActionNotice = type;
-    onboardingState = body.state;
+    onboardingState = {...body.state, bridge: body.bridge || onboardingState?.bridge || {status: 'stopped'}};
     onboardingVersion = body.state.updated_at || JSON.stringify(body.state);
     renderOnboarding();
   }
@@ -632,7 +643,7 @@ function bindOnboarding() {
 }
 async function refreshOnboarding(force = false) {
   const res = await fetch('/api/onboarding?ts=' + Date.now(), {cache:'no-store'}); const data = await res.json();
-  const state = data.state || {};
+  const state = {...(data.state || {}), bridge: data.bridge || {status: 'stopped'}};
   const version = state.updated_at || JSON.stringify(state);
   if (!force && version === onboardingVersion) return;
   onboardingVersion = version; onboardingState = state;
@@ -647,7 +658,7 @@ async function refreshOnboarding(force = false) {
 async function maybeStartOnboarding() {
   const res = await fetch('/api/onboarding?ts=' + Date.now(), {cache:'no-store'}); const data = await res.json();
   if (!data.has_onboarding_state && data.has_criteria && data.has_rubric) return false;
-  onboardingState = data.state || {stage:'profile', phase:'sources'};
+  onboardingState = {...(data.state || {stage:'profile', phase:'sources'}), bridge: data.bridge || {status: 'stopped'}};
   document.body.classList.add('onboarding-active'); document.querySelectorAll('.main-tab, .view:not(#view-onboarding)').forEach(x => x.style.display = 'none'); document.getElementById('view-onboarding').classList.add('active');
   await refreshOnboarding(true); setInterval(() => refreshOnboarding(false).catch(() => {}), 1200); return true;
 }

@@ -11,6 +11,14 @@ from typing import Any
 
 STATE_FILE = "onboarding-state.json"
 ACTION_FILE = "onboarding-action.json"
+BRIDGE_FILE = "onboarding-bridge.json"
+
+DEFAULT_BRIDGE: dict[str, Any] = {
+    "status": "stopped",
+    "action_types": [],
+    "pid": None,
+    "updated_at": None,
+}
 
 DEFAULT_STATE: dict[str, Any] = {
     "version": 1,
@@ -225,6 +233,41 @@ def add_message(project_dir: str, role: str, text: str) -> dict[str, Any]:
     return write_state(project_dir, messages=messages)
 
 
+def read_bridge(project_dir: str) -> dict[str, Any]:
+    bridge = read_json(project_dir, BRIDGE_FILE, {})
+    if not isinstance(bridge, dict):
+        bridge = {}
+    merged = {**DEFAULT_BRIDGE, **bridge}
+    merged["action_types"] = [str(item) for item in merged.get("action_types", []) if str(item).strip()]
+    return merged
+
+
+def write_bridge(project_dir: str, status: str, action_types: list[str] | None = None, pid: int | None = None, **extra: Any) -> dict[str, Any]:
+    bridge = {
+        **DEFAULT_BRIDGE,
+        **read_bridge(project_dir),
+        "status": status,
+        "action_types": [str(item) for item in (action_types or []) if str(item).strip()],
+        "pid": pid,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        **extra,
+    }
+    write_json(project_dir, BRIDGE_FILE, bridge)
+    return bridge
+
+
+def bridge_is_ready(project_dir: str) -> bool:
+    bridge = read_bridge(project_dir)
+    if bridge.get("status") != "ready":
+        return False
+    try:
+        pid = int(bridge.get("pid"))
+        os.kill(pid, 0)
+    except (TypeError, ValueError, OSError):
+        return False
+    return True
+
+
 def read_action(project_dir: str) -> dict[str, Any] | None:
     action = read_json(project_dir, ACTION_FILE, None)
     return action if isinstance(action, dict) else None
@@ -242,25 +285,32 @@ def wait_for_action(project_dir: str, action_types: list[str], timeout_seconds: 
         raise ValueError("timeout_seconds must be between 1 and 3600")
     expected_types = {str(action_type).strip() for action_type in action_types if str(action_type).strip()}
     initial_revision = int(read_state(project_dir).get("revision", 0))
+    write_bridge(project_dir, "ready", sorted(expected_types), os.getpid())
+    result: dict[str, Any] = {"status": "timeout", "state": read_state(project_dir)}
     deadline = time.monotonic() + timeout_seconds
-    while time.monotonic() < deadline:
-        action = read_action(project_dir)
-        if action and action.get("type") in expected_types:
-            state = read_state(project_dir)
-            action_revision = int(action.get("expected_revision", -1))
-            current_revision = int(state.get("revision", 0))
-            observed_after_wait_started = (
-                initial_revision <= action_revision < current_revision
-                and current_revision > initial_revision
-            )
-            just_completed_before_wait_started = (
-                current_revision > 0
-                and action_revision == current_revision - 1
-            )
-            if observed_after_wait_started or just_completed_before_wait_started:
-                return {"status": "confirmed", "action": action, "state": state}
-        time.sleep(0.5)
-    return {"status": "timeout", "state": read_state(project_dir)}
+    try:
+        while time.monotonic() < deadline:
+            action = read_action(project_dir)
+            if action and action.get("type") in expected_types:
+                state = read_state(project_dir)
+                action_revision = int(action.get("expected_revision", -1))
+                current_revision = int(state.get("revision", 0))
+                observed_after_wait_started = (
+                    initial_revision <= action_revision < current_revision
+                    and current_revision > initial_revision
+                )
+                just_completed_before_wait_started = (
+                    current_revision > 0
+                    and action_revision == current_revision - 1
+                )
+                if observed_after_wait_started or just_completed_before_wait_started:
+                    result = {"status": "confirmed", "action": action, "state": state}
+                    return result
+            time.sleep(0.5)
+        result = {"status": "timeout", "state": read_state(project_dir)}
+        return result
+    finally:
+        write_bridge(project_dir, "stopped", [], None, last_status=result.get("status"))
 
 
 def wait_for_source_confirm(project_dir: str, timeout_seconds: int = 900) -> dict[str, Any]:
