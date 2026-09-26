@@ -347,9 +347,8 @@ select.sort-select {
 .profile-check-field input { width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; }
 .profile-field-hint { color: var(--text3); font-size: 10.5px; line-height: 1.45; margin: 6px 0 0; }
 .profile-confirm-actions { justify-content: flex-end; margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--border); }
-.profile-summary-status { margin-right: auto; color: var(--text3); font: 10px 'IBM Plex Mono', monospace; }
-.profile-summary-status.is-dirty { color: var(--warn-text); }
-.profile-summary-action-group { display: flex; align-items: center; gap: 12px; }
+.profile-summary-status { display: none !important; }
+.profile-summary-action-group { display: flex; align-items: center; gap: 12px; margin-left: auto; }
 .profile-summary-review .profile-confirm-actions .secondary { min-width: 86px; color: var(--text3); padding: 10px 14px; border: 1px solid var(--border); border-radius: 2px; cursor: default; }
 .profile-summary-review .profile-confirm-actions .secondary.is-dirty { color: var(--accent-text); border-color: var(--accent); background: var(--accent-dim); cursor: pointer; font-weight: 600; }
 .profile-summary-review .profile-confirm-actions .secondary:disabled { color: var(--text3); cursor: default; opacity: .65; }
@@ -490,7 +489,8 @@ function onboardingCopy(state) {
 let onboardingActionNotice = '';
 let profileSummaryDraft = null;
 let profileSummarySaved = '';
-let profileSummaryHasSaved = false;
+let profileSummaryEditing = false;
+let profileSummaryScrollRatio = 0;
 function markdownInline(value) {
   return esc(value)
     .replace(/`([^`]+)`/g, '<code>$1</code>')
@@ -546,23 +546,32 @@ function updateProfileSummaryEditor() {
     save.textContent = 'Save';
   }
   if (confirm) { confirm.disabled = dirty || !value.trim() || !ready; confirm.title = dirty ? 'Save your draft before confirming' : ''; }
-  const status = document.querySelector('[data-profile-summary-status]');
-  if (status) {
-    status.textContent = dirty ? 'Unsaved changes' : (profileSummaryHasSaved ? 'Saved' : '');
-    status.classList.toggle('is-dirty', dirty);
-    status.hidden = !dirty && !profileSummaryHasSaved;
-  }
 }
 
-function activateProfileSummaryEditor() {
+function activateProfileSummaryEditor(event) {
   const shell = document.querySelector('.profile-summary-editor-shell');
   const input = document.querySelector('[data-profile-summary]');
-  if (!shell || !input) return;
+  const preview = document.querySelector('[data-profile-summary-preview]');
+  if (!shell || !input || !preview) return;
+  const rect = preview.getBoundingClientRect();
+  const clickOffset = Math.max(0, Math.min(preview.scrollHeight, (event?.clientY || rect.top) - rect.top + preview.scrollTop));
+  const ratio = preview.scrollHeight ? clickOffset / preview.scrollHeight : 0;
+  profileSummaryEditing = true;
+  profileSummaryScrollRatio = ratio;
   shell.classList.add('is-editing');
   input.focus();
-  input.setSelectionRange(input.value.length, input.value.length);
+  input.scrollTop = ratio * Math.max(0, input.scrollHeight - input.clientHeight);
+  const caret = Math.round(input.value.length * ratio);
+  input.setSelectionRange(caret, caret);
+}
+function restoreProfileSummaryEditorPosition() {
+  const input = document.querySelector('[data-profile-summary]');
+  if (!input || !profileSummaryEditing) return;
+  input.scrollTop = profileSummaryScrollRatio * Math.max(0, input.scrollHeight - input.clientHeight);
+  input.focus();
 }
 function deactivateProfileSummaryEditor() {
+  profileSummaryEditing = false;
   const shell = document.querySelector('.profile-summary-editor-shell');
   if (shell) shell.classList.remove('is-editing');
 }
@@ -597,7 +606,7 @@ function profileCard(state) {
   if (phase === 'profile_summary_review') {
     profileSummarySaved = summary;
     const value = profileSummaryDraft === null ? summary : profileSummaryDraft;
-    return `<div class="onboarding-card profile-summary-review"><h3>Profile summary</h3><div class="profile-summary-editor-shell"><textarea id="profile-summary" data-profile-summary aria-label="Profile summary">${esc(value)}</textarea><div class="profile-summary-preview" data-profile-summary-preview role="button" tabindex="0" aria-label="Profile summary. Click to edit."></div></div><div class="onboarding-actions profile-confirm-actions"><div class="profile-summary-status" data-profile-summary-status hidden></div><div class="profile-summary-action-group"><button class="secondary" type="button" data-save-profile-summary disabled>Save</button><button class="primary" type="button" data-confirm-profile-summary>Confirm</button></div></div></div>`;
+    return `<div class="onboarding-card profile-summary-review"><h3>Profile summary</h3><div class="profile-summary-editor-shell${profileSummaryEditing ? ' is-editing' : ''}"><textarea id="profile-summary" data-profile-summary aria-label="Profile summary">${esc(value)}</textarea><div class="profile-summary-preview" data-profile-summary-preview role="button" tabindex="0" aria-label="Profile summary. Click to edit."></div></div><div class="onboarding-actions profile-confirm-actions"><div class="profile-summary-action-group"><button class="secondary" type="button" data-save-profile-summary disabled>Save</button><button class="primary" type="button" data-confirm-profile-summary>Confirm</button></div></div></div>`;
   }
 
   if (phase === 'title_proposal' || phase === 'scrape_card') {
@@ -673,6 +682,7 @@ function renderOnboarding() {
       preview.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); activateProfileSummaryEditor(); } });
     }
     updateProfileSummaryEditor();
+    if (profileSummaryEditing) requestAnimationFrame(restoreProfileSummaryEditorPosition);
   }
 }
 async function postOnboardingAction(type, payload = {}) {
@@ -680,7 +690,6 @@ async function postOnboardingAction(type, payload = {}) {
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(body.error || 'Could not send this decision to the setup chat.');
   if (body.state) {
-    if (type === 'set_profile_summary') profileSummaryHasSaved = true;
     if (type.startsWith('confirm_')) onboardingActionNotice = type;
     onboardingState = {...body.state, bridge: body.bridge || onboardingState?.bridge || {status: 'stopped'}};
     onboardingVersion = body.state.updated_at || JSON.stringify(body.state);
