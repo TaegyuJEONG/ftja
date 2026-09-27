@@ -10,6 +10,91 @@ just fire a checklist) to produce two files at the project root. Do not
 guess at answers; if the user is vague, ask a follow-up.
 
 
+## Native checklist
+
+Create the complete native checklist before workspace attachment, environment
+preparation, server work, or source collection. Clone happens before this
+repository-local skill can run: preserve `Clone the FTJA workspace` in the list,
+but mark it complete only after resolving the exact repository path, verifying
+that `.git` exists, and verifying the expected FTJA remote. A command invocation
+alone cannot complete any checklist task; complete an item only after its
+required evidence is observed. Keep exactly one checklist task `in_progress`.
+The checklist mirrors durable `onboarding-state.json` and observed client or
+browser results; it never replaces that state machine or hides completed work.
+
+### Client-native task list
+
+- In Claude Code, use Claude Code native task-list tools when they are available
+  in the current client/model. Do not assume their availability. If a required
+  native tool is unavailable, follow the current official activation/relaunch
+  guidance and report the limitation honestly; do not substitute prose and call
+  it a native checklist.
+- In Codex, use `update_plan` with `pending`, `in_progress`, and `completed`
+  statuses. Its contract permits at most one `in_progress` item.
+- Do not enter Plan Mode, `EnterPlanMode`, `/plan`, or a collaboration Plan Mode
+  for this workflow. The native checklist is an execution-progress mechanism,
+  not a planning mode.
+
+Create these labels in this order:
+
+1. `Clone the FTJA workspace`
+2. `Connect this session to the workspace`
+3. `Prepare the local environment`
+4. `Initialize the onboarding state`
+5. `Start the local FTJA server`
+6. `Verify the local server`
+7. `Open FTJA in the browser`
+8. `Connect this setup session to FTJA`
+9. `Add your background files`
+10. `Confirm your background files`
+11. `Build your profile summary`
+12. `Review and confirm your profile summary`
+13. `Prepare suggested roles and location`
+14. `Review and confirm your search settings`
+15. `Prepare the code-based filter`
+16. `Review and confirm the code-based filter`
+17. `Define what makes a role a clear yes`
+18. `Define your dealbreakers`
+19. `Define your preferences`
+20. `Review and confirm the judgment rubric`
+21. `Open the full pipeline`
+22. `Run your first job search`
+23. `Review your first results`
+
+### Evidence and checklist advancement
+
+- A shell `cd` is insufficient evidence for `Connect this session to the
+  workspace`; require the client's explicit workspace/directory-access result.
+- `Prepare the local environment` requires the repository's interpreter and
+  dependencies to exist or to have been created successfully using actual
+  repository commands. `Initialize the onboarding state` requires an initialized
+  or resumed `onboarding-state.json` in the connected repository.
+- `Start the local FTJA server` requires a real matching process; `Verify the
+  local server` separately requires an expected FTJA response from
+  `http://127.0.0.1:8765/`. `Open FTJA in the browser` requires successful
+  navigation and expected FTJA page text. `Connect this setup session to FTJA`
+  means starting the bounded action wait/bridge; do not claim automatic client
+  discovery.
+- For `confirm_profile_sources`, `confirm_profile_summary`, `confirm_profile`,
+  `confirm_stage0`, each ordered `answer_rubric_question` (`clear_yes`, then
+  `dealbreakers`, then `preferences`), and `confirm_rubric`: advance only after
+  `wait-for-action` returns `status: confirmed`, then read the returned action
+  and the full durable state. The three rubric answers must remain strictly
+  ordered. Build or mark drafts only after their preceding confirmation.
+- Open the full pipeline only after it is reachable and its expected content is
+  observed. Do not mark `Run your first job search` complete because `/ftja-run`
+  was merely suggested. Do not mark `Review your first results` complete until a
+  real completed run has an observable result surface or run artifact; a valid
+  empty result must be verified and explained, never fabricated.
+
+### Routine chat copy
+
+The native checklist carries progress. Normal successful chat output is one or
+two short sentences: state only what was just verified when useful and the
+single next user action (or that no action is needed yet). Keep recovery and
+timeout detail only in failure messages. Do not repeat the whole checklist or
+web-card fields in ordinary prose.
+
 ## File-driven onboarding contract
 
 The local web onboarding is a viewer and decision surface, not a wizard. Never
