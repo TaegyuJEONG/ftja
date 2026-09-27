@@ -13,6 +13,11 @@ The public landing page is `landing.html`. It explains the value first and
 provides a copyable setup prompt with the exact GitHub URL — no `<owner>`
 placeholder and no path that a non-developer has to fill in.
 
+`landing.html` and `index.html` are the tracked public entry points and must
+stay identical. Edit them in this repository only; `scripts/verify_landing.py`
+is run by GitHub Pages before deployment and rejects an entry point that still
+links the CTA to `setup.html` instead of opening the inline setup prompt.
+
 The local server previews it at:
 
 ```text
