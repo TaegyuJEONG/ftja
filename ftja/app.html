@@ -678,11 +678,10 @@ function rubricCard(state) {
   const currentIndex = questions.findIndex(question => !String(question.answer || '').trim());
   if (phase === 'questions' && currentIndex >= 0) {
     const question = questions[currentIndex];
-    return `${stage0View}<div class="onboarding-card rubric-question-card"><div class="onboarding-kicker">Answer ${currentIndex + 1} of ${questions.length}</div><h3>${esc(question.label)}</h3><p>${esc(question.hint)}</p><div class="onboarding-field"><label for="rubric-answer">Your answer</label><textarea id="rubric-answer" placeholder="Write a concise answer"></textarea></div><div class="onboarding-actions onboarding-confirm-actions"><button class="primary" type="button" data-answer-rubric-question data-question-id="${esc(question.id)}">Save answer</button></div></div>`;
+    return `<div class="onboarding-card rubric-question-card"><div class="onboarding-kicker">Answer ${currentIndex + 1} of ${questions.length}</div><h3>${esc(question.label)}</h3><p>${esc(question.hint)}</p><div class="onboarding-field"><label for="rubric-answer">Your answer</label><textarea id="rubric-answer" placeholder="Write a concise answer"></textarea></div><div class="onboarding-actions onboarding-confirm-actions"><button class="primary" type="button" data-answer-rubric-question data-question-id="${esc(question.id)}">Save answer</button></div></div>`;
   }
-  const answers = questions.map(question => `<div class="onboarding-summary"><b>${esc(question.label)}</b>\n${esc(question.answer || '')}</div>`).join('');
   const generatedRubric = state.rubric_draft || `# Judgment rubric\n\n## Clear yes\n${questions[0]?.answer || ''}\n\n## Dealbreakers\n${questions[1]?.answer || ''}\n\n## Preferences\n${questions[2]?.answer || ''}\n\n## Pass\nPass roles that are a clear match for the confirmed profile and answers above.\n\n## Fail\nFail roles that conflict with the dealbreakers above or do not show enough evidence of fit.`;
-  return `${stage0View}<div class="onboarding-card"><h3>Confirm your judgment rubric</h3><p>These answers will guide both model passes. Review the generated rubric once before FTJA saves it and opens Pipeline.</p>${answers}<div class="onboarding-field"><label for="rubric-draft">Judgment rubric</label><textarea id="rubric-draft">${esc(generatedRubric)}</textarea></div><div class="onboarding-actions onboarding-confirm-actions"><button class="primary" type="button" data-confirm-rubric>Confirm rubric and open Pipeline</button></div></div>`;
+  return `<div class="onboarding-card"><h3>Confirm your judgment rubric</h3><p>Review the generated pass/fail rubric once before FTJA saves it and opens Pipeline.</p><div class="onboarding-field"><label for="rubric-draft">Judgment rubric</label><textarea id="rubric-draft">${esc(generatedRubric)}</textarea></div><div class="onboarding-actions onboarding-confirm-actions"><button class="primary" type="button" data-confirm-rubric>Confirm rubric and open Pipeline</button></div></div>`;
 }
 function onboardingStepMarkup() {
   const state = onboardingState || {stage: 'profile', phase: 'sources', profile: {}, messages: []};
@@ -816,9 +815,24 @@ function bindOnboarding() {
   const answerQuestion = document.querySelector('[data-answer-rubric-question]'); if (answerQuestion) answerQuestion.addEventListener('click', () => submitOnboardingAction(answerQuestion, 'answer_rubric_question', {question_id: answerQuestion.dataset.questionId, answer: document.getElementById('rubric-answer').value.trim()}));
   const confirmRubric = document.querySelector('[data-confirm-rubric]'); if (confirmRubric) confirmRubric.addEventListener('click', () => submitOnboardingAction(confirmRubric, 'confirm_rubric', {rubric_md: document.getElementById('rubric-draft').value.trim()}));
 }
+let onboardingRefreshTimer = null;
+function onboardingIsComplete(state) {
+  return state?.stage === 'run' && state?.phase === 'ready' && state?.status === 'ready';
+}
+function openMainView(view) {
+  if (onboardingRefreshTimer) { clearInterval(onboardingRefreshTimer); onboardingRefreshTimer = null; }
+  document.body.classList.remove('onboarding-active');
+  document.querySelectorAll('.main-tab, .view:not(#view-onboarding)').forEach(element => { element.style.display = ''; });
+  document.getElementById('view-onboarding').classList.remove('active');
+  document.querySelectorAll('.main-tab').forEach(tab => tab.classList.toggle('active', tab.dataset.view === view));
+  document.querySelectorAll('.view').forEach(panel => panel.classList.toggle('active', panel.id === 'view-' + view));
+  if (view === 'pipeline') loadPipeline();
+  if (view === 'results') loadRuns();
+}
 async function refreshOnboarding(force = false) {
   const res = await fetch('/api/onboarding?ts=' + Date.now(), {cache:'no-store'}); const data = await res.json();
   const state = {...(data.state || {}), bridge: data.bridge || {status: 'stopped'}};
+  if (onboardingIsComplete(state)) { onboardingState = state; openMainView('pipeline'); return; }
   const version = [state.updated_at, state.revision, state.bridge?.status, state.bridge?.updated_at, state.bridge?.pid].join('|');
   if (!force && version === onboardingVersion) return;
   onboardingVersion = version; onboardingState = state;
@@ -834,8 +848,9 @@ async function maybeStartOnboarding() {
   const res = await fetch('/api/onboarding?ts=' + Date.now(), {cache:'no-store'}); const data = await res.json();
   if (!data.has_onboarding_state && data.has_criteria && data.has_rubric) return false;
   onboardingState = {...(data.state || {stage:'profile', phase:'sources'}), bridge: data.bridge || {status: 'stopped'}};
+  if (onboardingIsComplete(onboardingState)) { openMainView('pipeline'); return true; }
   document.body.classList.add('onboarding-active'); document.querySelectorAll('.main-tab, .view:not(#view-onboarding)').forEach(x => x.style.display = 'none'); document.getElementById('view-onboarding').classList.add('active');
-  await refreshOnboarding(true); setInterval(() => refreshOnboarding(false).catch(() => {}), 1200); return true;
+  await refreshOnboarding(true); onboardingRefreshTimer = setInterval(() => refreshOnboarding(false).catch(() => {}), 1200); return true;
 }
 
 // ---- top-level tabs ----

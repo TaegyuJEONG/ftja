@@ -66,8 +66,16 @@ class OnboardingReviewFlowTests(unittest.TestCase):
         self.assertIn('data-confirm-rubric', html)
         self.assertIn('Answer ${currentIndex + 1} of ${questions.length}', html)
         self.assertIn('Confirm rubric and open Pipeline', html)
+        self.assertNotIn('return `${stage0View}<div class="onboarding-card rubric-question-card">', html)
+        self.assertNotIn('const answers = questions.map', html)
         self.assertNotIn('Confirm Stage 1', html)
         self.assertNotIn('Confirm Stage 2', html)
+
+    def test_web_contract_opens_pipeline_after_onboarding_is_complete(self):
+        html = Path(__file__).parents[1].joinpath("ftja", "app.html").read_text(encoding="utf-8")
+        self.assertIn("function onboardingIsComplete(state)", html)
+        self.assertIn("if (onboardingIsComplete(onboardingState)) { openMainView('pipeline'); return true; }", html)
+        self.assertIn("if (onboardingIsComplete(state)) { onboardingState = state; openMainView('pipeline'); return; }", html)
 
 
 if __name__ == "__main__":
