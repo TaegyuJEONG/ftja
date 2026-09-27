@@ -160,14 +160,14 @@ class ProfileSourceTests(unittest.TestCase):
         self.assertNotIn("Posting age", html)
         self.assertNotIn("<h3>Your source materials</h3><p>${esc(latestOnboardingMessage(state))}", html)
 
-    def test_public_demo_uses_the_same_profile_language(self):
-        index = Path(__file__).parents[1].joinpath("index.html").read_text()
-        landing = Path(__file__).parents[1].joinpath("landing.html").read_text()
-        self.assertEqual(index, landing)
+    def test_public_demo_uses_the_canonical_landing_source(self):
+        root = Path(__file__).parents[1]
+        landing = root.joinpath("landing.html").read_text()
+        self.assertFalse(root.joinpath("index.html").exists())
         for text in ["Review your profile summary.", "Confirm profile summary", "Fine-tune your job search.", "Suggested job titles", "Published within", "Confirm search settings"]:
-            self.assertIn(text, index)
+            self.assertIn(text, landing)
         for text in ["Start with what you know.", "Confirm titles", "Posting age", "PROFILE SEARCH DRAFT CONFIRMED"]:
-            self.assertNotIn(text, index)
+            self.assertNotIn(text, landing)
 
 
 if __name__ == "__main__":
