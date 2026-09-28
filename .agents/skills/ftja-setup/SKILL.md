@@ -24,11 +24,16 @@ browser results; it never replaces that state machine or hides completed work.
 
 ### Client-native task list
 
-- In Claude Code, use Claude Code native task-list tools when they are available
-  in the current client/model. Do not assume their availability. If a required
-  native tool is unavailable, follow the current official activation/relaunch
-  guidance and report the limitation honestly; do not substitute prose and call
-  it a native checklist.
+- In Claude Code, bootstrap Claude Code native task-list tools in the current
+  session before creating the checklist. After the exact workspace path has been resolved,
+  create or merge `<workspace>/.claude/settings.local.json`, preserving existing
+  JSON keys and `env` values, with
+  `"CLAUDE_CODE_ENABLE_TODO_TOOLS": "1"`. Then observe that `TaskCreate` and
+  `TaskUpdate` are available in the current session before proceeding. A tracked
+  `.claude/settings.json` arriving with a clone is not evidence that the live
+  session reloaded this feature. If the native tools are still unavailable after
+  this actual local-settings write, stop and report the limitation honestly; do
+  not substitute prose and call it a native checklist.
 - In Codex, use `update_plan` with `pending`, `in_progress`, and `completed`
   statuses. Its contract permits at most one `in_progress` item.
 - Do not enter Plan Mode, `EnterPlanMode`, `/plan`, or a collaboration Plan Mode

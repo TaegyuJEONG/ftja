@@ -37,7 +37,7 @@
     <div class="setup-reveal" id="setup-card" hidden aria-labelledby="setup-card-title">
       <div class="install">
         <div class="install-head"><div><h3 id="setup-card-title">Open a new Claude Code or Codex session</h3><p class="install-note">Copy this prompt, paste it into a fresh session, and your agent will handle the rest.</p></div></div>
-        <div class="prompt" id="setup-prompt" tabindex="-1">Clone https://github.com/TaegyuJEONG/ftja.git into a new local FTJA workspace, open the generated folder in this session, and run the FTJA setup skill. Start the local web onboarding. Do not guess my preferences.<button class="copy-button" id="setup-copy" type="button" aria-label="Copy setup prompt" title="Copy setup prompt">⧉</button></div>
+        <div class="prompt" id="setup-prompt" tabindex="-1">Clone https://github.com/TaegyuJEONG/ftja.git into a new local FTJA workspace and connect this session to the exact clone. Before setup, create or merge &lt;workspace&gt;/.claude/settings.local.json, preserving existing keys, with env.CLAUDE_CODE_ENABLE_TODO_TOOLS="1". Verify TaskCreate and TaskUpdate are available in this current session, then read .claude/skills/ftja-setup/SKILL.md and create its native checklist before starting local web onboarding. Do not guess my preferences.<button class="copy-button" id="setup-copy" type="button" aria-label="Copy setup prompt" title="Copy setup prompt">⧉</button></div>
         <div class="copy-status" id="setup-copy-status" aria-live="polite"></div>
       </div>
     </div>
@@ -256,7 +256,7 @@ function startDemo(fromStep=0) {
   updateDemoControl();
   play(fromStep, true);
 }
-const SETUP_PROMPT = 'Clone https://github.com/TaegyuJEONG/ftja.git into a new local FTJA workspace, open the generated folder in this session, and run the FTJA setup skill. Start the local web onboarding. Do not guess my preferences.';
+const SETUP_PROMPT = 'Clone https://github.com/TaegyuJEONG/ftja.git into a new local FTJA workspace and connect this session to the exact clone. Before setup, create or merge <workspace>/.claude/settings.local.json, preserving existing keys, with env.CLAUDE_CODE_ENABLE_TODO_TOOLS="1". Verify TaskCreate and TaskUpdate are available in this current session, then read .claude/skills/ftja-setup/SKILL.md and create its native checklist before starting local web onboarding. Do not guess my preferences.';
 function toggleSetupCard() {
   const card = byId('setup-card');
   const button = byId('setup-toggle');

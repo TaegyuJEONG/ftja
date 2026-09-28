@@ -73,6 +73,19 @@ class SetupSkillContractTests(unittest.TestCase):
             self.assertIn("exactly one checklist task `in_progress`", skill)
             self.assertIn("is unavailable", skill)
 
+    def test_claude_bootstrap_enables_task_tools_in_the_current_session(self) -> None:
+        landing = (ROOT / "landing.html").read_text(encoding="utf-8")
+        expected = [
+            ".claude/settings.local.json",
+            "CLAUDE_CODE_ENABLE_TODO_TOOLS",
+            "current session",
+            "TaskCreate",
+            "TaskUpdate",
+        ]
+        for text in (landing, self.claude_raw, self.codex_raw):
+            for phrase in expected:
+                self.assertIn(phrase, text)
+
     def test_infrastructure_tasks_require_observed_evidence(self) -> None:
         for skill in (self.claude, self.codex):
             self.assertIn("Create the complete native checklist before", skill)
