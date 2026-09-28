@@ -276,6 +276,61 @@ class OnboardingStateTests(unittest.TestCase):
         state = wait_then_confirm("confirm_rubric", rubric_md="Pass if the role is a clear product-building fit.")
         self.assertEqual((state["stage"], state["phase"]), ("run", "ready"))
 
+    def test_second_wait_for_the_same_action_type_does_not_replay_the_first_answer(self):
+        # Regression test for a live-session bug: the three rubric questions
+        # all wait for the identical action type ("answer_rubric_question").
+        # If the second wait starts while the action file still holds the
+        # already-consumed first answer, its own revision-delta recovery
+        # check must not mistake that stale answer for a fresh one.
+        self.act("set_profile_sources", sources=[{"path": str(self.root / "resume.txt"), "kind": "file"}])
+        self.act("confirm_profile_sources")
+        self.act("set_profile_summary", summary="Built products and shipped experiments.")
+        self.act("confirm_profile_summary")
+        self.act("set_profile_draft", titles=["Product Manager"], location="Europe", stage0={"keywords": ["AI builder"], "languages": ["en"], "exclude_keywords": []})
+        self.act("confirm_profile", titles=["Product Manager"], location="Europe", is_remote=False, hours_old=24)
+        self.act("confirm_stage0", keywords=["AI builder"], languages=["en"], exclude_keywords=[])
+
+        first_action = {
+            "type": "answer_rubric_question",
+            "expected_revision": read_state(str(self.root))["revision"],
+            "question_id": "clear_yes",
+            "answer": "Product-building role",
+        }
+        apply_action(str(self.root), first_action)
+        write_action(str(self.root), first_action)
+        first_result = wait_for_action(str(self.root), ["answer_rubric_question"], timeout_seconds=1)
+        self.assertEqual(first_result["status"], "confirmed")
+        self.assertEqual(first_result["action"]["question_id"], "clear_yes")
+
+        # Nothing new is written this time: the action file still holds the
+        # first answer. A second wait for the same type must time out, not
+        # immediately "confirm" that stale answer again.
+        second_result = wait_for_action(str(self.root), ["answer_rubric_question"], timeout_seconds=1)
+        self.assertEqual(second_result["status"], "timeout")
+
+        # A genuinely new second answer, written while this third wait is
+        # polling, must still be picked up correctly.
+        result = {}
+
+        def wait():
+            result.update(wait_for_action(str(self.root), ["answer_rubric_question"], timeout_seconds=2))
+
+        thread = threading.Thread(target=wait)
+        thread.start()
+        time.sleep(0.1)
+        second_action = {
+            "type": "answer_rubric_question",
+            "expected_revision": read_state(str(self.root))["revision"],
+            "question_id": "dealbreakers",
+            "answer": "Pure sales",
+        }
+        apply_action(str(self.root), second_action)
+        write_action(str(self.root), second_action)
+        thread.join(timeout=3)
+        self.assertFalse(thread.is_alive())
+        self.assertEqual(result["status"], "confirmed")
+        self.assertEqual(result["action"]["question_id"], "dealbreakers")
+
     def test_stale_revision_is_rejected(self):
         apply_action(str(self.root), {"type": "set_profile_sources", "expected_revision": 0, "sources": [{"path": str(self.root / "resume.txt")}]})
         with self.assertRaises(OnboardingError):
