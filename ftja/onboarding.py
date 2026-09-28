@@ -443,8 +443,18 @@ def wait_for_action(project_dir: str, action_types: list[str], timeout_seconds: 
         raise ValueError("timeout_seconds must be between 1 and 3600")
     expected_types = {str(action_type).strip() for action_type in action_types if str(action_type).strip()}
     initial_revision = int(read_state(project_dir).get("revision", 0))
-    write_bridge(project_dir, "listening", sorted(expected_types), os.getpid())
+    # An action revision already reported as confirmed by an earlier
+    # wait_for_action call must never be reported again. Without this, two
+    # consecutive waits for the SAME action type (the three sequential
+    # `answer_rubric_question` calls) replay the first answer forever: the
+    # action file only ever holds the most recent action, and on its own
+    # `just_completed_before_wait_started`'s revision-delta check can't tell
+    # "this just happened" apart from "this was already reported by the
+    # previous wait for this same type."
+    already_confirmed_revision = int(read_bridge(project_dir).get("last_confirmed_revision", -1))
+    write_bridge(project_dir, "listening", sorted(expected_types), os.getpid(), last_confirmed_revision=already_confirmed_revision)
     result: dict[str, Any] = {"status": "timeout", "state": read_state(project_dir)}
+    confirmed_revision = already_confirmed_revision
     deadline = time.monotonic() + timeout_seconds
     try:
         while time.monotonic() < deadline:
@@ -460,15 +470,17 @@ def wait_for_action(project_dir: str, action_types: list[str], timeout_seconds: 
                 just_completed_before_wait_started = (
                     current_revision > 0
                     and action_revision == current_revision - 1
+                    and action_revision > already_confirmed_revision
                 )
                 if observed_after_wait_started or just_completed_before_wait_started:
                     result = {"status": "confirmed", "action": action, "state": state}
+                    confirmed_revision = action_revision
                     return result
             time.sleep(0.5)
         result = {"status": "timeout", "state": read_state(project_dir)}
         return result
     finally:
-        write_bridge(project_dir, "offline", [], None, last_status=result.get("status"))
+        write_bridge(project_dir, "offline", [], None, last_status=result.get("status"), last_confirmed_revision=confirmed_revision)
 
 
 def wait_for_source_confirm(project_dir: str, timeout_seconds: int = 900) -> dict[str, Any]:
