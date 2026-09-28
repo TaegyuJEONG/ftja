@@ -88,7 +88,7 @@ class ProfileSourceTests(unittest.TestCase):
             thread = threading.Thread(target=server.serve_forever, daemon=True)
             thread.start()
             try:
-                write_bridge(tmp, "ready", ["set_profile_sources", "confirm_profile_sources"], __import__("os").getpid())
+                write_bridge(tmp, "listening", ["set_profile_sources", "confirm_profile_sources"], __import__("os").getpid())
 
                 def post(payload):
                     request = Request(
@@ -111,6 +111,11 @@ class ProfileSourceTests(unittest.TestCase):
                 self.assertTrue(second["state"]["profile"]["sources_confirmed"])
                 action = json.loads((Path(tmp) / "onboarding-action.json").read_text())
                 self.assertEqual(action["type"], "confirm_profile_sources")
+                # The checklist item flips to done in the same response, so the
+                # web doesn't have to wait for the next poll to show progress.
+                checklist_status = {i["id"]: i["status"] for s in second["checklist"] for i in s["items"]}
+                self.assertEqual(checklist_status["add_background_files"], "done")
+                self.assertEqual(checklist_status["review_profile_summary"], "current")
             finally:
                 server.shutdown()
                 server.server_close()

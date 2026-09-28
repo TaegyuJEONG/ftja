@@ -14,11 +14,22 @@ ACTION_FILE = "onboarding-action.json"
 BRIDGE_FILE = "onboarding-bridge.json"
 
 DEFAULT_BRIDGE: dict[str, Any] = {
-    "status": "stopped",
+    "status": "offline",
     "action_types": [],
     "pid": None,
+    "label": "",
     "updated_at": None,
 }
+
+# Bridge status values, from the web's point of view:
+#   "listening" - a wait-for-action loop is polling; the web's decision
+#                  buttons are enabled.
+#   "working"   - the setup agent is between waits, doing something the web
+#                  should narrate (writing a summary, deriving keywords).
+#                  `label` carries the human-readable description.
+#   "offline"   - no active bridge process (not started yet, crashed, or a
+#                  wait timed out without a follow-up).
+BRIDGE_STATUSES = {"listening", "working", "offline"}
 
 DEFAULT_STATE: dict[str, Any] = {
     "version": 1,
@@ -32,6 +43,85 @@ DEFAULT_STATE: dict[str, Any] = {
     "cards": {},
     "rubric_questions": [],
 }
+
+# The checklist the chat and the web both render, grouped into four stages.
+# Each entry's `done`/`current` is computed from onboarding-state.json (plus,
+# for the last stage, whether a run has actually produced output) so the two
+# surfaces can never drift apart — neither one owns progress on its own.
+CHECKLIST_STAGES: list[dict[str, Any]] = [
+    {
+        "id": "profile",
+        "label": "Profile",
+        "items": [
+            {"id": "add_background_files", "label": "Add your background files"},
+            {"id": "review_profile_summary", "label": "Review your profile summary"},
+        ],
+    },
+    {
+        "id": "search_settings",
+        "label": "Search settings",
+        "items": [
+            {"id": "review_search_settings", "label": "Review your search settings"},
+            {"id": "review_code_filter", "label": "Review the code-based filter"},
+        ],
+    },
+    {
+        "id": "judgment",
+        "label": "Judgment",
+        "items": [
+            {"id": "answer_role_questions", "label": "Answer three questions about your ideal role"},
+            {"id": "confirm_rubric", "label": "Confirm your judgment rubric"},
+        ],
+    },
+    {
+        "id": "first_run",
+        "label": "First run",
+        "items": [
+            {"id": "run_first_search", "label": "Run your first job search"},
+            {"id": "review_first_results", "label": "Review your first results"},
+        ],
+    },
+]
+
+
+def build_checklist(state: dict[str, Any], project_dir: str | None = None) -> list[dict[str, Any]]:
+    """Return CHECKLIST_STAGES annotated with each item's status: 'done',
+    'current' (the one thing to do right now), or 'pending'."""
+    profile = state.get("profile") or {}
+    stage, phase = state.get("stage"), state.get("phase")
+    questions = state.get("rubric_questions") or []
+    questions_answered = sum(1 for q in questions if str(q.get("answer") or "").strip())
+
+    has_run = False
+    if project_dir is not None:
+        try:
+            from ftja.runs_view import list_runs
+            has_run = bool(list_runs(project_dir))
+        except Exception:
+            has_run = False
+
+    done = {
+        "add_background_files": bool(profile.get("sources_confirmed")),
+        "review_profile_summary": bool(profile.get("summary_confirmed")),
+        "review_search_settings": stage in {"rubric", "run"},
+        "review_code_filter": stage == "run" or (stage == "rubric" and phase not in {"stage0"}),
+        "answer_role_questions": stage == "run" or (stage == "rubric" and phase not in {"stage0", "questions"}),
+        "confirm_rubric": stage == "run",
+        "run_first_search": has_run,
+        "review_first_results": has_run,
+    }
+    current_id = next((item_id for item_id, is_done in done.items() if not is_done), None)
+
+    stages = []
+    for stage_def in CHECKLIST_STAGES:
+        items = []
+        for item in stage_def["items"]:
+            item_id = item["id"]
+            status = "done" if done[item_id] else ("current" if item_id == current_id else "pending")
+            items.append({**item, "status": status})
+        stages.append({"id": stage_def["id"], "label": stage_def["label"], "items": items})
+    return stages
+
 
 DEFAULT_RUBRIC_QUESTIONS = [
     {"id": "clear_yes", "label": "What makes a role a clear yes?", "hint": "Describe the work, team, and level that would make you want to apply."},
@@ -295,13 +385,19 @@ def read_bridge(project_dir: str) -> dict[str, Any]:
     return merged
 
 
-def write_bridge(project_dir: str, status: str, action_types: list[str] | None = None, pid: int | None = None, **extra: Any) -> dict[str, Any]:
+def write_bridge(project_dir: str, status: str, action_types: list[str] | None = None, pid: int | None = None, label: str = "", **extra: Any) -> dict[str, Any]:
+    if status not in BRIDGE_STATUSES:
+        raise ValueError(f"unknown bridge status: {status}")
     bridge = {
         **DEFAULT_BRIDGE,
         **read_bridge(project_dir),
         "status": status,
         "action_types": [str(item) for item in (action_types or []) if str(item).strip()],
         "pid": pid,
+        # Explicit default (not inherited from the previous write) so a
+        # "working" label never survives into the next listening/offline
+        # state and shows stale text in the web view.
+        "label": str(label or ""),
         "updated_at": datetime.now(timezone.utc).isoformat(),
         **extra,
     }
@@ -309,9 +405,18 @@ def write_bridge(project_dir: str, status: str, action_types: list[str] | None =
     return bridge
 
 
+def set_bridge_working(project_dir: str, label: str) -> dict[str, Any]:
+    """Tell the web what the setup agent is doing right now, between two
+    wait-for-action calls (writing a summary, deriving keywords, ...). The
+    web shows `label` with a spinner instead of a plain "connecting" gate."""
+    return write_bridge(project_dir, "working", pid=os.getpid(), label=label)
+
+
 def bridge_is_ready(project_dir: str) -> bool:
+    """True when a wait-for-action loop is actively polling for the web's
+    next decision, i.e. the web's action buttons should be enabled."""
     bridge = read_bridge(project_dir)
-    if bridge.get("status") != "ready":
+    if bridge.get("status") != "listening":
         return False
     try:
         pid = int(bridge.get("pid"))
@@ -338,7 +443,7 @@ def wait_for_action(project_dir: str, action_types: list[str], timeout_seconds: 
         raise ValueError("timeout_seconds must be between 1 and 3600")
     expected_types = {str(action_type).strip() for action_type in action_types if str(action_type).strip()}
     initial_revision = int(read_state(project_dir).get("revision", 0))
-    write_bridge(project_dir, "ready", sorted(expected_types), os.getpid())
+    write_bridge(project_dir, "listening", sorted(expected_types), os.getpid())
     result: dict[str, Any] = {"status": "timeout", "state": read_state(project_dir)}
     deadline = time.monotonic() + timeout_seconds
     try:
@@ -363,7 +468,7 @@ def wait_for_action(project_dir: str, action_types: list[str], timeout_seconds: 
         result = {"status": "timeout", "state": read_state(project_dir)}
         return result
     finally:
-        write_bridge(project_dir, "stopped", [], None, last_status=result.get("status"))
+        write_bridge(project_dir, "offline", [], None, last_status=result.get("status"))
 
 
 def wait_for_source_confirm(project_dir: str, timeout_seconds: int = 900) -> dict[str, Any]:
@@ -391,6 +496,10 @@ def main() -> None:
     add = sub.add_parser("message")
     add.add_argument("role", choices=["agent", "user", "system"])
     add.add_argument("text")
+    status_cmd = sub.add_parser("status", help="Tell the web what the setup agent is doing right now")
+    status_cmd.add_argument("state", choices=["working", "offline"])
+    status_cmd.add_argument("label", nargs="?", default="")
+    checklist_cmd = sub.add_parser("checklist", help="Print the current onboarding checklist")
     args = parser.parse_args()
     if args.command == "init":
         write_state(args.project_dir, **({"messages": [{"role": "agent", "text": args.message}]} if args.message else {}))
@@ -400,6 +509,13 @@ def main() -> None:
         print(json.dumps(wait_for_action(args.project_dir, args.action_types, args.timeout), ensure_ascii=False, indent=2))
     elif args.command == "message":
         add_message(args.project_dir, args.role, args.text)
+    elif args.command == "status":
+        if args.state == "working":
+            print(json.dumps(set_bridge_working(args.project_dir, args.label), ensure_ascii=False, indent=2))
+        else:
+            print(json.dumps(write_bridge(args.project_dir, "offline", [], None), ensure_ascii=False, indent=2))
+    elif args.command == "checklist":
+        print(json.dumps(build_checklist(read_state(args.project_dir), args.project_dir), ensure_ascii=False, indent=2))
     else:
         payload = json.loads(args.json)
         state = read_state(args.project_dir)
