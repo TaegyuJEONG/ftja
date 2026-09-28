@@ -41,6 +41,15 @@ checklist, or start any `wait-for-action` call in this turn.
    not responding. Verify it with `curl` before proceeding. If another
    project's FTJA server already holds port 8765, tell the user and ask
    before stopping it — don't silently kill another workspace's server.
+   Start it via `mcp__Claude_Browser__preview_start` with a `name`, not a
+   background shell command: create or merge `.claude/launch.json` with a
+   configuration such as `{"name": "ftja", "runtimeExecutable":
+   "venv/bin/python", "runtimeArgs": ["-m", "ftja.server"], "port": 8765}`,
+   then call `preview_start` with that `name`. This is a one-shot, purpose-
+   built launch path; a background `Bash`/`nohup` command doing the same
+   thing is more failure-prone (it needs its own PID tracking) and, live,
+   has been the actual site of long, silent multi-minute stalls in this
+   step — see "Move quickly through routine steps" for why that matters.
 7. Open the viewer immediately, next to this chat. Call
    `mcp__Claude_Browser__preview_start` with `http://127.0.0.1:8765`, then
    call `mcp__Claude_Browser__get_page_text` to verify the page. On macOS
@@ -68,6 +77,32 @@ If the Claude client header still says `No folder` after a successful
 refresh; the internal working directory and the visible client association
 are separate states. Never claim the header says FTJA unless it actually
 does.
+
+### Move quickly through routine steps
+
+A full onboarding pass is mostly the user reading a card, deciding, and
+clicking — that time is theirs and isn't something to optimize. But a live
+run of this skill has taken 20+ minutes on stretches with nothing for the
+user to look at, and the cause was not the web's poll interval (already
+sub-second and irrelevant to how many turns this skill takes) or large
+inputs — it was this skill routing simple, one-shot steps through several
+extra tool calls each:
+
+- Retrying a failed tool call more than once or two before trying a
+  genuinely different approach. If a call is refused or errors, don't loop
+  on the identical call — the isolated fix above (`preview_start` +
+  `launch.json` for the server) exists because that exact retry loop was
+  observed live on a plain background server-start command.
+- Re-verifying something in the browser (navigate, screenshot, a second
+  `read_page`) right after writing it to `onboarding-state.json`. The web's
+  poll-and-render loop is exercised by this project's own test suite; once
+  you've confirmed the state file has what you meant to write, the browser
+  will render it. Reserve an actual browser check for when the user reports
+  something looks wrong, not as a routine step after every write.
+- Multiple small exploratory commands (checking if a port is free, whether
+  a process exists, whether a file exists) where one targeted command would
+  do. Prefer the one-shot commands this skill already gives you over
+  rediscovering them by hand.
 
 ## Turn 2 onward: the native checklist
 
@@ -274,18 +309,20 @@ venv/bin/python -m ftja.onboarding . set-state --stage profile --phase title_pro
 
 The `set-state` helper records drafts only. It must leave the state at
 `profile/title_proposal`; it must never call `confirm_profile` or move to Stage 0.
-Verify all of the following before starting the wait:
+Verify all of the following by reading `onboarding-state.json` back (do not
+open the browser to check — the web polls and renders that same file, and a
+separate navigate/screenshot here is a slow, redundant round trip, not extra
+safety; see "Move quickly through routine steps"):
 
 - state is still `profile/title_proposal`;
 - the search-settings card contains the proposed titles and location;
-- `cards.stage0` already contains non-empty keywords and languages;
-- the browser renders the search-title chips.
+- `cards.stage0` already contains non-empty keywords and languages.
 
 Tell the user both upcoming screens were prefilled from the confirmed profile and
 remain editable. Then wait for `confirm_profile`. When it returns, the state
 machine must transition to `rubric/stage0` while preserving the already-populated
-`cards.stage0`; verify the browser renders those chips before waiting for
-`confirm_stage0`. Never insert a blank intermediate Stage 0 state.
+`cards.stage0`; confirm that in the returned state, not by reopening the browser.
+Never insert a blank intermediate Stage 0 state.
 
 Before each card, write the instruction as your response text, then run only
 the matching command:
@@ -315,13 +352,20 @@ my search settings, continue the setup`) and do not claim that the chat resumed.
 **For `criteria.json` (Rubric stage, after Profile — Stage 0 deterministic, used by `ftja/scrape.py` and
 `ftja/filter_stage0.py`):**
 - `search_terms`: list of LinkedIn search strings (e.g. `["Product Manager", "Founding PM"]`)
-- `location`, `is_remote`, `hours_old`, `results_wanted` — this is the ONLY
-  place location is controlled. If the candidate wants roles in more than
-  one region (e.g. "Europe, or Singapore/Dubai if visa-sponsored"), that
-  needs multiple scrape locations (a loop over `location` values in
-  `/ftja-run`, or a `search_terms` x `locations` cross product) — say so
-  explicitly if the candidate mentions more than one region, don't silently
-  scope to just the first one they said.
+- `location`, `is_remote`, `hours_old` — this is the ONLY place location is
+  controlled. If the candidate wants roles in more than one region (e.g.
+  "Europe, or Singapore/Dubai if visa-sponsored"), that needs multiple
+  scrape locations (a loop over `location` values in `/ftja-run`, or a
+  `search_terms` x `locations` cross product) — say so explicitly if the
+  candidate mentions more than one region, don't silently scope to just the
+  first one they said.
+- `results_wanted`: the max results scraped per search title (the
+  "Max results per title" field on the search-settings card, 1-1000,
+  default 100). `/ftja-run` scrapes every title up to this cap, merges all
+  of them into one list, and only then runs the code-based filter and LLM
+  judgment once over the merged set — it does not finish one title through
+  judgment before starting the next. Raising this widens per-title
+  coverage; it does not change how many titles get searched.
 - `exclude_keywords`: a blunt bare-word exclusion list — if any of these
   words appear ANYWHERE in the JD (title or body), the job is dropped, no
   phrase-matching ("fluent in X", "X required") involved. Ask what to put

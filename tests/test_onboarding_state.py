@@ -331,6 +331,45 @@ class OnboardingStateTests(unittest.TestCase):
         self.assertEqual(result["status"], "confirmed")
         self.assertEqual(result["action"]["question_id"], "dealbreakers")
 
+    def test_confirm_profile_uses_the_confirm_actions_own_results_wanted(self):
+        # Regression test: confirm_profile used to read results_wanted only
+        # from the earlier draft, silently discarding whatever the user
+        # edited on the search-settings card at confirm time.
+        self.act("set_profile_sources", sources=[{"path": str(self.root / "resume.txt"), "kind": "file"}])
+        self.act("confirm_profile_sources")
+        self.act("set_profile_summary", summary="Built products and shipped experiments.")
+        self.act("confirm_profile_summary")
+        self.act(
+            "set_profile_draft",
+            titles=["Product Manager"],
+            location="Europe",
+            results_wanted=100,
+            stage0={"keywords": ["AI builder"], "languages": ["en"], "exclude_keywords": []},
+        )
+        state = self.act(
+            "confirm_profile",
+            titles=["Product Manager"],
+            location="Europe",
+            is_remote=False,
+            hours_old=24,
+            results_wanted=500,
+        )
+        self.assertEqual(state["profile"]["criteria"]["results_wanted"], 500)
+
+    def test_results_wanted_is_clamped_to_a_sane_range(self):
+        self.act("set_profile_sources", sources=[{"path": str(self.root / "resume.txt"), "kind": "file"}])
+        self.act("confirm_profile_sources")
+        self.act("set_profile_summary", summary="Built products and shipped experiments.")
+        self.act("confirm_profile_summary")
+        state = self.act(
+            "set_profile_draft",
+            titles=["Product Manager"],
+            location="Europe",
+            results_wanted=5000,
+            stage0={"keywords": ["AI builder"], "languages": ["en"], "exclude_keywords": []},
+        )
+        self.assertEqual(state["profile"]["criteria"]["results_wanted"], 1000)
+
     def test_stale_revision_is_rejected(self):
         apply_action(str(self.root), {"type": "set_profile_sources", "expected_revision": 0, "sources": [{"path": str(self.root / "resume.txt")}]})
         with self.assertRaises(OnboardingError):
