@@ -298,10 +298,20 @@ select.sort-select {
 
 /* ---- first-run onboarding ---- */
 .onboarding-shell { max-width: 760px; margin: 0 auto; }
-.onboarding-progress { display: flex; gap: 8px; margin: 0 0 42px; }
-.onboarding-progress span { width: 34px; height: 3px; background: var(--border); transition: background .2s ease; }
-.onboarding-progress span.completed { background: var(--accent-border); }
-.onboarding-progress span.active { background: var(--accent); }
+.onboarding-checklist { display: flex; flex-direction: column; gap: 16px; margin: 0 0 36px; }
+.onboarding-checklist-stage-label { color: var(--text3); font: 10px 'IBM Plex Mono', monospace; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 6px; }
+.onboarding-checklist-item { display: flex; align-items: center; gap: 9px; font-size: 12px; color: var(--text3); padding: 2px 0; }
+.onboarding-checklist-item.done { color: var(--text2); }
+.onboarding-checklist-item.done .onboarding-checklist-mark { color: var(--accent-text); }
+.onboarding-checklist-item.current { color: var(--text); font-weight: 600; }
+.onboarding-checklist-mark { width: 14px; flex: none; text-align: center; }
+.onboarding-spinner { display: inline-block; width: 11px; height: 11px; border: 2px solid var(--accent-border); border-top-color: var(--accent); border-radius: 50%; animation: onboarding-spin .8s linear infinite; flex: none; }
+@keyframes onboarding-spin { to { transform: rotate(360deg); } }
+.onboarding-working-banner { display: flex; align-items: center; gap: 10px; margin-top: 18px; padding: 13px 14px; background: var(--accent-dim); border: 1px solid var(--accent-border); color: var(--accent-text); font-size: 11px; line-height: 1.5; }
+.onboarding-pending-card p.onboarding-pending-label { display: flex; align-items: center; gap: 9px; color: var(--text3); margin: 14px 0 0; }
+.onboarding-skeleton-line { height: 10px; border-radius: 3px; background: var(--border); margin: 8px 0; position: relative; overflow: hidden; }
+.onboarding-skeleton-line::after { content: ''; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255,255,255,.14), transparent); animation: onboarding-shimmer 1.3s infinite; }
+@keyframes onboarding-shimmer { to { transform: translateX(100%); } }
 .onboarding-kicker { color: var(--accent-text); font: 10px 'IBM Plex Mono', monospace; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 12px; }
 .onboarding-title { font: 400 38px/1.05 'Instrument Serif', Georgia, serif; letter-spacing: -.02em; margin-bottom: 12px; }
 .onboarding-copy { color: var(--text2); font-size: 14px; line-height: 1.7; max-width: 620px; margin-bottom: 26px; }
@@ -402,7 +412,7 @@ select.sort-select {
 
 <div id="view-onboarding" class="view">
   <div class="onboarding-shell">
-    <div class="onboarding-progress" id="onboarding-progress"></div>
+    <div class="onboarding-checklist" id="onboarding-progress"></div>
     <div id="onboarding-content"></div>
   </div>
 </div>
@@ -459,6 +469,7 @@ function fmtDate(iso) { return iso ? iso.slice(0, 10) : "no date recorded"; }
 
 // ---- file-driven onboarding ----
 let onboardingState = null;
+let onboardingChecklist = [];
 let onboardingVersion = '';
 let onboardingDraft = {titles: [], location: '', is_remote: false, hours_old: 24, tier1: [], exclude_keywords: [], languages: ['en']};
 const ONBOARDING_STEPS = ['Profile', 'Rubric', 'Run', 'Learn'];
@@ -466,12 +477,19 @@ const ONBOARDING_STEPS = ['Profile', 'Rubric', 'Run', 'Learn'];
 function onboardingStepIndex(state) {
   return Math.max(0, ONBOARDING_STEPS.indexOf(state?.stage || 'profile'));
 }
-function onboardingProgressIndex(state) {
-  const phase = state?.phase || 'sources';
-  if (phase === 'sources' || phase === 'profile') return 0;
-  if (phase === 'profile_summary_review' || phase === 'profile_summary') return 1;
-  if (phase === 'title_proposal' || phase === 'scrape_card') return 2;
-  return 3;
+function renderOnboardingChecklist() {
+  const el = document.getElementById('onboarding-progress');
+  if (!el) return;
+  const bridge = onboardingState?.bridge || {};
+  el.innerHTML = (onboardingChecklist || []).map(stageGroup => {
+    const items = stageGroup.items.map(item => {
+      const isWorking = item.status === 'current' && bridge.status === 'working';
+      const mark = item.status === 'done' ? '✓' : (item.status === 'current' ? '●' : '○');
+      const label = isWorking && bridge.label ? bridge.label : item.label;
+      return `<div class="onboarding-checklist-item ${item.status}"><span class="onboarding-checklist-mark">${isWorking ? '<span class="onboarding-spinner"></span>' : mark}</span><span>${esc(label)}</span></div>`;
+    }).join('');
+    return `<div class="onboarding-checklist-stage"><div class="onboarding-checklist-stage-label">${esc(stageGroup.label)}</div>${items}</div>`;
+  }).join('');
 }
 
 function onboardingPhaseLabel(state) {
@@ -579,7 +597,7 @@ function updateProfileSummaryEditor() {
   if (!input || !preview) return;
   const value = input.value;
   const dirty = value !== profileSummarySaved;
-  const ready = onboardingState?.bridge?.status === 'ready';
+  const ready = onboardingState?.bridge?.status === 'listening';
   preview.contentEditable = profileSummaryEditing ? 'true' : 'false';
   if (!profileSummaryEditing || !preview.innerHTML.trim()) preview.innerHTML = renderSimpleMarkdown(value);
   if (save) {
@@ -639,17 +657,28 @@ function onboardingTags(values, key, editable = true) {
 function sourceRows(state) {
   return ((state?.profile || {}).sources || []).map(source => `<div class="onboarding-source"><div><b>${esc(source.label || source.path || 'Source')}<span class="onboarding-source-kind">${source.kind === 'folder' ? 'Folder' : 'File'}</span></b><small>${esc(source.path || '')}</small></div><span class="source-status">✓</span></div>`).join('') || '<div class="source-empty">No source materials added yet.</div>';
 }
+function onboardingPendingCard(title, fallbackLabel) {
+  const bridge = onboardingState?.bridge || {};
+  const label = bridge.status === 'working' && bridge.label ? bridge.label : fallbackLabel;
+  return `<div class="onboarding-card onboarding-pending-card"><h3>${esc(title)}</h3><div class="onboarding-skeleton-line" style="width:78%"></div><div class="onboarding-skeleton-line" style="width:94%"></div><div class="onboarding-skeleton-line" style="width:62%"></div><p class="onboarding-pending-label"><span class="onboarding-spinner"></span><span>${esc(label)}</span></p></div>`;
+}
 function profileCard(state) {
   const profile = state.profile || {};
   const phase = state.phase;
   const summary = profile.summary || '';
   const titles = onboardingDraft.titles.length ? onboardingDraft.titles : (profile.titles || []);
+  if (phase === 'profile_summary' && profile.sources_confirmed && !summary) {
+    return onboardingPendingCard('Your profile summary', 'Reading your background files and writing a profile summary…');
+  }
   if (phase === 'profile_summary_review') {
     profileSummarySaved = summary;
     const value = profileSummaryDraft === null ? summary : profileSummaryDraft;
     return `<div class="onboarding-card profile-summary-review"><h3>Profile summary</h3><div class="profile-summary-editor-shell${profileSummaryEditing ? ' is-editing' : ''}"><textarea id="profile-summary" data-profile-summary aria-label="Profile summary">${esc(value)}</textarea><div class="profile-summary-preview" data-profile-summary-preview contenteditable="${profileSummaryEditing ? 'true' : 'false'}" role="textbox" tabindex="0" aria-label="Profile summary. Click to edit."></div></div><div class="onboarding-actions profile-confirm-actions"><div class="profile-summary-action-group"><button class="secondary" type="button" data-save-profile-summary disabled>Save</button><button class="primary" type="button" data-confirm-profile-summary>Confirm</button></div></div></div>`;
   }
 
+  if (phase === 'title_proposal' && !titles.length) {
+    return onboardingPendingCard('Your search settings', 'Deriving suggested job titles and keywords from your profile…');
+  }
   if (phase === 'title_proposal' || phase === 'scrape_card') {
     const confirmMarkup = phase === 'scrape_card'
       ? '<div class="onboarding-summary"><b>Search settings ready</b>Review the settings above before your next run.</div>'
@@ -692,26 +721,30 @@ function onboardingStepMarkup() {
   else if (state.stage === 'run') body = `<div class="onboarding-card"><h3>Run</h3><p>${esc(latestOnboardingMessage(state))}</p><div class="onboarding-summary"><b>Ready</b> Use <span class="mono">/ftja-run</span> in your coding-agent chat. Results will appear here without advancing the page manually.</div></div>`;
   else body = `<div class="onboarding-card"><h3>Learn</h3><p>${esc(latestOnboardingMessage(state))}</p><div class="onboarding-summary"><b>Learn from decisions</b> Mark apply or skip in Results and explain why. FTJA will propose rubric changes in a later interactive run.</div></div>`;
   const pageTitle = state.stage === 'profile' && state.phase === 'profile_summary_review' ? 'Review your profile summary.' : state.stage === 'profile' && ['title_proposal', 'scrape_card'].includes(state.phase) ? 'Fine-tune your job search.' : state.stage === 'rubric' && state.phase === 'stage0' ? 'Set your code-based screening before LLM is involved.' : state.stage === 'rubric' && state.phase === 'questions' ? 'Shape the judgment, one answer at a time.' : state.stage === 'rubric' && state.phase === 'rubric_review' ? 'Confirm the judgment rubric.' : title === 'Profile' ? 'Add your background.' : title === 'Rubric' ? 'Make the judgment visible.' : title === 'Run' ? 'Run the pipeline.' : 'Teach FTJA carefully.';
-  const bridgeReady = state.bridge?.status === 'ready';
-  const bridgeGate = !bridgeReady ? '<div class="onboarding-action-notice"><b>Connecting your setup session.</b><p>FTJA will enable decisions when the setup agent is ready to receive them.</p></div>' : '';
+  const bridge = state.bridge || {};
+  const bridgeGate = bridge.status === 'working'
+    ? `<div class="onboarding-working-banner"><span class="onboarding-spinner"></span><span>${esc(bridge.label || 'Your setup agent is working on this.')}</span></div>`
+    : bridge.status !== 'listening'
+      ? '<div class="onboarding-action-notice"><b>Connecting your setup session.</b><p>FTJA will enable decisions when the setup agent is ready to receive them.</p></div>'
+      : '';
   const bridgeNotice = onboardingActionNotice && onboardingActionNotice !== 'confirm_profile_sources' ? `<div class="onboarding-action-notice"><b>Decision saved locally.</b><p>Your setup agent is checking this page. If nothing happens, type <code>${esc(recoveryPhrase(onboardingActionNotice))}</code> in the FTJA setup chat.</p></div>` : '';
   const phaseTitles = {sources: 'Add background', profile_summary: 'Add background', profile_summary_review: 'Profile summary', title_proposal: 'Search settings', scrape_card: 'Search settings', stage0: 'Screening filter', questions: 'Judgment questions', rubric_review: 'Judgment rubric', ready: 'Ready to run'};
   const currentStep = phaseTitles[state.phase] || title;
   return `<div class="onboarding-kicker">Setup · ${currentStep}</div><h2 class="onboarding-title">${pageTitle}</h2><p class="onboarding-copy">${esc(onboardingCopy(state))}</p>${body}${bridgeGate}${bridgeNotice}`;
 }
 function applyOnboardingBridgeGate() {
-  const ready = onboardingState?.bridge?.status === 'ready';
+  const bridge = onboardingState?.bridge || {};
+  const ready = bridge.status === 'listening';
+  const waitTitle = bridge.status === 'working' ? (bridge.label || 'Setup agent is working on this') : 'Waiting for the setup agent';
   const selector = '[data-add-onboarding-source],[data-confirm-profile-sources],[data-save-profile-summary],[data-confirm-profile-summary],[data-confirm-profile],[data-confirm-stage0],[data-answer-rubric-question],[data-confirm-rubric]';
   document.querySelectorAll(selector).forEach(button => {
     button.disabled = !ready;
-    button.title = ready ? '' : 'Waiting for the setup agent';
+    button.title = ready ? '' : waitTitle;
   });
 }
 function renderOnboarding() {
   const state = onboardingState || {stage: 'profile', phase: 'sources'};
-  const progressIndex = onboardingProgressIndex(state);
-  const progressLabels = ['Background', 'Profile summary', 'Search settings', 'Rubric'];
-  document.getElementById('onboarding-progress').innerHTML = progressLabels.map((label, i) => `<span class="${i < progressIndex ? 'completed' : ''} ${i === progressIndex ? 'active' : ''}" title="${label}"></span>`).join('');
+  renderOnboardingChecklist();
   document.getElementById('onboarding-content').innerHTML = onboardingStepMarkup();
   bindOnboarding();
   applyOnboardingBridgeGate();
@@ -734,7 +767,8 @@ async function postOnboardingAction(type, payload = {}) {
   if (!res.ok) throw new Error(body.error || 'Could not send this decision to the setup chat.');
   if (body.state) {
     if (type.startsWith('confirm_')) onboardingActionNotice = type;
-    onboardingState = {...body.state, bridge: body.bridge || onboardingState?.bridge || {status: 'stopped'}};
+    onboardingState = {...body.state, bridge: body.bridge || onboardingState?.bridge || {status: 'offline'}};
+    if (body.checklist) onboardingChecklist = body.checklist;
     onboardingVersion = body.state.updated_at || JSON.stringify(body.state);
     renderOnboarding();
   }
@@ -831,11 +865,11 @@ function openMainView(view) {
 }
 async function refreshOnboarding(force = false) {
   const res = await fetch('/api/onboarding?ts=' + Date.now(), {cache:'no-store'}); const data = await res.json();
-  const state = {...(data.state || {}), bridge: data.bridge || {status: 'stopped'}};
+  const state = {...(data.state || {}), bridge: data.bridge || {status: 'offline'}};
   if (onboardingIsComplete(state)) { onboardingState = state; openMainView('pipeline'); return; }
-  const version = [state.updated_at, state.revision, state.bridge?.status, state.bridge?.updated_at, state.bridge?.pid].join('|');
+  const version = [state.updated_at, state.revision, state.bridge?.status, state.bridge?.label, state.bridge?.updated_at, state.bridge?.pid].join('|');
   if (!force && version === onboardingVersion) return;
-  onboardingVersion = version; onboardingState = state;
+  onboardingVersion = version; onboardingState = state; onboardingChecklist = data.checklist || [];
   const profile = state.profile || {}; const criteria = profile.criteria || data.config?.criteria || {};
   const stage0 = state.cards?.stage0 || {};
   const stage0Keywords = Array.isArray(stage0.keywords) ? stage0.keywords : (criteria.keywords?.tier1 || onboardingDraft.tier1);
@@ -847,7 +881,8 @@ async function refreshOnboarding(force = false) {
 async function maybeStartOnboarding() {
   const res = await fetch('/api/onboarding?ts=' + Date.now(), {cache:'no-store'}); const data = await res.json();
   if (!data.has_onboarding_state && data.has_criteria && data.has_rubric) return false;
-  onboardingState = {...(data.state || {stage:'profile', phase:'sources'}), bridge: data.bridge || {status: 'stopped'}};
+  onboardingState = {...(data.state || {stage:'profile', phase:'sources'}), bridge: data.bridge || {status: 'offline'}};
+  onboardingChecklist = data.checklist || [];
   if (onboardingIsComplete(onboardingState)) { openMainView('pipeline'); return true; }
   document.body.classList.add('onboarding-active'); document.querySelectorAll('.main-tab, .view:not(#view-onboarding)').forEach(x => x.style.display = 'none'); document.getElementById('view-onboarding').classList.add('active');
   await refreshOnboarding(true); onboardingRefreshTimer = setInterval(() => refreshOnboarding(false).catch(() => {}), 1200); return true;

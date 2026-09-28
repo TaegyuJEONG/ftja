@@ -9,88 +9,138 @@ Interview the user conversationally (not a rigid form — follow up, don't
 just fire a checklist) to produce two files at the project root. Do not
 guess at answers; if the user is vague, ask a follow-up.
 
+This runs in two turns. Turn 1 connects the workspace and opens the web view
+on its own, then stops and asks one question. Turn 2 (triggered by the
+user's reply) creates the native checklist and drives the actual interview.
+Do not collapse these into one turn — see "Why two turns" below.
 
-## Native checklist
+## Turn 1: connect and open the web view
 
-Create the complete native checklist before workspace attachment, environment
-preparation, server work, or source collection. Clone happens before this
-repository-local skill can run: preserve `Clone the FTJA workspace` in the list,
-but mark it complete only after resolving the exact repository path, verifying
-that `.git` exists, and verifying the expected FTJA remote. A command invocation
-alone cannot complete any checklist task; complete an item only after its
-required evidence is observed. Keep exactly one checklist task `in_progress`.
-The checklist mirrors durable `onboarding-state.json` and observed client or
-browser results; it never replaces that state machine or hides completed work.
+Do this without asking the user anything mid-way, then end the turn with
+exactly one question. Do not check for native task tools, create the
+checklist, or start any `wait-for-action` call in this turn.
+
+1. Resolve the absolute path of the cloned FTJA repository from the actual
+   session context. Preserve the user's path and capitalization exactly; do
+   not guess between similarly named folders. Clone it first if it isn't
+   cloned yet.
+2. Create or merge `<workspace>/.claude/settings.local.json`, preserving
+   existing JSON keys and `env` values, with
+   `"CLAUDE_CODE_ENABLE_TODO_TOOLS": "1"`. Do this now, in this turn, even
+   though the native task tools it enables won't be checkable until turn 2.
+3. Call `mcp__ccd_directory__change_directory` with the exact absolute path.
+   Continue only when the result confirms `Folder access granted`. If the
+   tool is unavailable or permission is denied, stop and report that the
+   session folder is not connected; do not continue with a scratch
+   workspace.
+4. Create the repository's Python environment (`venv`) and install
+   dependencies if they don't already exist, using the repository's own
+   commands.
+5. Initialize or resume `onboarding-state.json` from that connected folder.
+6. Start the local server from that folder if `http://127.0.0.1:8765/` is
+   not responding. Verify it with `curl` before proceeding. If another
+   project's FTJA server already holds port 8765, tell the user and ask
+   before stopping it — don't silently kill another workspace's server.
+7. Open the viewer immediately, next to this chat. Call
+   `mcp__Claude_Browser__preview_start` with `http://127.0.0.1:8765`, then
+   call `mcp__Claude_Browser__get_page_text` to verify the page. On macOS
+   also run `open http://127.0.0.1:8765` so the user gets a visible browser
+   without needing to click an `Open` card. Do not describe the viewer as
+   open until a navigation/page-text check succeeds.
+8. End the turn by asking exactly one question, e.g.: "I've opened the FTJA
+   web view next to this chat — ready to start onboarding?" Say nothing
+   about background files, checklists, or next steps yet; that all belongs
+   to turn 2.
+
+### Why two turns
+
+`change_directory`'s folder switch, and the `env` setting it carries, only
+take effect once this turn ends and a new one begins — so does the native
+task tool availability that setting controls. Checking for `TaskCreate`/
+`TaskUpdate` inside this same turn is expected to find nothing; that is not
+evidence setup is broken, and it is not a reason to add a workaround (a
+background `sleep` command, an immediate self-recheck) to dodge the turn
+boundary. End the turn cleanly and let the user's reply start turn 2, where
+the tools are actually available.
+
+If the Claude client header still says `No folder` after a successful
+`Folder access granted` result, report that the client label did not
+refresh; the internal working directory and the visible client association
+are separate states. Never claim the header says FTJA unless it actually
+does.
+
+## Turn 2 onward: the native checklist
+
+Any affirmative reply to turn 1's question starts this section — do not
+require exact wording.
 
 ### Client-native task list
 
-- In Claude Code, bootstrap Claude Code native task-list tools in the current
-  session before creating the checklist. After the exact workspace path has been resolved,
-  create or merge `<workspace>/.claude/settings.local.json`, preserving existing
-  JSON keys and `env` values, with
-  `"CLAUDE_CODE_ENABLE_TODO_TOOLS": "1"`. Then observe that `TaskCreate` and
-  `TaskUpdate` are available in the current session before proceeding. A tracked
-  `.claude/settings.json` arriving with a clone is not evidence that the live
-  session reloaded this feature. If the native tools are still unavailable after
-  this actual local-settings write, stop and report the limitation honestly; do
-  not substitute prose and call it a native checklist.
+- Verify `TaskCreate` and `TaskUpdate` are available in the current session
+  now. A tracked `.claude/settings.json` arriving with a clone is not
+  evidence the live session reloaded this feature — only an actual
+  post-turn-boundary check is. If the native tools are still unavailable
+  here, stop and report the limitation honestly; do not substitute prose
+  and call it a native checklist.
 - In Codex, use `update_plan` with `pending`, `in_progress`, and `completed`
   statuses. Its contract permits at most one `in_progress` item.
-- Do not enter Plan Mode, `EnterPlanMode`, `/plan`, or a collaboration Plan Mode
-  for this workflow. The native checklist is an execution-progress mechanism,
-  not a planning mode.
+- Do not enter Plan Mode, `EnterPlanMode`, `/plan`, or a collaboration Plan
+  Mode for this workflow. The native checklist is an execution-progress
+  mechanism, not a planning mode.
 
-Create these labels in this order:
+Create these 8 items, in this order. Each is something the *user* does or
+reviews — infrastructure from turn 1 (clone, connect, server, browser) is
+already done and does not belong on this list:
 
-1. `Clone the FTJA workspace`
-2. `Connect this session to the workspace`
-3. `Prepare the local environment`
-4. `Initialize the onboarding state`
-5. `Start the local FTJA server`
-6. `Verify the local server`
-7. `Open FTJA in the browser`
-8. `Connect this setup session to FTJA`
-9. `Add your background files`
-10. `Confirm your background files`
-11. `Build your profile summary`
-12. `Review and confirm your profile summary`
-13. `Prepare suggested roles and location`
-14. `Review and confirm your search settings`
-15. `Prepare the code-based filter`
-16. `Review and confirm the code-based filter`
-17. `Define what makes a role a clear yes`
-18. `Define your dealbreakers`
-19. `Define your preferences`
-20. `Review and confirm the judgment rubric`
-21. `Open the full pipeline`
-22. `Run your first job search`
-23. `Review your first results`
+1. `Add your background files`
+2. `Review your profile summary`
+3. `Review your search settings`
+4. `Review the code-based filter`
+5. `Answer three questions about your ideal role`
+6. `Confirm your judgment rubric`
+7. `Run your first job search`
+8. `Review your first results`
+
+Keep exactly one item `in_progress` at a time. A command invocation alone
+cannot complete a checklist item; complete one only after its required
+evidence is observed (see "Evidence and checklist advancement" below). The
+checklist mirrors durable `onboarding-state.json` and observed client or
+browser results; it never replaces that state machine or hides completed
+work. Item 5 covers three sequential sub-answers (clear yes, dealbreakers,
+preferences) — keep it `in_progress` across all three; it completes only
+once the third is confirmed.
+
+### Narrate long operations
+
+Between two `wait-for-action` calls — writing `profile/summary.md`,
+deriving titles/keywords, drafting the rubric — the web has nothing to show
+and would otherwise look stuck or disconnected. Before starting one of
+these, run:
+
+```bash
+venv/bin/python -m ftja.onboarding . status working "Writing your profile summary from your files"
+```
+
+The web shows this label with a spinner, and the matching checklist item
+does the same, instead of a plain "connecting" notice. Write a short,
+specific label for what you're actually doing right now (not a generic
+"working..."). The next `wait-for-action` call automatically clears this
+and marks the bridge listening again — no separate "stop working" call is
+needed in the normal flow.
 
 ### Evidence and checklist advancement
 
-- A shell `cd` is insufficient evidence for `Connect this session to the
-  workspace`; require the client's explicit workspace/directory-access result.
-- `Prepare the local environment` requires the repository's interpreter and
-  dependencies to exist or to have been created successfully using actual
-  repository commands. `Initialize the onboarding state` requires an initialized
-  or resumed `onboarding-state.json` in the connected repository.
-- `Start the local FTJA server` requires a real matching process; `Verify the
-  local server` separately requires an expected FTJA response from
-  `http://127.0.0.1:8765/`. `Open FTJA in the browser` requires successful
-  navigation and expected FTJA page text. `Connect this setup session to FTJA`
-  means starting the bounded action wait/bridge; do not claim automatic client
-  discovery.
 - For `confirm_profile_sources`, `confirm_profile_summary`, `confirm_profile`,
   `confirm_stage0`, each ordered `answer_rubric_question` (`clear_yes`, then
   `dealbreakers`, then `preferences`), and `confirm_rubric`: advance only after
   `wait-for-action` returns `status: confirmed`, then read the returned action
   and the full durable state. The three rubric answers must remain strictly
   ordered. Build or mark drafts only after their preceding confirmation.
-- Open the full pipeline only after it is reachable and its expected content is
-  observed. Do not mark `Run your first job search` complete because `/ftja-run`
-  was merely suggested. Do not mark `Review your first results` complete until a
-  real completed run has an observable result surface or run artifact; a valid
-  empty result must be verified and explained, never fabricated.
+- Do not mark `Run your first job search` complete because `/ftja-run` was
+  merely suggested — it needs a real completed run. Do not mark `Review your
+  first results` complete until that run has an observable result surface or
+  run artifact; a valid empty result must be verified and explained, never
+  fabricated.
 
 ### Routine chat copy
 
@@ -121,9 +171,11 @@ onboarding state machine: it validates the current stage and revision, rejects
 stale or out-of-order actions, writes the next `onboarding-state.json` state
 atomically, and records every web action in `onboarding-action.json`. The action
 types are `set_profile_sources`, `confirm_profile_sources`,
-`set_profile_summary`, `confirm_profile_summary`, `confirm_profile`,
-`confirm_stage0`, `answer_rubric_question`, and `confirm_rubric`. The agent/LLM may produce drafts, but it must not choose
-the next stage or promote unconfirmed data into active configuration.
+`set_profile_summary`, `confirm_profile_summary`, `set_profile_draft`,
+`confirm_profile`, `set_stage0_draft`, `confirm_stage0`,
+`answer_rubric_question`, and `confirm_rubric`. The agent/LLM may produce drafts,
+but it must not choose the next stage or promote unconfirmed data into active
+configuration.
 
 
 The only onboarding order is:
@@ -150,65 +202,18 @@ A stage is complete only after the corresponding local action has been read and
 its next state has been written. The browser must be safe to reload: it should
 resume from `onboarding-state.json`, not localStorage or a guessed step.
 
-## Mandatory first-turn order
-
-Before asking any onboarding question or reading profile material, follow this
-order exactly. A shell `cd` changes one command's working directory; it does
-**not** attach the Claude Code session to the workspace.
-
-1. Resolve the absolute path of the cloned FTJA repository from the actual
-   session context. Preserve the user's path and capitalization exactly; do
-   not guess between similarly named folders.
-2. Call `mcp__ccd_directory__change_directory` with that exact absolute path.
-   Continue only when the result confirms `Folder access granted`. If the tool
-   is unavailable or permission is denied, stop and report that the session
-   folder is not connected; do not continue with a scratch workspace.
-3. Initialize or resume `onboarding-state.json` from that connected folder.
-4. Start the local server from that folder if `http://127.0.0.1:8765/` is not
-   responding. Verify it with `curl` before proceeding.
-5. Open the viewer immediately. Call
-   `mcp__Claude_Browser__preview_start` with `http://127.0.0.1:8765`, then call
-   `mcp__Claude_Browser__get_page_text` to verify the page. On macOS also run
-   `open http://127.0.0.1:8765` so the user gets a visible browser without
-   needing to click an `Open` card. Do not describe the viewer as open until a
-   navigation/page-text check succeeds.
-6. Only after the viewer is ready, tell the user to add source materials in
-   the web view. Do not ask for a path in chat.
-7. In this same turn, send the source-material instruction through
-   `mcp__ccd_session_mgmt__send_message` when available, then immediately run
-   the blocking `wait-for-action --type confirm_profile_sources` command below.
-   Do not put the instruction only in the final assistant response. Do not end
-   the turn, report that you are waiting, or ask the user to click before the
-   wait command is running. The web card's recovery phrase is a fallback for a
-   delayed turn, not the normal startup path.
-
-If the Claude client header still says `No folder` after a successful
-`Folder access granted` result, report that the client label did not refresh;
-the internal working directory and the visible client association are separate
-states. Never claim the header says FTJA unless it actually does.
-
 ## Web-driven profile sources
 
 The web view is the only source-material input surface. Never use
 `AskUserQuestion` to ask where a resume or portfolio lives, and never ask
-for an absolute source path in chat. Tell the user to add one or more files
-and/or folders in the web view;
-the web action records local paths, not file contents. After the action appears,
-read every path from `onboarding-state.json`, then inspect/copy the selected
-sources into the gitignored `profile/` folder as needed. This folder is a private
-local cache and derived workspace for repeatable daily runs; it is not an upload,
-public snapshot, or Git commit. Do not require a resume/portfolio label: the UI
-uses the selected file or folder name.
-
-Before asking the user to choose sources, send the instruction in the active
-agent chat, then start the bounded file bridge in the same setup session. In
-Claude Code, use `mcp__ccd_session_mgmt__send_message` when available so the
-user sees the instruction before the blocking wait begins; do not put the
-instruction only in a final response and then stop the session. The wait must
-be running before the user can act. If a user message arrives saying they
-already acted, run the same wait command immediately anyway; it recovers the
-most recent valid action from the connected state instead of asking them to
-click again.
+for an absolute source path in chat. In this same turn, write the
+source-material instruction as your response text, then immediately run the
+blocking `wait-for-action --type confirm_profile_sources` command below —
+don't end the turn or ask the user to click before that command is running.
+The web card's recovery phrase is a fallback for a delayed turn, not the
+normal startup path. If a user message arrives saying they already acted,
+run the same wait command immediately anyway; it recovers the most recent
+valid action from the connected state instead of asking them to click again.
 
 ```bash
 venv/bin/python -m ftja.onboarding . wait-for-action --type confirm_profile_sources --timeout 900
@@ -222,25 +227,68 @@ files, continue the setup` in the FTJA setup chat and then resume from the state
 file. If the user adds more sources before confirming, re-read the full source
 list before writing `profile/summary.md`.
 
-After writing `profile/summary.md`, the web must show the summary for an explicit
-`Confirm profile summary` decision. Send a short review instruction, then wait:
+Read every path from `onboarding-state.json`, then inspect/copy the selected
+sources into the gitignored `profile/` folder as needed. This folder is a
+private local cache and derived workspace for repeatable daily runs; it is
+not an upload, public snapshot, or Git commit. Do not require a
+resume/portfolio label: the UI uses the selected file or folder name.
+
+Mark bridge status `working` before reading and summarizing the files (see
+"Narrate long operations"), then write `profile/summary.md`. The web must
+then show the summary for an explicit `Confirm profile summary` decision.
+Send a short review instruction as your response text, then wait:
 
 ```bash
 venv/bin/python -m ftja.onboarding . wait-for-action --type confirm_profile_summary --timeout 900
 ```
 
-Only after that action returns `status: confirmed` should you propose titles,
-location, remote preference, and published-within settings. After
-`confirm_profile` returns, derive Stage 0 defaults from the confirmed profile and
-write them before asking for review:
+Only after that action returns `status: confirmed`, read the confirmed profile
+summary and create **one structured proposal covering both upcoming deterministic
+screens**:
+
+1. scraping/search settings: titles, location, remote-only, published-within,
+   and results wanted;
+2. Stage 0: matching keywords, readable languages, and hard-exclude words.
+
+Do not show either screen until this combined proposal has been written to
+`onboarding-state.json`. This is a required protocol step, not optional LLM
+judgment. The LLM may derive candidate values from the profile, but the state
+machine validates their JSON shape and rejects missing required fields. Never
+write empty title, keyword, or language arrays, `...` placeholders, or generic
+blank defaults.
+
+Use profile evidence: target roles become search titles; the candidate's base
+location becomes the initial location; target roles and product/AI work become
+matching keywords; languages the candidate can actually read become ISO 639-1
+language filters; explicit dealbreakers or clearly non-target work become
+exclude words. Excludes may be empty only when the profile provides no defensible
+negative signal. Do not invent unsupported values merely to satisfy validation;
+ask one focused follow-up first when required evidence is absent.
+
+Write the complete combined proposal in a single command **before** instructing
+the user to review search settings:
 
 ```bash
-venv/bin/python -m ftja.onboarding . set-state --stage rubric --phase stage0 --status waiting --json '{"profile":{"criteria":{"keywords":{"tier1":["..."]},"languages":["en"],"exclude_keywords":["..."]}},"cards":{"stage0":{"keywords":["..."],"languages":["en"],"exclude_keywords":["..."]}}}'
+venv/bin/python -m ftja.onboarding . set-state --stage profile --phase title_proposal --status waiting --json '{"profile":{"titles":["Product Builder","AI Product Manager","Founding Product Manager"],"criteria":{"search_terms":["Product Builder","AI Product Manager","Founding Product Manager"],"location":"France","is_remote":false,"hours_old":24,"results_wanted":100,"keywords":{"tier1":["AI product","LLM","Product Builder"]},"languages":["en","fr"],"exclude_keywords":["pure sales"]}},"cards":{"stage0":{"keywords":["AI product","LLM","Product Builder"],"languages":["en","fr"],"exclude_keywords":["pure sales"]}}}'
 ```
 
-The `set-state` helper records this as a draft; it does not confirm Stage 0. The
-same bridge applies to every later web decision. Before waiting for a card,
-send the instruction in the active agent chat, then run the matching command:
+The `set-state` helper records drafts only. It must leave the state at
+`profile/title_proposal`; it must never call `confirm_profile` or move to Stage 0.
+Verify all of the following before starting the wait:
+
+- state is still `profile/title_proposal`;
+- the search-settings card contains the proposed titles and location;
+- `cards.stage0` already contains non-empty keywords and languages;
+- the browser renders the search-title chips.
+
+Tell the user both upcoming screens were prefilled from the confirmed profile and
+remain editable. Then wait for `confirm_profile`. When it returns, the state
+machine must transition to `rubric/stage0` while preserving the already-populated
+`cards.stage0`; verify the browser renders those chips before waiting for
+`confirm_stage0`. Never insert a blank intermediate Stage 0 state.
+
+Before each card, write the instruction as your response text, then run only
+the matching command:
 
 ```bash
 venv/bin/python -m ftja.onboarding . wait-for-action --type confirm_profile --timeout 900
@@ -353,13 +401,6 @@ should be regenerated (mention that if `/ftja-tune` ever touches profile
 info).
 
 After writing all three, do not git-add or commit the user's criteria, rubric, profile, or run data. These files are intentionally gitignored in the public FTJA workspace. If the user wants version history, they can opt into a separate private repository.
-
-Start `venv/bin/python -m ftja.server` from the FTJA folder when it is not already running, then open
-`http://127.0.0.1:8765` automatically if possible (any browser — Chrome, Edge, or Safari) — the
-Pipeline tab there shows the scraping criteria, keywords, Stage0 filter
-rules, and the Stage1/Stage2 prompts in plain English (reads `criteria.json`/
-`rubric.md` live, so it's never stale). Have them look at that before
-running anything.
 
 Tell the user both `rubric.md`/`criteria.json` are ready to review/edit by
 hand if they want, and that `/ftja-run` is the next step (recommend a

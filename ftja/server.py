@@ -27,7 +27,7 @@ from urllib.parse import urlparse, parse_qs
 from ftja.state import connect, update_decision, VALID_USER_ACTIONS
 from ftja.pipeline_view import read_config, write_config, keyword_stats
 from ftja.runs_view import list_runs
-from ftja.onboarding import OnboardingError, apply_action, bridge_is_ready, read_bridge, read_state, write_action, write_state
+from ftja.onboarding import OnboardingError, apply_action, bridge_is_ready, build_checklist, read_bridge, read_state, write_action, write_state
 
 DEFAULT_PORT = 8765
 APP_HTML_PATH = os.path.join(os.path.dirname(__file__), "app.html")
@@ -197,9 +197,11 @@ def make_handler(db_path: str, project_dir: str):
                 self._send_json(200, _fetch_jobs(db_path, run_id, status, page))
             elif path == "/api/onboarding":
                 config = read_config(project_dir)
+                state = read_state(project_dir)
                 self._send_json(200, {
-                    "state": read_state(project_dir),
+                    "state": state,
                     "bridge": read_bridge(project_dir),
+                    "checklist": build_checklist(state, project_dir),
                     "has_onboarding_state": os.path.isfile(os.path.join(project_dir, ONBOARDING_STATE)),
                     "has_criteria": os.path.isfile(os.path.join(project_dir, "criteria.json")),
                     "has_rubric": os.path.isfile(os.path.join(project_dir, "rubric.md")),
@@ -240,10 +242,16 @@ def make_handler(db_path: str, project_dir: str):
                 self._send_json(200, {"ok": True})
             elif self.path == "/api/onboarding-action":
                 if not bridge_is_ready(project_dir):
+                    bridge = read_bridge(project_dir)
+                    reason = (
+                        f"the setup agent is busy ({bridge.get('label') or 'working'})"
+                        if bridge.get("status") == "working"
+                        else "setup bridge is not listening; the setup chat must start wait-for-action first"
+                    )
                     self._send_json(409, {
-                        "error": "setup bridge is not ready; the setup chat must start wait-for-action first",
+                        "error": reason,
                         "state": read_state(project_dir),
-                        "bridge": read_bridge(project_dir),
+                        "bridge": bridge,
                     })
                     return
                 try:
@@ -252,7 +260,7 @@ def make_handler(db_path: str, project_dir: str):
                 except (OnboardingError, TypeError, ValueError, OSError) as e:
                     self._send_json(409, {"error": str(e), "state": read_state(project_dir)})
                     return
-                self._send_json(200, {"ok": True, "state": state, "bridge": read_bridge(project_dir)})
+                self._send_json(200, {"ok": True, "state": state, "bridge": read_bridge(project_dir), "checklist": build_checklist(state, project_dir)})
             elif self.path == "/api/onboarding":
                 criteria = data.get("criteria")
                 rubric_md = data.get("rubric_md")

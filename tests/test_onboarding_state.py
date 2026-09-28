@@ -171,7 +171,7 @@ class OnboardingStateTests(unittest.TestCase):
         self.assertEqual(result["status"], "confirmed")
         self.assertTrue(result["state"]["profile"]["sources_confirmed"])
 
-    def test_wait_marks_the_bridge_ready_while_it_is_waiting(self):
+    def test_wait_marks_the_bridge_listening_while_it_is_waiting(self):
         result = {}
 
         def wait():
@@ -181,12 +181,12 @@ class OnboardingStateTests(unittest.TestCase):
         thread.start()
         time.sleep(0.1)
         bridge = read_bridge(str(self.root))
-        self.assertEqual(bridge["status"], "ready")
+        self.assertEqual(bridge["status"], "listening")
         self.assertEqual(bridge["action_types"], ["confirm_profile_sources"])
         thread.join(timeout=3)
         self.assertFalse(thread.is_alive())
         self.assertEqual(result["status"], "timeout")
-        self.assertEqual(read_bridge(str(self.root))["status"], "stopped")
+        self.assertEqual(read_bridge(str(self.root))["status"], "offline")
 
     def test_wait_recovers_a_web_action_that_finished_before_the_waiter_started(self):
         self.act("set_profile_sources", sources=[{"path": str(self.root / "resume.txt"), "kind": "file"}])
