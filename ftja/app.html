@@ -297,21 +297,29 @@ select.sort-select {
 }
 
 /* ---- first-run onboarding ---- */
-.onboarding-shell { max-width: 760px; margin: 0 auto; }
-.onboarding-checklist { display: flex; flex-direction: column; gap: 16px; margin: 0 0 36px; }
-.onboarding-checklist-stage-label { color: var(--text3); font: 10px 'IBM Plex Mono', monospace; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 6px; }
-.onboarding-checklist-item { display: flex; align-items: center; gap: 9px; font-size: 12px; color: var(--text3); padding: 2px 0; }
+.onboarding-shell { max-width: 900px; margin: 0 auto; display: flex; align-items: flex-start; gap: 36px; }
+.onboarding-checklist { flex: 0 0 168px; position: sticky; top: 20px; display: flex; flex-direction: column; gap: 12px; margin: 0; }
+#onboarding-content { flex: 1 1 auto; min-width: 0; }
+.onboarding-checklist-stage-label { color: var(--text3); font: 9px 'IBM Plex Mono', monospace; letter-spacing: .07em; text-transform: uppercase; margin-bottom: 4px; }
+.onboarding-checklist-item { display: flex; align-items: center; gap: 6px; font-size: 10.5px; line-height: 1.4; color: var(--text3); padding: 1px 0; }
 .onboarding-checklist-item.done { color: var(--text2); }
 .onboarding-checklist-item.done .onboarding-checklist-mark { color: var(--accent-text); }
 .onboarding-checklist-item.current { color: var(--text); font-weight: 600; }
-.onboarding-checklist-mark { width: 14px; flex: none; text-align: center; }
-.onboarding-spinner { display: inline-block; width: 11px; height: 11px; border: 2px solid var(--accent-border); border-top-color: var(--accent); border-radius: 50%; animation: onboarding-spin .8s linear infinite; flex: none; }
+.onboarding-checklist-mark { width: 11px; flex: none; text-align: center; font-size: 10px; }
+.onboarding-spinner { display: inline-block; width: 9px; height: 9px; border: 2px solid var(--accent-border); border-top-color: var(--accent); border-radius: 50%; animation: onboarding-spin .8s linear infinite; flex: none; }
 @keyframes onboarding-spin { to { transform: rotate(360deg); } }
 .onboarding-working-banner { display: flex; align-items: center; gap: 10px; margin-top: 18px; padding: 13px 14px; background: var(--accent-dim); border: 1px solid var(--accent-border); color: var(--accent-text); font-size: 11px; line-height: 1.5; }
 .onboarding-pending-card p.onboarding-pending-label { display: flex; align-items: center; gap: 9px; color: var(--text3); margin: 14px 0 0; }
+.onboarding-pending-hint { margin: 10px 0 0; color: var(--text3); font-size: 10px; }
+.onboarding-pending-hint code { color: var(--accent-text); font: 10px 'IBM Plex Mono', monospace; }
 .onboarding-skeleton-line { height: 10px; border-radius: 3px; background: var(--border); margin: 8px 0; position: relative; overflow: hidden; }
 .onboarding-skeleton-line::after { content: ''; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255,255,255,.14), transparent); animation: onboarding-shimmer 1.3s infinite; }
 @keyframes onboarding-shimmer { to { transform: translateX(100%); } }
+@media (max-width: 720px) {
+  .onboarding-shell { flex-direction: column; gap: 20px; }
+  .onboarding-checklist { position: static; flex: none; width: 100%; flex-direction: row; flex-wrap: wrap; gap: 14px 22px; }
+  .onboarding-checklist-stage { flex: 1 1 auto; min-width: 140px; }
+}
 .onboarding-kicker { color: var(--accent-text); font: 10px 'IBM Plex Mono', monospace; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 12px; }
 .onboarding-title { font: 400 38px/1.05 'Instrument Serif', Georgia, serif; letter-spacing: -.02em; margin-bottom: 12px; }
 .onboarding-copy { color: var(--text2); font-size: 14px; line-height: 1.7; max-width: 620px; margin-bottom: 26px; }
@@ -340,7 +348,7 @@ select.sort-select {
 .profile-summary-preview h3 { font-size: 14px; margin-top: 14px; }
 .profile-summary-preview p { color: var(--text2); font-size: 13px; margin: 0 0 12px; }
 .profile-summary-preview ul, .profile-summary-preview ol { margin: 0 0 12px 20px; color: var(--text2); }
-.profile-summary-preview li { margin: 3px 0; }
+.profile-summary-preview li { margin: 3px 0; line-height: 1.45; }
 .profile-summary-preview blockquote { margin: 0 0 12px; padding: 7px 12px; border-left: 3px solid var(--accent-border); color: var(--text2); background: rgba(230,238,233,.5); }
 .profile-summary-preview code { padding: 2px 5px; color: var(--accent-text); background: var(--accent-dim); font: 11px 'IBM Plex Mono', monospace; }
 .profile-summary-preview .preview-empty-line { height: 7px; }
@@ -352,7 +360,7 @@ select.sort-select {
 .profile-title-add-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
 .profile-title-add-row input { flex: 1; min-width: 0; }
 .profile-title-add-row .save-btn { height: 38px; }
-.profile-search-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(190px, .75fr); gap: 18px; align-items: start; }
+.profile-search-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(150px, .7fr) minmax(130px, .6fr); gap: 18px; align-items: start; }
 .profile-check-field { display: inline-flex; align-items: center; gap: 8px; margin-top: 18px; color: var(--text2); font-size: 12px; cursor: pointer; }
 .profile-check-field input { width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; }
 .profile-field-hint { color: var(--text3); font-size: 10.5px; line-height: 1.45; margin: 6px 0 0; }
@@ -362,10 +370,6 @@ select.sort-select {
 .profile-summary-review .profile-confirm-actions .secondary { min-width: 86px; color: var(--text3); padding: 10px 14px; border: 1px solid var(--border); border-radius: 2px; cursor: default; }
 .profile-summary-review .profile-confirm-actions .secondary.is-dirty { color: var(--accent-text); border-color: var(--accent); background: var(--accent-dim); cursor: pointer; font-weight: 600; }
 .profile-summary-review .profile-confirm-actions .secondary:disabled { color: var(--text3); cursor: default; opacity: .65; }
-.onboarding-action-notice { margin-top: 18px; padding: 13px 14px; background: var(--accent-dim); border: 1px solid var(--accent-border); color: var(--text2); font-size: 11px; line-height: 1.55; }
-.onboarding-action-notice b { display: block; color: var(--accent-text); margin-bottom: 4px; }
-.onboarding-action-notice p { margin: 0; }
-.onboarding-action-notice code { color: var(--accent-text); font: 10px 'IBM Plex Mono', monospace; }
 .onboarding-source-list { display: grid; gap: 8px; margin-top: 10px; }
 .onboarding-source { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; background: var(--surface2); border: 1px solid var(--border); font-size: 12px; }
 .onboarding-source small { color: var(--text3); display: block; margin-top: 2px; font: 10px 'IBM Plex Mono', monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 500px; }
@@ -378,10 +382,6 @@ select.sort-select {
 .onboarding-source-actions .onboarding-source-confirm { margin-left: auto; }
 .onboarding-source-actions button:disabled { opacity: .5; cursor: wait; }
 .onboarding-source-note { color: var(--text3); font-size: 11px; line-height: 1.55; margin: 12px 0 0; }
-.onboarding-confirm-guide { margin-top: 16px; padding: 13px 14px; background: var(--accent-dim); border: 1px solid var(--accent-border); color: var(--text2); font-size: 11px; line-height: 1.55; }
-.onboarding-confirm-guide b { color: var(--accent-text); display: block; margin-bottom: 5px; }
-.onboarding-confirm-guide p { margin: 0; }
-.onboarding-confirm-guide code { color: var(--accent-text); font: 10px 'IBM Plex Mono', monospace; }
 .onboarding-pills { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
 .onboarding-pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border: 1px solid var(--accent-border); background: var(--accent-dim); color: var(--accent-text); border-radius: 999px; font-size: 11px; }
 .onboarding-pill button { border: 0; background: none; color: inherit; cursor: pointer; font-size: 14px; line-height: 1; padding: 0 1px; }
@@ -471,7 +471,7 @@ function fmtDate(iso) { return iso ? iso.slice(0, 10) : "no date recorded"; }
 let onboardingState = null;
 let onboardingChecklist = [];
 let onboardingVersion = '';
-let onboardingDraft = {titles: [], location: '', is_remote: false, hours_old: 24, tier1: [], exclude_keywords: [], languages: ['en']};
+let onboardingDraft = {titles: [], location: '', is_remote: false, hours_old: 24, results_wanted: 100, tier1: [], exclude_keywords: [], languages: ['en']};
 const ONBOARDING_STEPS = ['Profile', 'Rubric', 'Run', 'Learn'];
 
 function onboardingStepIndex(state) {
@@ -512,7 +512,6 @@ function onboardingCopy(state) {
   }
   return latestOnboardingMessage(state);
 }
-let onboardingActionNotice = '';
 let profileSummaryDraft = null;
 let profileSummarySaved = '';
 let profileSummaryEditing = false;
@@ -529,6 +528,7 @@ function renderSimpleMarkdown(markdown) {
   const output = [];
   let paragraph = [];
   let list = null;
+  let openListItemIndex = -1;
   const flushParagraph = () => {
     if (paragraph.length) {
       output.push(`<p>${markdownInline(paragraph.join(' '))}</p>`);
@@ -536,7 +536,7 @@ function renderSimpleMarkdown(markdown) {
     }
   };
   const closeList = () => {
-    if (list) { output.push(`</${list}>`); list = null; }
+    if (list) { output.push(`</${list}>`); list = null; openListItemIndex = -1; }
   };
   lines.forEach(line => {
     const heading = line.match(/^(#{1,3})\s+(.+)$/);
@@ -548,9 +548,20 @@ function renderSimpleMarkdown(markdown) {
     if (bullet || numbered) {
       flushParagraph(); const nextList = bullet ? 'ul' : 'ol';
       if (list !== nextList) { closeList(); list = nextList; output.push(`<${list}>`); }
-      output.push(`<li>${markdownInline((bullet || numbered)[1])}</li>`); return;
+      output.push(`<li>${markdownInline((bullet || numbered)[1])}</li>`);
+      openListItemIndex = output.length - 1;
+      return;
     }
     if (quote) { flushParagraph(); closeList(); output.push(`<blockquote>${markdownInline(quote[1])}</blockquote>`); return; }
+    // A plain line right after a bullet, with no marker of its own, is a
+    // soft-wrapped continuation of that bullet's text (common in
+    // agent-written markdown) rather than a new paragraph — folding it back
+    // into the same <li> keeps the list intact instead of visually breaking
+    // it into a bullet followed by a stray paragraph.
+    if (list && openListItemIndex >= 0) {
+      output[openListItemIndex] = output[openListItemIndex].replace(/<\/li>$/, ` ${markdownInline(line.trim())}</li>`);
+      return;
+    }
     closeList(); paragraph.push(line.trim());
   });
   flushParagraph(); closeList();
@@ -620,14 +631,14 @@ function activateProfileSummaryEditor(event) {
   profileSummaryScrollRatio = ratio;
   shell.classList.add('is-editing');
   preview.contentEditable = 'true';
-  preview.focus();
+  preview.focus({preventScroll: true});
   placeCaretAtPoint(preview, event || {clientX: rect.left + 20, clientY: rect.top + 20});
 }
 function restoreProfileSummaryEditorPosition() {
   const preview = document.querySelector('[data-profile-summary-preview]');
   if (!preview || !profileSummaryEditing) return;
   preview.scrollTop = profileSummaryScrollRatio * Math.max(0, preview.scrollHeight - preview.clientHeight);
-  preview.focus();
+  preview.focus({preventScroll: true});
 }
 function deactivateProfileSummaryEditor() {
   profileSummaryEditing = false;
@@ -657,60 +668,83 @@ function onboardingTags(values, key, editable = true) {
 function sourceRows(state) {
   return ((state?.profile || {}).sources || []).map(source => `<div class="onboarding-source"><div><b>${esc(source.label || source.path || 'Source')}<span class="onboarding-source-kind">${source.kind === 'folder' ? 'Folder' : 'File'}</span></b><small>${esc(source.path || '')}</small></div><span class="source-status">✓</span></div>`).join('') || '<div class="source-empty">No source materials added yet.</div>';
 }
-function onboardingPendingCard(title, fallbackLabel) {
+function onboardingPendingCard(title, fallbackLabel, recoveryActionType) {
   const bridge = onboardingState?.bridge || {};
   const label = bridge.status === 'working' && bridge.label ? bridge.label : fallbackLabel;
-  return `<div class="onboarding-card onboarding-pending-card"><h3>${esc(title)}</h3><div class="onboarding-skeleton-line" style="width:78%"></div><div class="onboarding-skeleton-line" style="width:94%"></div><div class="onboarding-skeleton-line" style="width:62%"></div><p class="onboarding-pending-label"><span class="onboarding-spinner"></span><span>${esc(label)}</span></p></div>`;
+  const hint = recoveryActionType ? `<p class="onboarding-pending-hint">Stuck? Type <code>${esc(recoveryPhrase(recoveryActionType))}</code> in the FTJA setup chat.</p>` : '';
+  return `<div class="onboarding-card onboarding-pending-card"><h3>${esc(title)}</h3><div class="onboarding-skeleton-line" style="width:78%"></div><div class="onboarding-skeleton-line" style="width:94%"></div><div class="onboarding-skeleton-line" style="width:62%"></div><p class="onboarding-pending-label"><span class="onboarding-spinner"></span><span>${esc(label)}</span></p>${hint}</div>`;
+}
+// A card with decision buttons must never be shown interactively while the
+// bridge can't actually accept the click (status !== 'listening') — a
+// visible-but-broken button is worse than no button, so every such phase is
+// gated behind bridgeReady() and falls back to onboardingPendingCard instead.
+function bridgeReady(state) {
+  return (state.bridge || {}).status === 'listening';
 }
 function profileCard(state) {
   const profile = state.profile || {};
   const phase = state.phase;
   const summary = profile.summary || '';
   const titles = onboardingDraft.titles.length ? onboardingDraft.titles : (profile.titles || []);
-  if (phase === 'profile_summary' && profile.sources_confirmed && !summary) {
-    return onboardingPendingCard('Your profile summary', 'Reading your background files and writing a profile summary…');
-  }
+  const ready = bridgeReady(state);
+
   if (phase === 'profile_summary_review') {
+    if (!ready) return onboardingPendingCard('Your profile summary', 'Getting your profile summary ready to review…', 'confirm_profile_summary');
     profileSummarySaved = summary;
     const value = profileSummaryDraft === null ? summary : profileSummaryDraft;
     return `<div class="onboarding-card profile-summary-review"><h3>Profile summary</h3><div class="profile-summary-editor-shell${profileSummaryEditing ? ' is-editing' : ''}"><textarea id="profile-summary" data-profile-summary aria-label="Profile summary">${esc(value)}</textarea><div class="profile-summary-preview" data-profile-summary-preview contenteditable="${profileSummaryEditing ? 'true' : 'false'}" role="textbox" tabindex="0" aria-label="Profile summary. Click to edit."></div></div><div class="onboarding-actions profile-confirm-actions"><div class="profile-summary-action-group"><button class="secondary" type="button" data-save-profile-summary disabled>Save</button><button class="primary" type="button" data-confirm-profile-summary>Confirm</button></div></div></div>`;
   }
 
-  if (phase === 'title_proposal' && !titles.length) {
-    return onboardingPendingCard('Your search settings', 'Deriving suggested job titles and keywords from your profile…');
+  if (phase === 'title_proposal') {
+    if (!ready) return onboardingPendingCard('Your search settings', 'Deriving suggested job titles and keywords from your profile…', 'confirm_profile');
+    const resultsWanted = onboardingDraft.results_wanted || profile.criteria?.results_wanted || 100;
+    return `<div class="onboarding-card profile-search-card"><h3>Your search settings</h3><div class="onboarding-field profile-title-field"><label>Suggested job titles</label>${onboardingTags(titles, 'titles')}<div class="profile-title-add-row"><input id="title-input" type="text" placeholder="Add a job title"><button class="save-btn" type="button" data-title-add>Add</button></div></div><div class="profile-search-grid"><div class="onboarding-field"><label for="profile-location">Location</label><div class="onboarding-input-wrap"><input id="profile-location" autocomplete="off" value="${esc(onboardingDraft.location || profile.criteria?.location || 'Europe')}" placeholder="e.g. Paris, France"><div class="onboarding-language-options" id="location-options" role="listbox"></div></div></div><div class="onboarding-field"><label for="profile-hours">Published within</label><select id="profile-hours"><option value="24" ${onboardingDraft.hours_old === 24 ? 'selected' : ''}>Past 24 hours (recommended)</option><option value="72" ${onboardingDraft.hours_old === 72 ? 'selected' : ''}>Past 72 hours</option><option value="168" ${onboardingDraft.hours_old === 168 ? 'selected' : ''}>Past 7 days</option></select></div><div class="onboarding-field"><label for="profile-results-wanted">Max results per title</label><input id="profile-results-wanted" type="number" min="1" max="1000" step="10" value="${esc(resultsWanted)}"></div></div><p class="profile-field-hint">For a daily run, FTJA recommends the past 24 hours. FTJA scrapes up to this many per title, then runs all titles together through the code-based filter and judgment.</p><label class="profile-check-field"><input id="profile-remote" type="checkbox" ${onboardingDraft.is_remote ? 'checked' : ''}><span>Remote only</span></label><div class="onboarding-actions profile-confirm-actions"><button class="primary" type="button" data-confirm-profile>Confirm search settings</button></div></div>`;
   }
-  if (phase === 'title_proposal' || phase === 'scrape_card') {
-    const confirmMarkup = phase === 'scrape_card'
-      ? '<div class="onboarding-summary"><b>Search settings ready</b>Review the settings above before your next run.</div>'
-      : '<div class="onboarding-actions profile-confirm-actions"><button class="primary" type="button" data-confirm-profile>Confirm search settings</button></div>';
-    return `<div class="onboarding-card profile-search-card"><h3>Your search settings</h3><div class="onboarding-field profile-title-field"><label>Suggested job titles</label>${onboardingTags(titles, 'titles')}<div class="profile-title-add-row"><input id="title-input" type="text" placeholder="Add a job title"><button class="save-btn" type="button" data-title-add>Add</button></div></div><div class="profile-search-grid"><div class="onboarding-field"><label for="profile-location">Location</label><input id="profile-location" value="${esc(onboardingDraft.location || profile.criteria?.location || 'Europe')}" placeholder="e.g. Europe"></div><div class="onboarding-field"><label for="profile-hours">Published within</label><select id="profile-hours"><option value="24" ${onboardingDraft.hours_old === 24 ? 'selected' : ''}>Past 24 hours (recommended)</option><option value="72" ${onboardingDraft.hours_old === 72 ? 'selected' : ''}>Past 72 hours</option><option value="168" ${onboardingDraft.hours_old === 168 ? 'selected' : ''}>Past 7 days</option></select><p class="profile-field-hint">For a daily run, FTJA recommends the past 24 hours.</p></div></div><label class="profile-check-field"><input id="profile-remote" type="checkbox" ${onboardingDraft.is_remote ? 'checked' : ''}><span>Remote only</span></label>${confirmMarkup}</div>`;
+  if (phase === 'scrape_card') {
+    return `<div class="onboarding-card profile-search-card"><h3>Your search settings</h3><div class="onboarding-field profile-title-field"><label>Suggested job titles</label>${onboardingTags(titles, 'titles', false)}</div><div class="onboarding-summary"><b>Search settings ready</b>Review the settings above before your next run.</div></div>`;
   }
-  const sourceIntro = ['sources', 'profile_summary'].includes(phase) ? '<p class="onboarding-source-note source-intro">Add any files or folders that help FTJA understand your background.</p>' : '';
+
+  // sources / profile_summary: the only two phases before a summary exists.
+  if (profile.sources_confirmed) {
+    // Nothing left for the user to do here — FTJA is reading the files and
+    // writing the summary. This has no decision button, so it's always a
+    // pending card, independent of bridge status.
+    return onboardingPendingCard('Your profile summary', 'Reading your background files and writing a profile summary…');
+  }
+  if (!ready) {
+    return onboardingPendingCard('Your source materials', 'Getting ready for your background files…', 'confirm_profile_sources');
+  }
+  const sourceIntro = '<p class="onboarding-source-note source-intro">Add any files or folders that help FTJA understand your background.</p>';
   const sources = profile.sources || [];
-  const sourceActions = ['sources', 'profile_summary'].includes(phase) && !profile.sources_confirmed ? `<div class="onboarding-source-actions"><button class="primary" type="button" data-add-onboarding-source="file">+ Add files</button><button class="secondary" type="button" data-add-onboarding-source="folder">+ Add a folder</button><button class="primary onboarding-source-confirm" type="button" data-confirm-profile-sources ${sources.length ? '' : 'disabled'}>Confirm sources</button></div><p class="onboarding-source-note">Selected items stay on your computer. Your coding agent reads them locally.</p>` : '';
-  const confirmGuide = profile.sources_confirmed ? '<div class="onboarding-confirm-guide"><b>Continue in your FTJA setup session.</b><p>If nothing happens, type <code>I uploaded my background files, continue the setup</code> in the FTJA setup chat.</p></div>' : '';
-  return `<div class="onboarding-card"><h3>Your source materials</h3>${sourceIntro}<div class="onboarding-source-list">${sourceRows(state)}</div>${sourceActions}${confirmGuide}${summary ? `<div class="onboarding-summary" style="margin-top:14px"><b>Profile summary</b>\n${esc(summary)}</div>` : ''}</div>`;
+  const sourceActions = `<div class="onboarding-source-actions"><button class="primary" type="button" data-add-onboarding-source="file">+ Add files</button><button class="secondary" type="button" data-add-onboarding-source="folder">+ Add a folder</button><button class="primary onboarding-source-confirm" type="button" data-confirm-profile-sources ${sources.length ? '' : 'disabled'}>Confirm sources</button></div><p class="onboarding-source-note">Selected items stay on your computer. Your coding agent reads them locally.</p>`;
+  return `<div class="onboarding-card"><h3>Your source materials</h3>${sourceIntro}<div class="onboarding-source-list">${sourceRows(state)}</div>${sourceActions}</div>`;
 }
 function rubricCard(state) {
   const cards = state.cards || {};
   const profile = state.profile || {};
   const phase = state.phase;
+  const ready = bridgeReady(state);
   const stage0 = cards.stage0 || {};
-  const stage1 = cards.stage1 || {};
-  const stage2 = cards.stage2 || {};
-  const stage0Keywords = phase === 'stage0' ? onboardingDraft.tier1 : (Array.isArray(stage0.keywords) ? stage0.keywords : (profile.criteria?.keywords?.tier1 || []));
-  const stage0Languages = phase === 'stage0' ? onboardingDraft.languages : (Array.isArray(stage0.languages) ? stage0.languages : (profile.criteria?.languages || ['en']));
-  const stage0Excludes = phase === 'stage0' ? onboardingDraft.exclude_keywords : (Array.isArray(stage0.exclude_keywords) ? stage0.exclude_keywords : (profile.criteria?.exclude_keywords || []));
-  const stage0View = `<div class="onboarding-card"><h3>Code-based filter</h3><p>Review the first screen before LLM judgment. Matching keywords, readable languages, and excluded words are applied here.</p><div class="onboarding-field"><label>Keywords to match</label>${onboardingTags(stage0Keywords, 'tier1', phase === 'stage0')}</div><div class="onboarding-field"><label>Languages you use</label>${onboardingTags(stage0Languages, 'languages', phase === 'stage0')}</div><div class="onboarding-field"><label>Words to exclude</label>${onboardingTags(stage0Excludes, 'exclude_keywords', phase === 'stage0')}</div>${phase === 'stage0' ? '<div class="onboarding-actions onboarding-confirm-actions"><button class="primary" type="button" data-confirm-stage0>Confirm filter</button></div>' : '<div class="source-status">READY ✓</div>'}</div>`;
-  if (phase === 'stage0') return stage0View;
+  if (phase === 'stage0') {
+    if (!ready) return onboardingPendingCard('Code-based filter', 'Preparing your code-based filter…', 'confirm_stage0');
+    const stage0Keywords = onboardingDraft.tier1;
+    const stage0Languages = onboardingDraft.languages;
+    const stage0Excludes = onboardingDraft.exclude_keywords;
+    return `<div class="onboarding-card"><h3>Code-based filter</h3><p>Review the first screen before LLM judgment. Matching keywords, readable languages, and excluded words are applied here.</p><div class="onboarding-field"><label>Keywords to match</label>${onboardingTags(stage0Keywords, 'tier1', true)}</div><div class="onboarding-field"><label>Languages you use</label>${onboardingTags(stage0Languages, 'languages', true)}</div><div class="onboarding-field"><label>Words to exclude</label>${onboardingTags(stage0Excludes, 'exclude_keywords', true)}</div><div class="onboarding-actions onboarding-confirm-actions"><button class="primary" type="button" data-confirm-stage0>Confirm filter</button></div></div>`;
+  }
   const questions = state.rubric_questions || [];
   const currentIndex = questions.findIndex(question => !String(question.answer || '').trim());
   if (phase === 'questions' && currentIndex >= 0) {
+    if (!ready) return onboardingPendingCard('Your ideal role', 'Preparing the next question…', 'answer_rubric_question');
     const question = questions[currentIndex];
     return `<div class="onboarding-card rubric-question-card"><div class="onboarding-kicker">Answer ${currentIndex + 1} of ${questions.length}</div><h3>${esc(question.label)}</h3><p>${esc(question.hint)}</p><div class="onboarding-field"><label for="rubric-answer">Your answer</label><textarea id="rubric-answer" placeholder="Write a concise answer"></textarea></div><div class="onboarding-actions onboarding-confirm-actions"><button class="primary" type="button" data-answer-rubric-question data-question-id="${esc(question.id)}">Save answer</button></div></div>`;
   }
-  const generatedRubric = state.rubric_draft || `# Judgment rubric\n\n## Clear yes\n${questions[0]?.answer || ''}\n\n## Dealbreakers\n${questions[1]?.answer || ''}\n\n## Preferences\n${questions[2]?.answer || ''}\n\n## Pass\nPass roles that are a clear match for the confirmed profile and answers above.\n\n## Fail\nFail roles that conflict with the dealbreakers above or do not show enough evidence of fit.`;
-  return `<div class="onboarding-card"><h3>Confirm your judgment rubric</h3><p>Review the generated pass/fail rubric once before FTJA saves it and opens Pipeline.</p><div class="onboarding-field"><label for="rubric-draft">Judgment rubric</label><textarea id="rubric-draft">${esc(generatedRubric)}</textarea></div><div class="onboarding-actions onboarding-confirm-actions"><button class="primary" type="button" data-confirm-rubric>Confirm rubric and open Pipeline</button></div></div>`;
+  if (phase === 'rubric_review') {
+    if (!ready) return onboardingPendingCard('Your judgment rubric', 'Drafting your judgment rubric…', 'confirm_rubric');
+    const generatedRubric = state.rubric_draft || `# Judgment rubric\n\n## Clear yes\n${questions[0]?.answer || ''}\n\n## Dealbreakers\n${questions[1]?.answer || ''}\n\n## Preferences\n${questions[2]?.answer || ''}\n\n## Pass\nPass roles that are a clear match for the confirmed profile and answers above.\n\n## Fail\nFail roles that conflict with the dealbreakers above or do not show enough evidence of fit.`;
+    return `<div class="onboarding-card"><h3>Confirm your judgment rubric</h3><p>Review the generated pass/fail rubric once before FTJA saves it and opens Pipeline.</p><div class="onboarding-field"><label for="rubric-draft">Judgment rubric</label><textarea id="rubric-draft">${esc(generatedRubric)}</textarea></div><div class="onboarding-actions onboarding-confirm-actions"><button class="primary" type="button" data-confirm-rubric>Confirm rubric and open Pipeline</button></div></div>`;
+  }
+  return onboardingPendingCard('Judgment rubric', 'Getting the next step ready…');
 }
 function onboardingStepMarkup() {
   const state = onboardingState || {stage: 'profile', phase: 'sources', profile: {}, messages: []};
@@ -721,16 +755,9 @@ function onboardingStepMarkup() {
   else if (state.stage === 'run') body = `<div class="onboarding-card"><h3>Run</h3><p>${esc(latestOnboardingMessage(state))}</p><div class="onboarding-summary"><b>Ready</b> Use <span class="mono">/ftja-run</span> in your coding-agent chat. Results will appear here without advancing the page manually.</div></div>`;
   else body = `<div class="onboarding-card"><h3>Learn</h3><p>${esc(latestOnboardingMessage(state))}</p><div class="onboarding-summary"><b>Learn from decisions</b> Mark apply or skip in Results and explain why. FTJA will propose rubric changes in a later interactive run.</div></div>`;
   const pageTitle = state.stage === 'profile' && state.phase === 'profile_summary_review' ? 'Review your profile summary.' : state.stage === 'profile' && ['title_proposal', 'scrape_card'].includes(state.phase) ? 'Fine-tune your job search.' : state.stage === 'rubric' && state.phase === 'stage0' ? 'Set your code-based screening before LLM is involved.' : state.stage === 'rubric' && state.phase === 'questions' ? 'Shape the judgment, one answer at a time.' : state.stage === 'rubric' && state.phase === 'rubric_review' ? 'Confirm the judgment rubric.' : title === 'Profile' ? 'Add your background.' : title === 'Rubric' ? 'Make the judgment visible.' : title === 'Run' ? 'Run the pipeline.' : 'Teach FTJA carefully.';
-  const bridge = state.bridge || {};
-  const bridgeGate = bridge.status === 'working'
-    ? `<div class="onboarding-working-banner"><span class="onboarding-spinner"></span><span>${esc(bridge.label || 'Your setup agent is working on this.')}</span></div>`
-    : bridge.status !== 'listening'
-      ? '<div class="onboarding-action-notice"><b>Connecting your setup session.</b><p>FTJA will enable decisions when the setup agent is ready to receive them.</p></div>'
-      : '';
-  const bridgeNotice = onboardingActionNotice && onboardingActionNotice !== 'confirm_profile_sources' ? `<div class="onboarding-action-notice"><b>Decision saved locally.</b><p>Your setup agent is checking this page. If nothing happens, type <code>${esc(recoveryPhrase(onboardingActionNotice))}</code> in the FTJA setup chat.</p></div>` : '';
   const phaseTitles = {sources: 'Add background', profile_summary: 'Add background', profile_summary_review: 'Profile summary', title_proposal: 'Search settings', scrape_card: 'Search settings', stage0: 'Screening filter', questions: 'Judgment questions', rubric_review: 'Judgment rubric', ready: 'Ready to run'};
   const currentStep = phaseTitles[state.phase] || title;
-  return `<div class="onboarding-kicker">Setup · ${currentStep}</div><h2 class="onboarding-title">${pageTitle}</h2><p class="onboarding-copy">${esc(onboardingCopy(state))}</p>${body}${bridgeGate}${bridgeNotice}`;
+  return `<div class="onboarding-kicker">Setup · ${currentStep}</div><h2 class="onboarding-title">${pageTitle}</h2><p class="onboarding-copy">${esc(onboardingCopy(state))}</p>${body}`;
 }
 function applyOnboardingBridgeGate() {
   const bridge = onboardingState?.bridge || {};
@@ -742,12 +769,27 @@ function applyOnboardingBridgeGate() {
     button.title = ready ? '' : waitTitle;
   });
 }
+let lastRenderedPhaseKey = '';
 function renderOnboarding() {
   const state = onboardingState || {stage: 'profile', phase: 'sources'};
+  // Rebuilding #onboarding-content's innerHTML (below) destroys and recreates
+  // every element in it, which on its own makes the browser jump the page
+  // back to the top (the new elements have no scroll/focus history). Every
+  // click — Save, Confirm, adding a source — goes through this same render,
+  // so without this the whole card would visibly jump under the user's
+  // cursor on every interaction, not just the profile-summary editor. Only
+  // do this within the SAME card (stage/phase unchanged): a real transition
+  // to the next card should still land at its top, not wherever the old
+  // card happened to be scrolled to.
+  const phaseKey = `${state.stage}/${state.phase}`;
+  const preserveScroll = phaseKey === lastRenderedPhaseKey;
+  const scrollY = window.scrollY;
+  lastRenderedPhaseKey = phaseKey;
   renderOnboardingChecklist();
   document.getElementById('onboarding-content').innerHTML = onboardingStepMarkup();
   bindOnboarding();
   applyOnboardingBridgeGate();
+  if (preserveScroll) window.scrollTo(0, scrollY);
   if (document.querySelector('[data-profile-summary]')) {
     const input = document.querySelector('[data-profile-summary]');
     const preview = document.querySelector('[data-profile-summary-preview]');
@@ -760,13 +802,13 @@ function renderOnboarding() {
     updateProfileSummaryEditor();
     if (profileSummaryEditing) requestAnimationFrame(restoreProfileSummaryEditorPosition);
   }
+  if (preserveScroll) requestAnimationFrame(() => window.scrollTo(0, scrollY));
 }
 async function postOnboardingAction(type, payload = {}) {
   const res = await fetch('/api/onboarding-action', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({type, expected_revision: onboardingState?.revision ?? 0, ...payload})});
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(body.error || 'Could not send this decision to the setup chat.');
   if (body.state) {
-    if (type.startsWith('confirm_')) onboardingActionNotice = type;
     onboardingState = {...body.state, bridge: body.bridge || onboardingState?.bridge || {status: 'offline'}};
     if (body.checklist) onboardingChecklist = body.checklist;
     onboardingVersion = body.state.updated_at || JSON.stringify(body.state);
@@ -819,6 +861,54 @@ function renderOnboardingLanguageOptions(input) {
   options.innerHTML = filtered.map(item => `<button type="button" class="onboarding-language-option" data-language-value="${item.code}" role="option"><span>${esc(item.name)}</span><span class="code">${item.code}</span></button>`).join('') + custom || '<div class="onboarding-language-empty">No matching languages</div>';
   options.querySelectorAll('[data-language-value]').forEach(option => option.addEventListener('click', () => addOnboardingValue('languages', option.dataset.languageValue)));
 }
+let locationSearchTimer = null;
+function locationLabelFromNominatim(item) {
+  const addr = item.address || {};
+  const city = addr.city || addr.town || addr.village || addr.municipality || addr.county || '';
+  const region = addr.state || addr.region || '';
+  const country = addr.country || '';
+  return [city, region, country].filter(Boolean).join(', ') || item.display_name || '';
+}
+// City/region/country suggestions as you type, LinkedIn-style, so the value
+// saved to criteria.json's `location` matches what the scraper expects.
+// Backed by OpenStreetMap's free Nominatim search — no API key, debounced,
+// and a plain-text location still works fine if this fails or is offline.
+async function fetchLocationOptions(query) {
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=6&q=${encodeURIComponent(query)}`;
+    const res = await fetch(url, {headers: {Accept: 'application/json'}});
+    if (!res.ok) return [];
+    const data = await res.json();
+    const seen = new Set(); const labels = [];
+    for (const item of data) {
+      const label = locationLabelFromNominatim(item);
+      if (!label || seen.has(label)) continue;
+      seen.add(label); labels.push(label);
+    }
+    return labels;
+  } catch (error) {
+    return [];
+  }
+}
+function wireLocationAutocomplete() {
+  const input = document.getElementById('profile-location');
+  const options = document.getElementById('location-options');
+  if (!input || !options) return;
+  const search = async () => {
+    const query = input.value.trim();
+    if (query.length < 2) { options.classList.remove('open'); return; }
+    const results = await fetchLocationOptions(query);
+    if (document.activeElement !== input) return;
+    options.innerHTML = results.length
+      ? results.map(label => `<button type="button" class="onboarding-language-option" data-location-value="${esc(label)}" role="option"><span>${esc(label)}</span></button>`).join('')
+      : '<div class="onboarding-language-empty">No matches — you can keep typing your own</div>';
+    options.classList.add('open');
+    options.querySelectorAll('[data-location-value]').forEach(option => option.addEventListener('click', () => { input.value = option.dataset.locationValue; options.classList.remove('open'); }));
+  };
+  input.addEventListener('input', () => { clearTimeout(locationSearchTimer); locationSearchTimer = setTimeout(search, 350); });
+  input.addEventListener('focus', () => { if (input.value.trim().length >= 2) search(); });
+  input.addEventListener('blur', () => setTimeout(() => options.classList.remove('open'), 120));
+}
 function bindOnboarding() {
   document.querySelectorAll('[data-remove]').forEach(button => button.addEventListener('click', () => { const key = button.dataset.remove; const values = Array.isArray(onboardingDraft[key]) ? onboardingDraft[key] : []; values.splice(Number(button.dataset.index), 1); onboardingDraft[key] = values; renderOnboarding(); }));
   document.querySelectorAll('[data-onboarding-input]').forEach(input => {
@@ -844,10 +934,11 @@ function bindOnboarding() {
   const confirmSources = document.querySelector('[data-confirm-profile-sources]'); if (confirmSources) confirmSources.addEventListener('click', () => submitOnboardingAction(confirmSources, 'confirm_profile_sources'));
   const saveSummary = document.querySelector('[data-save-profile-summary]'); if (saveSummary) saveSummary.addEventListener('click', () => { const summary = document.querySelector('[data-profile-summary]').value.trim(); profileSummaryDraft = summary; submitOnboardingAction(saveSummary, 'set_profile_summary', {summary}); });
   const confirmSummary = document.querySelector('[data-confirm-profile-summary]'); if (confirmSummary) confirmSummary.addEventListener('click', () => submitOnboardingAction(confirmSummary, 'confirm_profile_summary'));
-  const confirmProfile = document.querySelector('[data-confirm-profile]'); if (confirmProfile) confirmProfile.addEventListener('click', () => submitOnboardingAction(confirmProfile, 'confirm_profile', {titles: onboardingDraft.titles, location: document.getElementById('profile-location').value.trim(), is_remote: document.getElementById('profile-remote').checked, hours_old: Number(document.getElementById('profile-hours').value)}));
+  const confirmProfile = document.querySelector('[data-confirm-profile]'); if (confirmProfile) confirmProfile.addEventListener('click', () => submitOnboardingAction(confirmProfile, 'confirm_profile', {titles: onboardingDraft.titles, location: document.getElementById('profile-location').value.trim(), is_remote: document.getElementById('profile-remote').checked, hours_old: Number(document.getElementById('profile-hours').value), results_wanted: Number(document.getElementById('profile-results-wanted').value) || 100}));
   const confirmStage0 = document.querySelector('[data-confirm-stage0]'); if (confirmStage0) confirmStage0.addEventListener('click', () => submitOnboardingAction(confirmStage0, 'confirm_stage0', {keywords: onboardingDraft.tier1, languages: onboardingDraft.languages, exclude_keywords: onboardingDraft.exclude_keywords}));
   const answerQuestion = document.querySelector('[data-answer-rubric-question]'); if (answerQuestion) answerQuestion.addEventListener('click', () => submitOnboardingAction(answerQuestion, 'answer_rubric_question', {question_id: answerQuestion.dataset.questionId, answer: document.getElementById('rubric-answer').value.trim()}));
   const confirmRubric = document.querySelector('[data-confirm-rubric]'); if (confirmRubric) confirmRubric.addEventListener('click', () => submitOnboardingAction(confirmRubric, 'confirm_rubric', {rubric_md: document.getElementById('rubric-draft').value.trim()}));
+  wireLocationAutocomplete();
 }
 let onboardingRefreshTimer = null;
 function onboardingIsComplete(state) {
@@ -875,7 +966,7 @@ async function refreshOnboarding(force = false) {
   const stage0Keywords = Array.isArray(stage0.keywords) ? stage0.keywords : (criteria.keywords?.tier1 || onboardingDraft.tier1);
   const stage0Languages = Array.isArray(stage0.languages) ? stage0.languages : (criteria.languages || onboardingDraft.languages);
   const stage0Excludes = Array.isArray(stage0.exclude_keywords) ? stage0.exclude_keywords : (criteria.exclude_keywords || onboardingDraft.exclude_keywords);
-  onboardingDraft = {...onboardingDraft, titles: profile.titles || onboardingDraft.titles, location: criteria.location || onboardingDraft.location, is_remote: criteria.is_remote ?? onboardingDraft.is_remote, hours_old: criteria.hours_old || onboardingDraft.hours_old, tier1: stage0Keywords, languages: stage0Languages, exclude_keywords: stage0Excludes};
+  onboardingDraft = {...onboardingDraft, titles: profile.titles || onboardingDraft.titles, location: criteria.location || onboardingDraft.location, is_remote: criteria.is_remote ?? onboardingDraft.is_remote, hours_old: criteria.hours_old || onboardingDraft.hours_old, results_wanted: criteria.results_wanted || onboardingDraft.results_wanted, tier1: stage0Keywords, languages: stage0Languages, exclude_keywords: stage0Excludes};
   renderOnboarding();
 }
 async function maybeStartOnboarding() {

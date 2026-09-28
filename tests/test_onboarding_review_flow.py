@@ -77,6 +77,31 @@ class OnboardingReviewFlowTests(unittest.TestCase):
         self.assertIn("if (onboardingIsComplete(onboardingState)) { openMainView('pipeline'); return true; }", html)
         self.assertIn("if (onboardingIsComplete(state)) { onboardingState = state; openMainView('pipeline'); return; }", html)
 
+    def test_every_decision_card_is_gated_behind_a_listening_bridge(self):
+        # A button the web can't actually deliver a click for yet (bridge
+        # isn't "listening") must never render as if it were live — every
+        # phase with a decision button falls back to onboardingPendingCard
+        # instead of the interactive form.
+        html = Path(__file__).parents[1].joinpath("ftja", "app.html").read_text(encoding="utf-8")
+        self.assertIn("function bridgeReady(state)", html)
+        self.assertIn("if (!ready) return onboardingPendingCard('Your profile summary'", html)
+        self.assertIn("if (!ready) return onboardingPendingCard('Your search settings'", html)
+        self.assertIn("return onboardingPendingCard('Your source materials', 'Getting ready for your background files…', 'confirm_profile_sources');", html)
+        self.assertIn("return onboardingPendingCard('Your profile summary', 'Reading your background files and writing a profile summary…');", html)
+        self.assertIn("if (!ready) return onboardingPendingCard('Code-based filter'", html)
+        self.assertIn("if (!ready) return onboardingPendingCard('Your ideal role'", html)
+        self.assertIn("if (!ready) return onboardingPendingCard('Your judgment rubric'", html)
+        # The old always-on "connecting"/"decision saved" banners overlapped
+        # the spinner this introduced and are gone in favor of the per-card
+        # pending state.
+        self.assertNotIn("Connecting your setup session.", html)
+        self.assertNotIn("Decision saved locally.", html)
+
+    def test_page_scroll_is_preserved_across_same_card_rerenders(self):
+        html = Path(__file__).parents[1].joinpath("ftja", "app.html").read_text(encoding="utf-8")
+        self.assertIn("const preserveScroll = phaseKey === lastRenderedPhaseKey;", html)
+        self.assertIn("if (preserveScroll) window.scrollTo(0, scrollY);", html)
+
 
 if __name__ == "__main__":
     unittest.main()

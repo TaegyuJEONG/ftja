@@ -146,6 +146,14 @@ def _clean_list(value: Any) -> list[str]:
     return [str(item).strip() for item in value if str(item).strip()]
 
 
+def _clamp_results_wanted(value: Any, default: int = 100) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return default
+    return max(1, min(1000, parsed))
+
+
 def validate_stage0_draft(card: dict[str, Any]) -> dict[str, list[str]]:
     """Require a profile-derived, reviewable Stage 0 proposal."""
     if not isinstance(card, dict):
@@ -237,7 +245,7 @@ def apply_action(project_dir: str, action: dict[str, Any]) -> dict[str, Any]:
             "location": location,
             "is_remote": bool(action.get("is_remote", False)),
             "hours_old": int(action.get("hours_old", 24)),
-            "results_wanted": int(action.get("results_wanted", 100)),
+            "results_wanted": _clamp_results_wanted(action.get("results_wanted"), 100),
             "exact_phrase_search": True,
             "languages": stage0["languages"],
             "exclude_keywords": stage0["exclude_keywords"],
@@ -263,7 +271,9 @@ def apply_action(project_dir: str, action: dict[str, Any]) -> dict[str, Any]:
             "location": location,
             "is_remote": bool(action.get("is_remote", False)),
             "hours_old": int(action.get("hours_old", 24)),
-            "results_wanted": int(profile.get("criteria", {}).get("results_wanted", 100)),
+            "results_wanted": _clamp_results_wanted(
+                action.get("results_wanted", profile.get("criteria", {}).get("results_wanted")), 100
+            ),
             "exact_phrase_search": True,
             "languages": stage0["languages"],
             "exclude_keywords": stage0["exclude_keywords"],
