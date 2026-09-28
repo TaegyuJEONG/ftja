@@ -112,6 +112,9 @@ h1.serif { font-size: 38px; font-weight: 400; line-height: 1; margin-bottom: 8px
   border-left: 3px solid var(--border2); padding: 6px 10px; border-radius: 0 4px 4px 0; font-style: italic;
 }
 .empty { color: var(--text3); font-style: italic; }
+.no-run-banner { display: none; align-items: center; gap: 10px; margin: 18px 0 28px; padding: 13px 15px; background: var(--accent-dim); border: 1px solid var(--accent-border); color: var(--accent-text); font-size: 12px; line-height: 1.5; }
+.no-run-banner code { font: 11px 'IBM Plex Mono', monospace; padding: 1px 5px; background: var(--surface); border: 1px solid var(--accent-border); }
+.run-detail-empty { color: var(--text3); font-size: 12px; padding: 32px 0; text-align: center; }
 
 /* action buttons */
 .decide-block { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
@@ -192,7 +195,6 @@ input[type="text"], input[type="number"] {
 input[type="text"]:focus, input[type="number"]:focus, select:focus { outline: none; border-color: var(--accent); }
 .check-label { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text2); cursor: pointer; }
 .check-label input { cursor: pointer; }
-.rubric-textarea { width: 100%; max-height: none; font-family: 'IBM Plex Mono', monospace; }
 .chip-input {
   display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
   background: var(--surface); border: 1px solid var(--border); border-radius: 2px;
@@ -298,14 +300,24 @@ select.sort-select {
 
 /* ---- first-run onboarding ---- */
 .onboarding-shell { max-width: 900px; margin: 0 auto; display: flex; align-items: flex-start; gap: 36px; }
-.onboarding-checklist { flex: 0 0 168px; position: sticky; top: 20px; display: flex; flex-direction: column; gap: 12px; margin: 0; }
+.onboarding-checklist { flex: 0 0 172px; position: sticky; top: 20px; display: flex; flex-direction: column; margin: 0; }
 #onboarding-content { flex: 1 1 auto; min-width: 0; }
-.onboarding-checklist-stage-label { color: var(--text3); font: 9px 'IBM Plex Mono', monospace; letter-spacing: .07em; text-transform: uppercase; margin-bottom: 4px; }
-.onboarding-checklist-item { display: flex; align-items: center; gap: 6px; font-size: 10.5px; line-height: 1.4; color: var(--text3); padding: 1px 0; }
+/* A single rail runs through every row — label rows included — so the
+   8 items read as one ordered sequence instead of four separate groups. */
+.onboarding-step-row { display: flex; align-items: flex-start; gap: 8px; }
+.onboarding-step-rail { position: relative; width: 13px; flex: none; align-self: stretch; display: flex; justify-content: center; }
+.onboarding-step-rail::before { content: ''; position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; background: var(--border); transform: translateX(-50%); }
+.onboarding-step-rail.first::before { top: 9px; }
+.onboarding-step-rail.last::before { bottom: calc(100% - 9px); }
+.onboarding-checklist-stage-label { color: var(--text3); font: 9px 'IBM Plex Mono', monospace; letter-spacing: .07em; text-transform: uppercase; padding: 11px 0 5px; }
+.onboarding-step-row:first-child .onboarding-checklist-stage-label { padding-top: 0; }
+.onboarding-checklist-item { font-size: 10.5px; line-height: 1.4; color: var(--text3); padding: 2px 0; }
 .onboarding-checklist-item.done { color: var(--text2); }
-.onboarding-checklist-item.done .onboarding-checklist-mark { color: var(--accent-text); }
 .onboarding-checklist-item.current { color: var(--text); font-weight: 600; }
-.onboarding-checklist-mark { width: 11px; flex: none; text-align: center; font-size: 10px; }
+.onboarding-step-dot { position: relative; z-index: 1; width: 7px; height: 7px; margin-top: 4px; border-radius: 50%; background: var(--border2); }
+.onboarding-step-dot.current { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+.onboarding-step-dot.done { z-index: 1; width: auto; height: auto; margin-top: -1px; background: var(--bg); color: var(--accent-text); font-size: 11px; line-height: 1; }
+.onboarding-checklist-item .onboarding-spinner { position: relative; z-index: 1; margin-top: 3px; background: var(--bg); }
 .onboarding-spinner { display: inline-block; width: 9px; height: 9px; border: 2px solid var(--accent-border); border-top-color: var(--accent); border-radius: 50%; animation: onboarding-spin .8s linear infinite; flex: none; }
 @keyframes onboarding-spin { to { transform: rotate(360deg); } }
 .onboarding-working-banner { display: flex; align-items: center; gap: 10px; margin-top: 18px; padding: 13px 14px; background: var(--accent-dim); border: 1px solid var(--accent-border); color: var(--accent-text); font-size: 11px; line-height: 1.5; }
@@ -317,8 +329,7 @@ select.sort-select {
 @keyframes onboarding-shimmer { to { transform: translateX(100%); } }
 @media (max-width: 720px) {
   .onboarding-shell { flex-direction: column; gap: 20px; }
-  .onboarding-checklist { position: static; flex: none; width: 100%; flex-direction: row; flex-wrap: wrap; gap: 14px 22px; }
-  .onboarding-checklist-stage { flex: 1 1 auto; min-width: 140px; }
+  .onboarding-checklist { position: static; flex: none; width: 100%; }
 }
 .onboarding-kicker { color: var(--accent-text); font: 10px 'IBM Plex Mono', monospace; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 12px; }
 .onboarding-title { font: 400 38px/1.05 'Instrument Serif', Georgia, serif; letter-spacing: -.02em; margin-bottom: 12px; }
@@ -334,9 +345,9 @@ select.sort-select {
 .onboarding-field label { display: block; color: var(--text3); font: 11px 'IBM Plex Mono', monospace; margin-bottom: 6px; }
 .onboarding-field input, .onboarding-field textarea, .onboarding-field select { width: 100%; border: 1px solid var(--border); border-radius: 2px; padding: 10px 11px; color: var(--text); background: var(--surface); font: 13px inherit; }
 .onboarding-field textarea { min-height: 92px; resize: vertical; line-height: 1.55; }
-.profile-summary-review .profile-summary-editor-shell { margin-top: 16px; }
-.profile-summary-review textarea[data-profile-summary] { display: none; width: 100%; height: 360px; min-height: 360px; max-height: 360px; resize: none; font-size: 13px; line-height: 1.7; padding: 18px 20px; background: var(--surface2); border-color: var(--accent-border); overflow-y: auto; }
-.profile-summary-review .profile-summary-editor-shell.is-editing .profile-summary-preview { outline: 1px solid var(--accent-border); cursor: text; }
+.profile-summary-editor-shell { margin-top: 16px; }
+.profile-summary-editor-shell textarea { display: none; width: 100%; height: 360px; min-height: 360px; max-height: 360px; resize: none; font-size: 13px; line-height: 1.7; padding: 18px 20px; background: var(--surface2); border-color: var(--accent-border); overflow-y: auto; }
+.profile-summary-editor-shell.is-editing .profile-summary-preview { outline: 1px solid var(--accent-border); cursor: text; }
 .profile-summary-preview { position: relative; width: 100%; height: 360px; min-height: 360px; max-height: 360px; overflow-y: auto; padding: 18px 20px; background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-size: 13px; line-height: 1.7; cursor: text; }
 .profile-summary-preview::after { content: 'Click to edit'; position: sticky; display: block; bottom: 0; width: fit-content; margin: 14px 0 -9px auto; padding: 3px 7px; color: var(--text3); background: var(--surface2); font: 10px 'IBM Plex Mono', monospace; opacity: 0; transition: opacity .15s ease; }
 .profile-summary-preview:hover::after, .profile-summary-preview:focus-visible::after { opacity: 1; }
@@ -423,6 +434,7 @@ select.sort-select {
 </div>
 
 <div id="view-results" class="view">
+  <div class="no-run-banner" data-no-run-banner><span>You haven't run FTJA yet.</span> Type <code>/ftja-run</code> in your coding-agent chat to scrape, filter, and judge today's postings.</div>
   <div class="results-layout">
     <aside class="run-sidebar">
       <div id="run-list" class="run-list"></div>
@@ -438,6 +450,7 @@ select.sort-select {
 </div>
 
 <div id="view-pipeline" class="view">
+  <div class="no-run-banner" data-no-run-banner><span>You haven't run FTJA yet.</span> Review the criteria below, then type <code>/ftja-run</code> in your coding-agent chat to run your first search.</div>
   <div id="pipeline-config"></div>
   <div id="pipeline-keywords"></div>
 </div>
@@ -481,14 +494,26 @@ function renderOnboardingChecklist() {
   const el = document.getElementById('onboarding-progress');
   if (!el) return;
   const bridge = onboardingState?.bridge || {};
-  el.innerHTML = (onboardingChecklist || []).map(stageGroup => {
-    const items = stageGroup.items.map(item => {
-      const isWorking = item.status === 'current' && bridge.status === 'working';
-      const mark = item.status === 'done' ? '✓' : (item.status === 'current' ? '●' : '○');
-      const label = isWorking && bridge.label ? bridge.label : item.label;
-      return `<div class="onboarding-checklist-item ${item.status}"><span class="onboarding-checklist-mark">${isWorking ? '<span class="onboarding-spinner"></span>' : mark}</span><span>${esc(label)}</span></div>`;
-    }).join('');
-    return `<div class="onboarding-checklist-stage"><div class="onboarding-checklist-stage-label">${esc(stageGroup.label)}</div>${items}</div>`;
+  // One continuous rail runs top to bottom through every row (including the
+  // stage-label rows) so the whole thing reads as a single ordered process,
+  // not four separate unconnected groups.
+  const rows = [];
+  (onboardingChecklist || []).forEach(stageGroup => {
+    rows.push({type: 'label', label: stageGroup.label});
+    stageGroup.items.forEach(item => rows.push({type: 'item', item}));
+  });
+  el.innerHTML = rows.map((row, index) => {
+    const edge = index === 0 ? ' first' : (index === rows.length - 1 ? ' last' : '');
+    if (row.type === 'label') {
+      return `<div class="onboarding-step-row"><span class="onboarding-step-rail${edge}"></span><span class="onboarding-checklist-stage-label">${esc(row.label)}</span></div>`;
+    }
+    const item = row.item;
+    const isWorking = item.status === 'current' && bridge.status === 'working';
+    const dot = item.status === 'done'
+      ? '<span class="onboarding-step-dot done">✓</span>'
+      : isWorking ? '<span class="onboarding-spinner"></span>' : `<span class="onboarding-step-dot ${item.status}"></span>`;
+    const label = isWorking && bridge.label ? bridge.label : item.label;
+    return `<div class="onboarding-step-row onboarding-checklist-item ${item.status}"><span class="onboarding-step-rail${edge}">${dot}</span><span>${esc(label)}</span></div>`;
   }).join('');
 }
 
@@ -512,10 +537,16 @@ function onboardingCopy(state) {
   }
   return latestOnboardingMessage(state);
 }
-let profileSummaryDraft = null;
-let profileSummarySaved = '';
-let profileSummaryEditing = false;
-let profileSummaryScrollRatio = 0;
+// A generic click-to-edit markdown editor (used by profile summary and the
+// judgment rubric confirm card) so both get the same in-place editing UX
+// instead of one having it and the other a raw textarea.
+const PROFILE_SUMMARY_EDITOR = {key: 'profile-summary', source: '[data-profile-summary]', preview: '[data-profile-summary-preview]', save: '[data-save-profile-summary]', confirm: '[data-confirm-profile-summary]', requireSaveBeforeConfirm: true};
+const RUBRIC_EDITOR = {key: 'rubric-draft', source: '[data-rubric-draft]', preview: '[data-rubric-draft-preview]', save: null, confirm: '[data-confirm-rubric]', requireSaveBeforeConfirm: false};
+const MARKDOWN_EDITORS = [PROFILE_SUMMARY_EDITOR, RUBRIC_EDITOR];
+let markdownEditorState = {
+  'profile-summary': {draft: null, saved: '', editing: false, scrollRatio: 0},
+  'rubric-draft': {draft: null, saved: '', editing: false, scrollRatio: 0},
+};
 function markdownInline(value) {
   return esc(value)
     .replace(/`([^`]+)`/g, '<code>$1</code>')
@@ -600,50 +631,63 @@ function placeCaretAtPoint(element, event) {
   }
 }
 
-function updateProfileSummaryEditor() {
-  const input = document.querySelector('[data-profile-summary]');
-  const preview = document.querySelector('[data-profile-summary-preview]');
-  const save = document.querySelector('[data-save-profile-summary]');
-  const confirm = document.querySelector('[data-confirm-profile-summary]');
+function updateMarkdownEditor(cfg) {
+  const state = markdownEditorState[cfg.key];
+  const input = document.querySelector(cfg.source);
+  const preview = document.querySelector(cfg.preview);
+  const save = cfg.save ? document.querySelector(cfg.save) : null;
+  const confirm = cfg.confirm ? document.querySelector(cfg.confirm) : null;
   if (!input || !preview) return;
   const value = input.value;
-  const dirty = value !== profileSummarySaved;
+  const dirty = value !== state.saved;
   const ready = onboardingState?.bridge?.status === 'listening';
-  preview.contentEditable = profileSummaryEditing ? 'true' : 'false';
-  if (!profileSummaryEditing || !preview.innerHTML.trim()) preview.innerHTML = renderSimpleMarkdown(value);
+  preview.contentEditable = state.editing ? 'true' : 'false';
+  if (!state.editing || !preview.innerHTML.trim()) preview.innerHTML = renderSimpleMarkdown(value);
   if (save) {
     save.disabled = !dirty || !ready;
     save.classList.toggle('is-dirty', dirty && ready);
     save.textContent = 'Save';
   }
-  if (confirm) { confirm.disabled = dirty || !value.trim() || !ready; confirm.title = dirty ? 'Save your changes before confirming' : ''; }
+  if (confirm) {
+    if (cfg.requireSaveBeforeConfirm) {
+      confirm.disabled = dirty || !value.trim() || !ready;
+      confirm.title = dirty ? 'Save your changes before confirming' : '';
+    } else {
+      // No separate save step in the protocol (confirm_rubric carries the
+      // current text directly) — just needs real content and a listening
+      // bridge, no "save first" gate.
+      confirm.disabled = !value.trim() || !ready;
+      confirm.title = '';
+    }
+  }
 }
-
-function activateProfileSummaryEditor(event) {
+function activateMarkdownEditor(cfg, event) {
+  const state = markdownEditorState[cfg.key];
   const shell = document.querySelector('.profile-summary-editor-shell');
-  const input = document.querySelector('[data-profile-summary]');
-  const preview = document.querySelector('[data-profile-summary-preview]');
+  const input = document.querySelector(cfg.source);
+  const preview = document.querySelector(cfg.preview);
   if (!shell || !input || !preview) return;
   const rect = preview.getBoundingClientRect();
   const clickOffset = Math.max(0, Math.min(preview.scrollHeight, (event?.clientY || rect.top) - rect.top + preview.scrollTop));
-  const ratio = preview.scrollHeight ? clickOffset / preview.scrollHeight : 0;
-  profileSummaryEditing = true;
-  profileSummaryScrollRatio = ratio;
+  state.scrollRatio = preview.scrollHeight ? clickOffset / preview.scrollHeight : 0;
+  state.editing = true;
   shell.classList.add('is-editing');
   preview.contentEditable = 'true';
   preview.focus({preventScroll: true});
   placeCaretAtPoint(preview, event || {clientX: rect.left + 20, clientY: rect.top + 20});
 }
-function restoreProfileSummaryEditorPosition() {
-  const preview = document.querySelector('[data-profile-summary-preview]');
-  if (!preview || !profileSummaryEditing) return;
-  preview.scrollTop = profileSummaryScrollRatio * Math.max(0, preview.scrollHeight - preview.clientHeight);
+function restoreMarkdownEditorPosition(cfg) {
+  const state = markdownEditorState[cfg.key];
+  const preview = document.querySelector(cfg.preview);
+  if (!preview || !state.editing) return;
+  preview.scrollTop = state.scrollRatio * Math.max(0, preview.scrollHeight - preview.clientHeight);
   preview.focus({preventScroll: true});
 }
-function deactivateProfileSummaryEditor() {
-  profileSummaryEditing = false;
-  const shell = document.querySelector('.profile-summary-editor-shell');
-  if (shell) shell.classList.remove('is-editing');
+function markdownEditorMarkup(cfg, value, label) {
+  const state = markdownEditorState[cfg.key];
+  const sourceAttr = cfg.source.slice(1, -1);
+  const previewAttr = cfg.preview.slice(1, -1);
+  return `<div class="profile-summary-editor-shell${state.editing ? ' is-editing' : ''}"><textarea id="${cfg.key}" ${sourceAttr} aria-label="${esc(label)}">${esc(value)}</textarea><div class="profile-summary-preview" ${previewAttr} contenteditable="${state.editing ? 'true' : 'false'}" role="textbox" tabindex="0" aria-label="${esc(label)}. Click to edit."></div></div>`;
 }
 
 function recoveryPhrase(actionType) {
@@ -690,9 +734,9 @@ function profileCard(state) {
 
   if (phase === 'profile_summary_review') {
     if (!ready) return onboardingPendingCard('Your profile summary', 'Getting your profile summary ready to review…', 'confirm_profile_summary');
-    profileSummarySaved = summary;
-    const value = profileSummaryDraft === null ? summary : profileSummaryDraft;
-    return `<div class="onboarding-card profile-summary-review"><h3>Profile summary</h3><div class="profile-summary-editor-shell${profileSummaryEditing ? ' is-editing' : ''}"><textarea id="profile-summary" data-profile-summary aria-label="Profile summary">${esc(value)}</textarea><div class="profile-summary-preview" data-profile-summary-preview contenteditable="${profileSummaryEditing ? 'true' : 'false'}" role="textbox" tabindex="0" aria-label="Profile summary. Click to edit."></div></div><div class="onboarding-actions profile-confirm-actions"><div class="profile-summary-action-group"><button class="secondary" type="button" data-save-profile-summary disabled>Save</button><button class="primary" type="button" data-confirm-profile-summary>Confirm</button></div></div></div>`;
+    markdownEditorState['profile-summary'].saved = summary;
+    const value = markdownEditorState['profile-summary'].draft === null ? summary : markdownEditorState['profile-summary'].draft;
+    return `<div class="onboarding-card profile-summary-review"><h3>Profile summary</h3>${markdownEditorMarkup(PROFILE_SUMMARY_EDITOR, value, 'Profile summary')}<div class="onboarding-actions profile-confirm-actions"><div class="profile-summary-action-group"><button class="secondary" type="button" data-save-profile-summary disabled>Save</button><button class="primary" type="button" data-confirm-profile-summary>Confirm</button></div></div></div>`;
   }
 
   if (phase === 'title_proposal') {
@@ -742,7 +786,9 @@ function rubricCard(state) {
   if (phase === 'rubric_review') {
     if (!ready) return onboardingPendingCard('Your judgment rubric', 'Drafting your judgment rubric…', 'confirm_rubric');
     const generatedRubric = state.rubric_draft || `# Judgment rubric\n\n## Clear yes\n${questions[0]?.answer || ''}\n\n## Dealbreakers\n${questions[1]?.answer || ''}\n\n## Preferences\n${questions[2]?.answer || ''}\n\n## Pass\nPass roles that are a clear match for the confirmed profile and answers above.\n\n## Fail\nFail roles that conflict with the dealbreakers above or do not show enough evidence of fit.`;
-    return `<div class="onboarding-card"><h3>Confirm your judgment rubric</h3><p>Review the generated pass/fail rubric once before FTJA saves it and opens Pipeline.</p><div class="onboarding-field"><label for="rubric-draft">Judgment rubric</label><textarea id="rubric-draft">${esc(generatedRubric)}</textarea></div><div class="onboarding-actions onboarding-confirm-actions"><button class="primary" type="button" data-confirm-rubric>Confirm rubric and open Pipeline</button></div></div>`;
+    markdownEditorState['rubric-draft'].saved = generatedRubric;
+    const rubricValue = markdownEditorState['rubric-draft'].draft === null ? generatedRubric : markdownEditorState['rubric-draft'].draft;
+    return `<div class="onboarding-card"><h3>Confirm your judgment rubric</h3><p>Review the generated pass/fail rubric once before FTJA saves it and opens Pipeline.</p>${markdownEditorMarkup(RUBRIC_EDITOR, rubricValue, 'Judgment rubric')}<div class="onboarding-actions onboarding-confirm-actions"><button class="primary" type="button" data-confirm-rubric>Confirm rubric and open Pipeline</button></div></div>`;
   }
   return onboardingPendingCard('Judgment rubric', 'Getting the next step ready…');
 }
@@ -790,26 +836,40 @@ function renderOnboarding() {
   bindOnboarding();
   applyOnboardingBridgeGate();
   if (preserveScroll) window.scrollTo(0, scrollY);
-  if (document.querySelector('[data-profile-summary]')) {
-    const input = document.querySelector('[data-profile-summary]');
-    const preview = document.querySelector('[data-profile-summary-preview]');
-    input.addEventListener('input', () => { profileSummaryDraft = input.value; updateProfileSummaryEditor(); });
+  MARKDOWN_EDITORS.forEach(cfg => {
+    const input = document.querySelector(cfg.source);
+    if (!input) return;
+    const editorState = markdownEditorState[cfg.key];
+    const preview = document.querySelector(cfg.preview);
+    input.addEventListener('input', () => { editorState.draft = input.value; updateMarkdownEditor(cfg); });
     if (preview) {
-      preview.addEventListener('input', () => { input.value = markdownFromPreview(preview); profileSummaryDraft = input.value; updateProfileSummaryEditor(); });
-      preview.addEventListener('click', event => { if (!profileSummaryEditing) activateProfileSummaryEditor(event); });
-      preview.addEventListener('keydown', event => { if (!profileSummaryEditing && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); activateProfileSummaryEditor(event); } });
+      preview.addEventListener('input', () => { input.value = markdownFromPreview(preview); editorState.draft = input.value; updateMarkdownEditor(cfg); });
+      preview.addEventListener('click', event => { if (!editorState.editing) activateMarkdownEditor(cfg, event); });
+      preview.addEventListener('keydown', event => { if (!editorState.editing && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); activateMarkdownEditor(cfg, event); } });
     }
-    updateProfileSummaryEditor();
-    if (profileSummaryEditing) requestAnimationFrame(restoreProfileSummaryEditorPosition);
-  }
+    updateMarkdownEditor(cfg);
+    if (editorState.editing) requestAnimationFrame(() => restoreMarkdownEditorPosition(cfg));
+  });
   if (preserveScroll) requestAnimationFrame(() => window.scrollTo(0, scrollY));
 }
 async function postOnboardingAction(type, payload = {}) {
+  const previousPhaseKey = onboardingState ? `${onboardingState.stage}/${onboardingState.phase}` : '';
   const res = await fetch('/api/onboarding-action', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({type, expected_revision: onboardingState?.revision ?? 0, ...payload})});
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(body.error || 'Could not send this decision to the setup chat.');
   if (body.state) {
-    onboardingState = {...body.state, bridge: body.bridge || onboardingState?.bridge || {status: 'offline'}};
+    const newPhaseKey = `${body.state.stage}/${body.state.phase}`;
+    // The bridge object in this same response can be stale: the setup
+    // chat's previous wait-for-action only notices this action (and flips
+    // its own bridge write) on ITS next poll, which happens after this
+    // response has already returned to the browser. When the phase itself
+    // just changed, trust that staleness and force a pending render —
+    // otherwise the new card can flash real-but-empty content for one
+    // frame (buttons "ready" before that card's own data exists).
+    const bridge = newPhaseKey !== previousPhaseKey
+      ? {status: 'offline', action_types: [], pid: null, label: '', updated_at: null}
+      : (body.bridge || onboardingState?.bridge || {status: 'offline'});
+    onboardingState = {...body.state, bridge};
     if (body.checklist) onboardingChecklist = body.checklist;
     onboardingVersion = body.state.updated_at || JSON.stringify(body.state);
     renderOnboarding();
@@ -932,7 +992,7 @@ function bindOnboarding() {
   const add = document.querySelector('[data-title-add]'); if (add) add.addEventListener('click', () => { const input = document.getElementById('title-input'); const value = input.value.trim(); if (value && !onboardingDraft.titles.includes(value)) onboardingDraft.titles.push(value); renderOnboarding(); });
   document.querySelectorAll('[data-add-onboarding-source]').forEach(button => button.addEventListener('click', () => addOnboardingSource(button.dataset.addOnboardingSource, button)));
   const confirmSources = document.querySelector('[data-confirm-profile-sources]'); if (confirmSources) confirmSources.addEventListener('click', () => submitOnboardingAction(confirmSources, 'confirm_profile_sources'));
-  const saveSummary = document.querySelector('[data-save-profile-summary]'); if (saveSummary) saveSummary.addEventListener('click', () => { const summary = document.querySelector('[data-profile-summary]').value.trim(); profileSummaryDraft = summary; submitOnboardingAction(saveSummary, 'set_profile_summary', {summary}); });
+  const saveSummary = document.querySelector('[data-save-profile-summary]'); if (saveSummary) saveSummary.addEventListener('click', () => { const summary = document.querySelector('[data-profile-summary]').value.trim(); markdownEditorState['profile-summary'].draft = summary; submitOnboardingAction(saveSummary, 'set_profile_summary', {summary}); });
   const confirmSummary = document.querySelector('[data-confirm-profile-summary]'); if (confirmSummary) confirmSummary.addEventListener('click', () => submitOnboardingAction(confirmSummary, 'confirm_profile_summary'));
   const confirmProfile = document.querySelector('[data-confirm-profile]'); if (confirmProfile) confirmProfile.addEventListener('click', () => submitOnboardingAction(confirmProfile, 'confirm_profile', {titles: onboardingDraft.titles, location: document.getElementById('profile-location').value.trim(), is_remote: document.getElementById('profile-remote').checked, hours_old: Number(document.getElementById('profile-hours').value), results_wanted: Number(document.getElementById('profile-results-wanted').value) || 100}));
   const confirmStage0 = document.querySelector('[data-confirm-stage0]'); if (confirmStage0) confirmStage0.addEventListener('click', () => submitOnboardingAction(confirmStage0, 'confirm_stage0', {keywords: onboardingDraft.tier1, languages: onboardingDraft.languages, exclude_keywords: onboardingDraft.exclude_keywords}));
@@ -987,15 +1047,28 @@ document.querySelectorAll('.main-tab').forEach(tab => {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.getElementById('view-' + tab.dataset.view).classList.add('active');
     if (tab.dataset.view === 'pipeline') loadPipeline();
+    if (tab.dataset.view === 'results') loadRuns();
   });
 });
 
 // ---- Results: run list (left, paginated) ----
-async function loadRuns() {
+function renderNoRunBanners() {
+  document.querySelectorAll('[data-no-run-banner]').forEach(el => { el.style.display = runs.length ? 'none' : 'flex'; });
+}
+// Shared by both tabs so the "you haven't run FTJA yet" banner is correct
+// regardless of which tab loads first — Results needs the full list anyway,
+// Pipeline only needs to know whether it's empty.
+async function fetchRuns() {
   const res = await fetch('/api/runs');
   runs = (await res.json()).filter(r => r.run_id);  // drop pre-migration records with no join key
+  renderNoRunBanners();
+  return runs;
+}
+async function loadRuns() {
+  await fetchRuns();
   renderRunList();
   if (runs.length > 0) selectRun(runs[0].run_id);
+  else { renderRunDetail(); renderStatusTabs(); }
 }
 
 function renderRunList() {
@@ -1045,7 +1118,12 @@ function selectRun(runId) {
 function renderRunDetail() {
   const run = runs.find(r => r.run_id === selectedRunId);
   const el = document.getElementById('run-detail');
-  if (!run) { el.innerHTML = ''; return; }
+  if (!run) {
+    el.innerHTML = runs.length
+      ? ''
+      : '<div class="run-detail-empty">Nothing to show yet — results appear here after your first <span class="mono">/ftja-run</span>.</div>';
+    return;
+  }
 
   const cs = run.criteria_snapshot;
   let scrapeLines = `<div class="line">Scrape result: <b>${fmtN(run.scraped_count)}</b></div>`;
@@ -1077,6 +1155,7 @@ function renderRunDetail() {
 
 function renderStatusTabs() {
   const el = document.getElementById('status-tabs');
+  if (!runs.length) { el.innerHTML = ''; return; }
   el.innerHTML = `
     <div class="status-tab mono ${statusFilter === 'passed' ? 'active' : ''}" data-status="passed">Passed</div>
     <div class="status-tab mono ${statusFilter === 'stage2_fail' ? 'active' : ''}" data-status="stage2_fail">Failed</div>
@@ -1300,6 +1379,53 @@ function getChipValues(id) {
   return [...document.querySelectorAll(`#${id} .chip-tag`)].map(el => el.querySelector('.chip-remove').dataset.value);
 }
 
+// A simpler cousin of the onboarding markdown editor for the Pipeline tab's
+// rubric.md / profile summary fields: same click-to-edit preview, but Save
+// here is a plain "write this text to disk" with no confirm/dirty gate or
+// bridge-readiness concept, so it reuses only the shared low-level pieces
+// (renderSimpleMarkdown, markdownFromPreview, placeCaretAtPoint) rather than
+// the onboarding editor's gating logic.
+let pipelineMarkdownState = {'cfg-rubric': {editing: false, scrollRatio: 0}, 'cfg-profile': {editing: false, scrollRatio: 0}};
+function pipelineMarkdownMarkup(key, value, label) {
+  const state = pipelineMarkdownState[key];
+  return `<div class="profile-summary-editor-shell${state.editing ? ' is-editing' : ''}"><textarea id="${key}" aria-label="${esc(label)}">${esc(value)}</textarea><div class="profile-summary-preview" data-pipeline-preview="${key}" contenteditable="${state.editing ? 'true' : 'false'}" role="textbox" tabindex="0" aria-label="${esc(label)}. Click to edit."></div></div>`;
+}
+function updatePipelineMarkdownPreview(key) {
+  const state = pipelineMarkdownState[key];
+  const input = document.getElementById(key);
+  const preview = document.querySelector(`[data-pipeline-preview="${key}"]`);
+  if (!input || !preview) return;
+  preview.contentEditable = state.editing ? 'true' : 'false';
+  if (!state.editing || !preview.innerHTML.trim()) preview.innerHTML = renderSimpleMarkdown(input.value);
+}
+function activatePipelineMarkdownEditor(key, event) {
+  const state = pipelineMarkdownState[key];
+  const input = document.getElementById(key);
+  const shell = input?.closest('.profile-summary-editor-shell');
+  const preview = document.querySelector(`[data-pipeline-preview="${key}"]`);
+  if (!shell || !preview) return;
+  const rect = preview.getBoundingClientRect();
+  const clickOffset = Math.max(0, Math.min(preview.scrollHeight, (event?.clientY || rect.top) - rect.top + preview.scrollTop));
+  state.scrollRatio = preview.scrollHeight ? clickOffset / preview.scrollHeight : 0;
+  state.editing = true;
+  shell.classList.add('is-editing');
+  preview.contentEditable = 'true';
+  preview.focus({preventScroll: true});
+  placeCaretAtPoint(preview, event || {clientX: rect.left + 20, clientY: rect.top + 20});
+}
+function wirePipelineMarkdownEditor(key) {
+  const input = document.getElementById(key);
+  const preview = document.querySelector(`[data-pipeline-preview="${key}"]`);
+  if (!input) return;
+  input.addEventListener('input', () => updatePipelineMarkdownPreview(key));
+  if (preview) {
+    preview.addEventListener('input', () => { input.value = markdownFromPreview(preview); updatePipelineMarkdownPreview(key); });
+    preview.addEventListener('click', event => { if (!pipelineMarkdownState[key].editing) activatePipelineMarkdownEditor(key, event); });
+    preview.addEventListener('keydown', event => { if (!pipelineMarkdownState[key].editing && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); activatePipelineMarkdownEditor(key, event); } });
+  }
+  updatePipelineMarkdownPreview(key);
+}
+
 async function saveConfig(payload, btn) {
   const res = await fetch('/api/config', {
     method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -1426,7 +1552,7 @@ function renderConfigSection() {
       Only postings that passed Stage1 get shown to a pricier AI model (sonnet) with <b>the full posting + the entire judgment criteria below + the profile summary</b>,
       which then makes the final pass/fail call.
     </div>
-    <div class="field"><label>Judgment criteria (full rubric.md)</label><textarea id="cfg-rubric" class="rubric-textarea" rows="16">${esc(pipelineConfig.rubric_md)}</textarea></div>
+    <div class="field"><label>Judgment criteria (full rubric.md)</label>${pipelineMarkdownMarkup('cfg-rubric', pipelineConfig.rubric_md, 'Judgment criteria')}</div>
     <div class="save-row"><button class="save-btn" id="save-rubric">Save</button><span class="saved-note mono">Saved</span></div>
   </div>
 </div>
@@ -1435,7 +1561,7 @@ function renderConfigSection() {
   <div class="section-title"><span class="num">5</span>Profile summary</div>
   <div class="card">
     <div class="explain">The profile summary Stage2 reads for every single posting. Keep it concise.</div>
-    <div class="field"><textarea id="cfg-profile" class="rubric-textarea" rows="12">${esc(pipelineConfig.profile_md)}</textarea></div>
+    <div class="field">${pipelineMarkdownMarkup('cfg-profile', pipelineConfig.profile_md, 'Profile summary')}</div>
     <div class="save-row"><button class="save-btn" id="save-profile">Save</button><span class="saved-note mono">Saved</span></div>
   </div>
   ${renderProfileSources()}
@@ -1447,6 +1573,8 @@ function renderConfigSection() {
   initChipInput('cfg-tier1');
   initChipInput('cfg-exclude');
   initProfileSources();
+  wirePipelineMarkdownEditor('cfg-rubric');
+  wirePipelineMarkdownEditor('cfg-profile');
 
   document.getElementById('save-scrape').addEventListener('click', (e) => {
     const criteria = {...pipelineConfig.criteria,
@@ -1482,6 +1610,7 @@ function renderConfigSection() {
 }
 
 async function loadPipeline() {
+  fetchRuns();
   if (pipelineLoaded) return;
   const res = await fetch('/api/pipeline');
   const data = await res.json();

@@ -56,10 +56,16 @@ checklist, or start any `wait-for-action` call in this turn.
    also run `open http://127.0.0.1:8765` so the user gets a visible browser
    without needing to click an `Open` card. Do not describe the viewer as
    open until a navigation/page-text check succeeds.
-8. End the turn by asking exactly one question, e.g.: "I've opened the FTJA
-   web view next to this chat — ready to start onboarding?" Say nothing
-   about background files, checklists, or next steps yet; that all belongs
-   to turn 2.
+8. End the turn by asking exactly one question, worded so it's unmistakable
+   that the reply belongs in *this chat*, not the web page — the web page
+   has no button to click at this stage and will just sit in a plain
+   waiting state, which is expected, not a bug. Name your own client
+   (Claude Code, Codex, or whatever you actually are) instead of leaving a
+   placeholder, for example: "I've opened the FTJA web view next to this
+   chat. To continue, type `Yes, ready to start onboarding` here in Claude
+   Code." Never phrase this as something to answer on the web page. Say
+   nothing about background files, checklists, or next steps yet; that all
+   belongs to turn 2.
 
 ### Why two turns
 
@@ -192,6 +198,21 @@ advance it with a `Next` button and never ask the user to repeat structured
 answers in chat. The setup chat is the driver; it writes the local files and
 `onboarding-state.json`, while the browser polls that state and shows only the
 current stage.
+
+This means every one of the decisions below is made on the web card, never in
+this chat — do not call `AskUserQuestion`, and do not build an equivalent
+multi-step Q&A/wizard out of plain chat messages, for any of them: which job
+titles to search, location/remote/hours/max-results, the Stage 0 keywords/
+languages/excludes, each of the three rubric questions, or the final rubric
+text. A live run of this skill once ran the job-titles decision as a chat
+wizard ("1/3 ... Skip / Next") in parallel with the web card that already
+existed for it — that duplicates the interaction, contradicts this contract,
+and is exactly what "not a wizard" rules out. If a decision needs the
+candidate's input, write a proposal to `onboarding-state.json` and wait for
+the matching web action; the only chat-side question this skill ever asks
+directly is the single turn-1 handoff question in "Turn 1" above and the
+occasional one-off follow-up when required evidence is genuinely missing (see
+"What you need to learn").
 
 Use the repository helper for every transition:
 
