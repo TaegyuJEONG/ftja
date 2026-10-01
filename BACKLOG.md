@@ -201,3 +201,108 @@ fixed set of real JDs. Record:
 
 Do not proceed to claim-level retrieval unless thin cards materially improve
 judgment or reduce cost on that fixed set.
+
+## Volume-Based Judgment Mode and Keyword Recall Audit
+
+### Status
+
+Deferred. Recorded 2026-10-01 from a measured experiment on one real run.
+
+### Problem
+
+The Stage 0 tier1 keyword gate is the recall ceiling: a JD with no tier1 hit
+is auto-failed without an LLM call. This works well when the keywords have
+been tuned over many runs for one role type. Other users may search for roles whose JDs use varied
+vocabulary (e.g. cybersecurity consulting, business development, startup
+support), where agent-generated keywords could silently drop real matches.
+Roles defined by concrete skills (e.g. iOS: Swift, SwiftUI, Xcode) are lower
+risk because those words almost always appear in the JD body.
+
+### Measured evidence (one real run, ~1,000 scraped jobs)
+
+Sample of 94 jobs judged on the FULL JD (`stage2_prompt.md`), compared with
+the keyword pipeline:
+
+| Stratum | haiku full-JD pass | sonnet full-JD pass |
+|---|---|---|
+| No tier1 hit (30 random) | 0 | 0 |
+| Stage 1 fail (30 random) | 1 | 1 (different job) |
+| Stage 1 pass (34) | 17 | 15 (same as pipeline) |
+
+- The tuned keyword gate lost no candidates in this sample.
+- Subagent tokens per job: haiku full JD, batches of 10 ≈ 8.4k; sonnet full
+  JD, batches of 4 ≈ 19k; sonnet single ≈ 65k. The keyword pipeline cost about
+  3.0M tokens for the whole run. Full-JD screening of the ~600
+  language-passed jobs would cost about 5M (haiku) to 11M (sonnet).
+- Batching side finding: sonnet in batches of 4 agreed with itself across
+  two runs (12/12). Single runs agreed 10/12. Two borderline jobs passed in
+  both batched runs and failed in all four single runs, and were co-batched
+  both times. Final Stage 2 judgment should stay single-job until this is
+  re-measured on a larger set.
+- Plan usage: the whole experiment (~4.2M subagent tokens plus the
+  orchestrating session) used about 45 percentage points of one 5-hour window
+  (the app reported the account as Max; the plan tier is unconfirmed).
+  Per-plan limits still need to be measured on a known Pro account.
+
+### Proposed design
+
+1. **Volume-based mode, chosen automatically after scrape.** Count jobs that
+   pass the language filter. If the count is within the user's nightly budget
+   (e.g. ≤ 100 jobs), skip the keyword gate and judge every full JD. Otherwise
+   use the keyword gate. Report which mode ran and why. Let the user set the
+   budget and force a mode.
+2. **Keyword recall audit on every keyword-mode run.** Judge a random sample
+   (10–20) of no-tier1-hit jobs on the full JD with a cheap model. If any pass,
+   report them as missed matches and propose keywords drawn from those JDs
+   (via the `/ftja-tune` confirmation flow). Track the audit miss rate over
+   time so users can see how far to trust the gate.
+3. Keyword generation at setup stays as a starting point only; the audit is
+   what makes keywords trustworthy for a new role type.
+
+### Explicitly out of scope
+
+- Embeddings or semantic indexing as a separate stage. The two modes plus the
+  audit sample cover the same need without new dependencies.
+
+## Per-Search Pipeline Profiles
+
+### Status
+
+Deferred. Recorded 2026-10-01.
+
+### Problem
+
+Today every search term shares one configuration end to end: the same scrape
+settings, tier1 keywords, `rubric.md`, and `profile/summary.md` drive Stage 0,
+Stage 1, and Stage 2. A user hunting for several different role types (e.g.
+"Product Builder" and "Venture Manager") needs different keywords, different
+pass/fail criteria, and sometimes a different emphasis in their profile for
+each. One merged rubric becomes a compromise that serves none of them well.
+FTJA's goal is to let each user fine-tune their own job search, so this level
+of freedom matters.
+
+### Proposed design
+
+1. **A pipeline profile per search.** Each search term (or group of terms)
+   can own its own set: scrape settings (location, hours_old, results_wanted,
+   exact phrase), tier1/exclude keywords, rubric, and an optional profile
+   variant. Stages 0–2 for a job use the set of the search that found it.
+2. **Duplicate and edit, not start from scratch.** Creating a new search
+   offers "copy from an existing search" so the user only changes what
+   differs.
+3. **AI-drafted starting point.** Alternatively, the agent proposes a new set
+   from existing data (current profile, existing rubrics, past review
+   decisions) for the new search, and the user reviews and confirms before
+   anything is written, as with `/ftja-tune`.
+4. **Cross-search duplicates.** A job found by more than one search should be
+   judged once per search set (verdicts may legitimately differ) but shown
+   once in the digest, labeled with every search that matched it.
+
+### Open questions
+
+- Is a full profile variant per search needed, or is a shared profile plus a
+  per-search emphasis note enough?
+- How the Pipeline tab presents multiple sets without overwhelming
+  first-time users (default to a single set; reveal more only when added).
+- Cost: running Stage 1/2 once per matching search multiplies LLM calls for
+  overlapping searches; measure overlap on real runs before deciding.
