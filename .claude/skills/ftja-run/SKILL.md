@@ -143,13 +143,29 @@ each as `<s_id>[T1 or ctx] <sentence>` and fill the template's
 (the last one is `rubric.md`'s "Pass"/"Fail" sections only, not the whole
 file — Stage 2 reads the whole file).
 
-Call the `Agent` tool with `model: "haiku"` for each job (batch independent
-jobs into one message so they run in parallel — see the Agent tool's own
-guidance on parallel calls). The subagent returns ONLY:
+Write each filled prompt to its own file (e.g. `/tmp/ftja-s1-<N>.txt`).
+Then call the `Agent` tool with `model: "haiku"`, giving **each subagent a
+batch of up to 10 jobs**: it reads each prompt file, judges each job on its
+own, and writes each result to `/tmp/ftja-s1-out-<N>.json`. For each job the
+result is ONLY:
 
 ```json
 {"verdict": "pass" | "fail", "evidence_sids": ["S3", "S4"]}
 ```
+
+Batching is deliberate: every subagent carries a fixed overhead of roughly
+45k tokens, so one job per subagent cost about 5× more for the same verdicts
+in a measured run. Stage 1 inputs are short keyword excerpts, so a batch of
+10 stays small.
+
+Run the batches in parallel by putting several `Agent` calls in one message,
+but **no more than 20 per message** — that is the concurrent subagent limit,
+and calls beyond it fail. Send the next wave after the previous one returns.
+
+Ask each subagent to also reply with one line per job (`N <json>`). Writes
+can fail on transient permission-check errors; when an output file is
+missing, recover that job's verdict from the reply. If neither exists, rerun
+that job.
 
 No hallucinated quotes — evidence is by S-id only (this mirrors
 `job_evaluator.py:968-1010`'s design, ported here without the Supabase
@@ -159,7 +175,10 @@ call's `usage.subagent_tokens` to the running token total.
 ## 4. Stage 2 — mid-model resume/portfolio judgment
 
 Prompt template: `stage2_prompt.md`. For each Stage 1 `pass` job, call the
-`Agent` tool with `model: "sonnet"`, filling
+`Agent` tool with `model: "sonnet"` — **one job per subagent; do not batch
+Stage 2.** In a measured comparison, borderline jobs that failed in every
+single-job run passed when judged in a batch alongside similar postings.
+Stage 2 is the final verdict, so it stays single-job. Fill
 `{title}`/`{company}`/`{location}`/`{full_description}` — the subagent
 reads `rubric.md` (full file) and `profile/summary.md` itself via the Read
 tool (don't paste their content into the prompt; the template only carries
@@ -174,6 +193,10 @@ The subagent returns:
 ```json
 {"verdict": "pass" | "fail", "evidence_sentences": ["<verbatim quote>", ...], "reasoning": "<one paragraph>"}
 ```
+
+Run these calls in parallel waves of at most 20 per message, as in Stage 1.
+Have each subagent write its JSON to `/tmp/ftja-s2-out-<N>.json` and also
+return it in its reply, so a failed write does not lose the verdict.
 
 Add each call's `usage.subagent_tokens` to the running token total.
 
