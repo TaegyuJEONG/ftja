@@ -121,6 +121,8 @@ def _language_codes(languages: list[str]) -> set[str]:
     codes = set()
     for lang in languages:
         key = (lang or "").strip().lower()
+        if key.split("-")[0] in _LANGUAGE_NAMES:
+            key = key.split("-")[0]  # langdetect's zh-cn / zh-tw
         if key in _LANGUAGE_NAMES:
             codes.add(key)
         elif key in by_name:

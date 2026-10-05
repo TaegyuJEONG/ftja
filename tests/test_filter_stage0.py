@@ -67,6 +67,9 @@ class LanguageRequirementTests(unittest.TestCase):
         self.assertKept("Fluent French and English are required", languages=["English", "French"])
         self.assertDropped("Fluent in German and English", languages=["English"])
 
+    def test_langdetect_region_codes_are_resolved(self):
+        self.assertKept("Fluent Mandarin and English required", languages=["zh-cn", "en"])
+
     def test_no_resolvable_language_never_drops(self):
         self.assertKept("Fluent in German and English", languages=[])
         self.assertKept("Fluent in German and English", languages=["klingon"])
