@@ -3,8 +3,11 @@ touched this run, whatever stage it stopped at), and:
   1. records all of them in seen.db (so nothing gets re-judged tomorrow)
   2. writes digest-YYYY-MM-DD.md for the ones that passed all stages
   3. writes rejected-YYYY-MM-DD.md for the ones that failed Stage1/2, with
-     their free-text reasoning (Stage0 fails aren't included — there are no
-     stage0_fail entries, they never left filter_stage0.py's dropped counts)
+     their free-text reasoning. Stage0 drops are only counts, except the
+     language-requirement drops: pass filter_stage0's --dropped-out file as
+     --stage0-dropped and they are listed too, each with the sentence that
+     triggered it. They are NOT written to seen.db, so they are re-checked
+     on the next run.
   4. fires a macOS notification and appends run.log — always, even on 0 passed
   5. appends a structured record to runs.jsonl (for the review server's Results tab)
 
@@ -35,7 +38,8 @@ Input: a JSON file, a list of objects shaped like:
 
 Optional --stats file (JSON): {"ts_start": iso8601, "duration_seconds": float,
 "total_tokens": int, "scraped_count": int, "already_seen_skipped": int,
-"stage0_dropped": {"language": int, "no_tier1_hit": int, "exclude_keyword": int},
+"stage0_dropped": {"language": int, "no_tier1_hit": int, "exclude_keyword": int,
+"language_requirement": int, "duplicate_content": int},
 "criteria_snapshot": {"search_terms": [...], "location": str, "is_remote": bool,
 "hours_old": int, "results_wanted": int}} — whatever the orchestrating skill can
 report. Fields it can't measure are just omitted; finalize never fabricates a
@@ -83,7 +87,7 @@ def write_digest(passed: list[dict], out_dir: str = ".") -> str:
     return path
 
 
-def write_rejected(rejected: list[dict], out_dir: str = ".") -> str:
+def write_rejected(rejected: list[dict], out_dir: str = ".", stage0_dropped: list[dict] | None = None) -> str:
     """Stage1/2 fail reasoning has no fixed category the way Stage0's does (it's
     free-text LLM output, not a code branch) — rather than force an artificial
     taxonomy onto it, just keep the per-job reasoning readable after the run
@@ -100,6 +104,16 @@ def write_rejected(rejected: list[dict], out_dir: str = ".") -> str:
         lines.append("")
         lines.append(f"**Reason**: {job.get('reasoning', '(no record)')}")
         lines.append("")
+    if stage0_dropped:
+        lines += [f"# Dropped at Stage0 — requires another language ({len(stage0_dropped)})", "",
+                  "Dropped by code before any LLM call, and not recorded as seen. "
+                  "If one of these was dropped wrongly, the sentence below is why.", ""]
+        for job in stage0_dropped:
+            lines.append(f"## {job.get('title') or '(no title)'} — {job.get('company') or ''}")
+            lines.append(f"{job.get('job_url') or ''}")
+            lines.append("")
+            lines.append(f"> {job.get('evidence') or '(no record)'}")
+            lines.append("")
     with open(path, "w") as f:
         f.write("\n".join(lines))
     return path
@@ -148,7 +162,8 @@ def append_run_record(results: list[dict], stats: dict, run_id: str, out_dir: st
         f.write(json.dumps(record, ensure_ascii=False) + "\n")
 
 
-def finalize(results: list[dict], db_path: str = DEFAULT_DB, out_dir: str = ".", stats: dict | None = None) -> dict:
+def finalize(results: list[dict], db_path: str = DEFAULT_DB, out_dir: str = ".", stats: dict | None = None,
+             stage0_dropped: list[dict] | None = None) -> dict:
     stats = stats or {}
     passed = [r for r in results if r.get("status") == "passed"]
     rejected = [r for r in results if r.get("status") in ("stage1_fail", "stage2_fail")]
@@ -178,7 +193,7 @@ def finalize(results: list[dict], db_path: str = DEFAULT_DB, out_dir: str = ".",
                 )
 
     digest_path = write_digest(passed, out_dir=out_dir)  # always write, even 0 passed -> no silent gaps
-    rejected_path = write_rejected(rejected, out_dir=out_dir)
+    rejected_path = write_rejected(rejected, out_dir=out_dir, stage0_dropped=stage0_dropped)
     summary = f"run complete: {len(results)} evaluated, {len(passed)} passed -> {digest_path} ({len(rejected)} rejected -> {rejected_path})"
     if "duration_seconds" in stats:
         summary += f" ({stats['duration_seconds']:.0f}s"
@@ -197,17 +212,24 @@ def main():
     ap.add_argument("--db", default=DEFAULT_DB)
     ap.add_argument("--out-dir", default=".")
     ap.add_argument("--stats", default="", help="optional path to a stats JSON (duration_seconds, total_tokens, ...)")
+    ap.add_argument("--stage0-dropped", default="",
+                    help="optional path to filter_stage0's --dropped-out file, listed in the rejected file")
     args = ap.parse_args()
 
     with open(args.results) as f:
         results = json.load(f)
+
+    stage0_dropped = []
+    if args.stage0_dropped:
+        with open(args.stage0_dropped) as f:
+            stage0_dropped = json.load(f)
 
     stats = {}
     if args.stats:
         with open(args.stats) as f:
             stats = json.load(f)
 
-    summary = finalize(results, db_path=args.db, out_dir=args.out_dir, stats=stats)
+    summary = finalize(results, db_path=args.db, out_dir=args.out_dir, stats=stats, stage0_dropped=stage0_dropped)
     print(json.dumps(summary, ensure_ascii=False), file=sys.stderr)
 
 

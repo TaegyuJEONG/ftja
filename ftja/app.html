@@ -449,7 +449,7 @@ const ACTIONS = [
   {value: "skipped_circumstance", label: "Later"},
   {value: "expired", label: "Expired"},
 ];
-const DROP_LABELS = {language: "unreadable language", no_tier1_hit: "no keyword match", exclude_keyword: "exclude keyword present", duplicate_content: "duplicate posting"};
+const DROP_LABELS = {language: "unreadable language", no_tier1_hit: "no keyword match", exclude_keyword: "exclude keyword present", language_requirement: "requires another language", duplicate_content: "duplicate posting"};
 const RUN_PAGE_SIZE = 10;
 
 let runs = [];
@@ -1401,7 +1401,7 @@ function renderConfigSection() {
   <div class="section-title"><span class="num">2</span>Stage0 — code-only filter (no AI calls)</div>
   <div class="card">
     <div class="explain">Filters scraped postings with <b>code only, no AI calls</b>. If a posting fails any check in order, it stops here — it doesn't move on to Stage1.</div>
-    <div class="field"><label>1. Readable languages (choose by name; saved as langdetect codes — leave empty to allow all languages)</label>${renderChipInput('cfg-languages', c.languages)}</div>
+    <div class="field"><label>1. Readable languages (choose by name; saved as langdetect codes — leave empty to allow all languages). A posting that plainly requires fluency in a language not listed here is also dropped.</label>${renderChipInput('cfg-languages', c.languages)}</div>
     <div class="field"><label>2. Include keywords — at least one must be present to pass</label>${renderChipInput('cfg-tier1', (c.keywords || {}).tier1)}</div>
     <div class="field"><label>3. Exclude words — if any is present, it fails</label>${renderChipInput('cfg-exclude', c.exclude_keywords)}</div>
     <div class="save-row"><button class="save-btn" id="save-stage0">Save</button><span class="saved-note mono">Saved</span></div>

@@ -89,21 +89,29 @@ Note the merged count — this is `scraped_count` for the stats file.
 ## 2. Deterministic filter (Stage 0b)
 
 ```
-venv/bin/python -m ftja.filter_stage0 --jobs <merged_scraped.json> --criteria criteria.json --out /tmp/ftja-stage0.json
+venv/bin/python -m ftja.filter_stage0 --jobs <merged_scraped.json> --criteria criteria.json --out /tmp/ftja-stage0.json --dropped-out /tmp/ftja-stage0-dropped.json
 ```
 
 Read the printed `Stage0: N -> M (dropped: {...})` line — `M` is your
 coverage number for this run (compare it, over time, against what
 LinkedIn's own search UI shows for the same term — that's the Acceptance
 Criteria #2 check, not something to automate here). The `dropped` dict
-(language/no_tier1_hit/exclude_keyword counts) goes into the stats file as
-`stage0_dropped`. Location is not part of Stage 0 — it's already
+(language/no_tier1_hit/exclude_keyword/language_requirement/duplicate_content
+counts) goes into the stats file as `stage0_dropped`. Location is not part of Stage 0 — it's already
 deterministic at scrape time via `criteria.json`'s `location`/`is_remote`.
 
 The language check (langdetect against `criteria.json`'s `languages` list)
 already ran inside `filter_stage0` — a job whose JD isn't written in a
 language the candidate reads never reaches Stage 1, even if it doesn't
 explicitly state a language *requirement*.
+
+`filter_stage0` also drops a JD that plainly requires a language outside
+`languages` ("Fluent in German and English" when the candidate reads only
+English and French). It keeps anything ambiguous ("German is a plus", "the
+German market"), so Stage 2 still checks language requirements. These drops
+are saved to `--dropped-out` with the sentence that triggered each one; pass
+that file to finalize in step 5 so they show up in the rejected file. They
+are not results: do not add them to the results list or to `seen.db`.
 
 `filter_stage0`'s output is already deduped by content — the same JD
 reposted under multiple LinkedIn URLs (companies/agencies do this to look
@@ -232,7 +240,7 @@ Also write a small stats file:
 Write both to temp files and run:
 
 ```
-venv/bin/python -m ftja.finalize --results /tmp/ftja-results.json --stats /tmp/ftja-stats.json --db seen.db --out-dir .
+venv/bin/python -m ftja.finalize --results /tmp/ftja-results.json --stats /tmp/ftja-stats.json --stage0-dropped /tmp/ftja-stage0-dropped.json --db seen.db --out-dir .
 ```
 
 This records everything in `seen.db` (including title/company/location —
