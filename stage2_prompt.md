@@ -27,7 +27,8 @@ language requirements explicitly — but note the JD's own written language
 was already filtered at Stage 0 (langdetect), so a JD reaching you is
 already in a language the candidate reads; still check for an EXPLICIT
 language-skill requirement stated in the text (e.g. "fluent German
-required") that Stage 0's `exclude_keywords` list may not have caught.
+required"). Stage 0 drops the clearly worded ones, but it keeps anything
+ambiguous, so some still reach you.
 
 TITLE: {title} | COMPANY: {company} | LOCATION: {location}
 

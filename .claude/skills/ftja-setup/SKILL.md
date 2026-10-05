@@ -377,7 +377,10 @@ my search settings, continue the setup`) and do not claim that the chat resumed.
   candidate can actually work in. A JD whose own text isn't detected as one
   of these gets dropped at Stage 0 (via `langdetect`) even if it never
   explicitly states a language *requirement* — ask "what languages can you
-  actually read a posting in?"
+  actually read a posting in?" Stage 0 also drops a JD that plainly requires
+  fluency in a language NOT on this list ("Fluent in German and English"),
+  so a language requirement does not need an `exclude_keywords` entry — and
+  a bare language name there would also drop "the German market".
 - `keywords.tier1`: the keyword phrases that must appear in a JD sentence
   for it to even reach Stage 1. Two useful sources, both matter — ask about
   each separately, don't let one crowd out the other:
