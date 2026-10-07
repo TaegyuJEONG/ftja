@@ -74,7 +74,8 @@ class OnboardingReviewFlowTests(unittest.TestCase):
     def test_web_contract_opens_pipeline_after_onboarding_is_complete(self):
         html = Path(__file__).parents[1].joinpath("ftja", "app.html").read_text(encoding="utf-8")
         self.assertIn("function onboardingIsComplete(state)", html)
-        self.assertIn("if (onboardingIsComplete(onboardingState)) { openMainView('pipeline'); return true; }", html)
+        # a viewer that is already set up opens on Results; finishing setup still lands on Pipeline
+        self.assertIn("if (onboardingIsComplete(onboardingState)) { openMainView('results'); return true; }", html)
         self.assertIn("if (onboardingIsComplete(state)) { onboardingState = state; openMainView('pipeline'); return; }", html)
 
     def test_every_decision_card_is_gated_behind_a_listening_bridge(self):
