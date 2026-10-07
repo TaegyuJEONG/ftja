@@ -153,7 +153,9 @@ in a language the candidate reads (langdetect against `criteria.json`'s
 `languages`); drops a JD that plainly requires a language outside that list
 ("Fluent in German and English"), keeping anything ambiguous ("German is a
 plus") for Stage 2; requires a tier-1 keyword; applies exclude keywords;
-and collapses the same JD reposted under several URLs into one job. The
+collapses the same JD reposted under several URLs into one job; and, last,
+drops jobs an earlier run already judged (they're in `seen.db`), so no LLM
+call is spent on the same posting twice. The
 language-requirement drops are listed in the rejected file with the
 sentence that triggered each, and are not recorded as seen.
 
@@ -163,8 +165,7 @@ sentence that triggered each, and are not recorded as seen.
 venv/bin/python -m ftja.live prepare-stage1 --dir <run_dir>
 ```
 
-Drops jobs already judged on an earlier run (they're in `seen.db`), then
-writes one filled prompt per remaining job to `<run_dir>/s1/<n>.txt`
+Writes one filled prompt per Stage 0 survivor to `<run_dir>/s1/<n>.txt`
 (template: `stage1_prompt.md`; the job's keyword sentences with their
 neighbours, plus `rubric.md`'s Pass/Fail sections). It prints how many jobs
 there are; they are numbered `0 .. jobs-1`.

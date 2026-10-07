@@ -56,12 +56,11 @@ def test_a_run_from_start_to_finish_as_the_viewer_sees_it(project, capsys):
                          {"term": state["scrape"]["terms"][n]["term"], "count": len(jobs), "wanted": 50, "done": True})
     assert live.state(project)["scrape"] == {**live.state(project)["scrape"], "total": 4, "done": True}
 
-    counts = live.stage0(run_dir, project)
-    assert (counts["scraped"], counts["passed"]) == (3, 2)  # merged by url; the French posting is dropped by code
+    counts = live.stage0(run_dir, project, db)
+    assert (counts["scraped"], counts["passed"], counts["dropped"]["already_seen"]) == (3, 2, 0)  # merged by url; the French posting is dropped by code
     assert live.state(project)["stage0"]["passed"] == 2 and live.state(project)["stage1"] is None
 
-    prepared = live.prepare_stage1(run_dir, project, db)
-    assert prepared == {**prepared, "jobs": 2, "already_seen_skipped": 0}
+    assert live.prepare_stage1(run_dir, project)["jobs"] == 2
     prompt = open(os.path.join(run_dir, "s1", "0.txt")).read()
     assert "TITLE: Product Builder | COMPANY: Alpha" in prompt and "[T1] You will prototype" in prompt
     assert "## Pass" in prompt and "{blocks}" not in prompt and "Used by `/ftja-run`" not in prompt
@@ -143,9 +142,10 @@ def test_a_run_from_start_to_finish_as_the_viewer_sees_it(project, capsys):
     release(os.path.join(project, ".ftja.lock")); acquire(os.path.join(project, ".ftja.lock"))
     again = live.start(project)
     live._write_json(os.path.join(again["run_dir"], "scrape", "0.json"), JOBS)
-    live.stage0(again["run_dir"], project)
-    assert live.prepare_stage1(again["run_dir"], project, db) == {
-        **live.prepare_stage1(again["run_dir"], project, db), "jobs": 0, "already_seen_skipped": 2}
+    counts = live.stage0(again["run_dir"], project, db)
+    assert (counts["passed"], counts["dropped"]["already_seen"]) == (0, 2)  # dropped at Stage 0, by code
+    assert live.prepare_stage1(again["run_dir"], project)["jobs"] == 0
+    assert live.state(project)["stage0"]["passed"] == live.state(project)["stage1"]["total"] == 0
     assert live.current_run_dir(project) == again["run_dir"]
 
 

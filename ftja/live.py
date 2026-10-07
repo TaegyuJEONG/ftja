@@ -158,8 +158,10 @@ def scrape_term(run_dir: str, n: int) -> int:
     return len(jobs)
 
 
-def stage0(run_dir: str, project_dir: str = ".") -> dict:
-    """Step 2: merge the scrapes (one entry per job_url) and run the code-only filter."""
+def stage0(run_dir: str, project_dir: str = ".", db_path: str = "seen.db") -> dict:
+    """Step 2: merge the scrapes (one entry per job_url) and run the code-only
+    filter. Its last check drops jobs an earlier run already judged (they
+    are in seen.db), so what passes Stage 0 is exactly what Stage 1 judges."""
     from ftja.filter_stage0 import filter_stage0
 
     merged: dict[str, dict] = {}
@@ -173,6 +175,10 @@ def stage0(run_dir: str, project_dir: str = ".") -> dict:
     criteria = _read_json(os.path.join(project_dir, "criteria.json"), {})
     dropped_jobs: list[dict] = []
     passed, dropped = filter_stage0(jobs, criteria, dropped_jobs)
+    with connect(db_path) as conn:
+        fresh = [j for j in passed if not is_seen(conn, j.get("job_url", ""))]
+    dropped = {**dropped, "already_seen": len(passed) - len(fresh)}
+    passed = fresh
     _write_json(os.path.join(run_dir, "stage0.json"), passed)
     _write_json(os.path.join(run_dir, "stage0-dropped.json"), dropped_jobs)
     counts = {"scraped": len(jobs), "passed": len(passed), "dropped": dropped}
@@ -195,12 +201,10 @@ def _matched(job: dict) -> tuple[list[str], list[str]]:
     return keywords, [b["sentence"] for b in blocks]
 
 
-def prepare_stage1(run_dir: str, project_dir: str = ".", db_path: str = "seen.db") -> dict:
-    """Step 3 setup: drop jobs judged on an earlier run, then write one prompt
-    file per remaining job and the manifest that maps file numbers to jobs."""
-    jobs = _read_json(os.path.join(run_dir, "stage0.json"), [])
-    with connect(db_path) as conn:
-        fresh = [j for j in jobs if not is_seen(conn, j.get("job_url", ""))]
+def prepare_stage1(run_dir: str, project_dir: str = ".") -> dict:
+    """Step 3 setup: write one prompt file per Stage 0 survivor and the
+    manifest that maps file numbers to jobs."""
+    fresh = _read_json(os.path.join(run_dir, "stage0.json"), [])
     template = _template(os.path.join(project_dir, "stage1_prompt.md"))
     excerpt = _rubric_excerpt(os.path.join(run_dir, "rubric.md"))
     os.makedirs(os.path.join(run_dir, "s1"), exist_ok=True)
@@ -218,8 +222,7 @@ def prepare_stage1(run_dir: str, project_dir: str = ".", db_path: str = "seen.db
                          "blocks": [{"s_id": b["s_id"], "sentence": b["sentence"], "matched": bool(b.get("matched")),
                                      "keywords": b.get("matched_keywords") or []} for b in blocks]})
     _write_json(os.path.join(run_dir, "s1", "manifest.json"), manifest)
-    _write_json(os.path.join(run_dir, "s1", "skipped.json"), {"already_seen_skipped": len(jobs) - len(fresh)})
-    return {"jobs": len(manifest), "already_seen_skipped": len(jobs) - len(fresh),
+    return {"jobs": len(manifest),
             "prompt_files": os.path.join(run_dir, "s1", "<n>.txt"), "output_files": os.path.join(run_dir, "s1", "<n>.out.json")}
 
 
@@ -317,7 +320,7 @@ def assemble_results(run_dir: str) -> dict:
     stats = {"ts_start": run.get("ts_start"), "criteria_snapshot": run.get("criteria_snapshot"),
              "scraped_count": counts.get("scraped"), "stage0_dropped": counts.get("dropped"),
              "scraped_by_term": [{"term": p["term"], "count": p["count"]} for p in _scrape_progress(run_dir)],
-             "already_seen_skipped": (_read_json(os.path.join(run_dir, "s1", "skipped.json"), {}) or {}).get("already_seen_skipped")}
+             "already_seen_skipped": (counts.get("dropped") or {}).get("already_seen")}
     _write_json(os.path.join(run_dir, "stats.json"), stats)
     return {"results": len(results), "stage1_fail": len(failed), "stage2": len(s2_manifest)}
 
@@ -386,8 +389,7 @@ def state(project_dir: str = ".") -> dict | None:
            "replay_of": run.get("replay_of"), "replay_sample": bool(run.get("replay_sample")), "criteria_snapshot": run.get("criteria_snapshot"),
            "scrape": {"terms": terms, "total": sum(t.get("count") or 0 for t in terms),
                       "done": bool(terms) and all(t.get("done") for t in terms)},
-           "stage0": counts, "stage1": None, "stage2": None, "jobs": [],
-           "already_seen_skipped": (_read_json(os.path.join(run_dir, "s1", "skipped.json"), {}) or {}).get("already_seen_skipped")}
+           "stage0": counts, "stage1": None, "stage2": None, "jobs": []}
 
     if os.path.exists(os.path.join(run_dir, "s1", "manifest.json")):
         passed, failed, pending = _stage1_results(run_dir)
@@ -532,8 +534,12 @@ def replay(project_dir: str, db_path: str, run_id: str | None = None, seconds: f
             progress(n, round(target * step / steps), done=step == steps)
             pause(0.25, steps * len(terms))
 
-    _write_json(os.path.join(run_dir, "stage0-counts.json"),
-                {"scraped": scraped, "passed": record.get("stage0_passed"), "dropped": record.get("stage0_dropped") or {}})
+    dropped, stage0_passed = dict(record.get("stage0_dropped") or {}), record.get("stage0_passed")
+    skipped = record.get("already_seen_skipped")
+    if "already_seen" not in dropped and skipped is not None:  # recorded before this was a Stage 0 drop
+        dropped["already_seen"] = skipped
+        stage0_passed = stage0_passed - skipped if stage0_passed is not None else None
+    _write_json(os.path.join(run_dir, "stage0-counts.json"), {"scraped": scraped, "passed": stage0_passed, "dropped": dropped})
     _write_json(os.path.join(run_dir, "stage0.json"), [])
     pause(0.06)
 
@@ -548,7 +554,6 @@ def replay(project_dir: str, db_path: str, run_id: str | None = None, seconds: f
                        "why": b.get("why") or ""} for i, b in enumerate(stored_blocks(j))]}
           for n, j in enumerate(jobs)]
     _write_json(os.path.join(run_dir, "s1", "manifest.json"), s1)
-    _write_json(os.path.join(run_dir, "s1", "skipped.json"), {"already_seen_skipped": record.get("already_seen_skipped")})
     waves = 10
     for wave in range(waves):  # Stage 1: a quarter of the time
         for entry, job in list(zip(s1, jobs))[wave::waves]:
@@ -603,9 +608,9 @@ def main():
     elif args.cmd == "scrape":
         out = {"term": args.term, "scraped": scrape_term(args.dir, args.term)}
     elif args.cmd == "stage0":
-        out = stage0(args.dir, args.project_dir)
+        out = stage0(args.dir, args.project_dir, args.db)
     elif args.cmd == "prepare-stage1":
-        out = prepare_stage1(args.dir, args.project_dir, args.db)
+        out = prepare_stage1(args.dir, args.project_dir)
     elif args.cmd == "prepare-stage2":
         out = prepare_stage2(args.dir, args.project_dir)
     elif args.cmd == "results":

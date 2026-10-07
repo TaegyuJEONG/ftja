@@ -637,7 +637,7 @@ const ACTIONS = [
   {value: "skipped_circumstance", label: "Later"},
   {value: "expired", label: "Expired"},
 ];
-const DROP_LABELS = {language: "unreadable language", no_tier1_hit: "no keyword match", exclude_keyword: "exclude keyword present", language_requirement: "requires another language", duplicate_content: "duplicate posting"};
+const DROP_LABELS = {language: "unreadable language", no_tier1_hit: "no keyword match", exclude_keyword: "exclude keyword present", language_requirement: "requires another language", duplicate_content: "duplicate posting", already_seen: "already judged on an earlier run"};
 const RUN_PAGE_SIZE = 10;
 
 let runs = [];
@@ -1273,10 +1273,15 @@ function funnelHtml(v) {
 
   let s0 = waiting;
   if (v.stage0) {
+    // Runs recorded before "already judged" was a Stage 0 drop kept it as a
+    // separate count; fold it in, so Stage 0's passed is what Stage 1 judged.
+    if (v.skip !== null && v.skip !== undefined && !('already_seen' in (v.stage0.dropped || {}))) {
+      v.stage0 = {...v.stage0, dropped: {...(v.stage0.dropped || {}), already_seen: v.skip},
+                  passed: v.stage0.passed === null || v.stage0.passed === undefined ? v.stage0.passed : v.stage0.passed - v.skip};
+    }
     const dropLine = Object.entries(v.stage0.dropped || {}).map(([k, n], i) =>
       `<span class="drop-item" style="--d:${500 + i * 450}ms">${i ? ' · ' : ''}${esc(DROP_LABELS[k] || k)} ${count('drop_' + k, n)}</span>`).join('') || 'no record';
-    const skipNote = (v.skip !== null && v.skip !== undefined) ? ` (skipped as already seen: ${fmtN(v.skip)})` : '';
-    s0 = `<div class="line">Passed <span class="n-pass">${count('s0', v.stage0.passed)}</span>${esc(skipNote)} — code only, no AI calls</div>
+    s0 = `<div class="line">Passed <span class="n-pass">${count('s0', v.stage0.passed)}</span> — code only, no AI calls</div>
       <div class="line empty">Dropped: ${dropLine}</div>`;
   }
   let s1 = waiting;
@@ -1386,7 +1391,7 @@ function renderLive() {
   const run = liveRun;
   const view = {
     runId: run.run_id, live: true, scraped: run.stage0 ? run.stage0.scraped : run.scrape.total, terms: run.scrape.terms, cs: run.criteria_snapshot,
-    stage0: run.stage0, skip: run.already_seen_skipped, stage1: run.stage1, stage2: run.stage2,
+    stage0: run.stage0, skip: null, stage1: run.stage1, stage2: run.stage2,
     meta: !run.replay ? ''
       : run.replay_sample ? `Replay of a sample of the ${esc(fmtDate(run.replay_of))} run, as if each search term were capped. Verdicts are from that run; counts are scaled down and the timing is compressed.`
       : `Replay of the ${esc(fmtDate(run.replay_of))} run. Every number and verdict is from that run; the timing is compressed.`,
