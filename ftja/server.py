@@ -215,7 +215,9 @@ def make_handler(db_path: str, project_dir: str):
             elif path == "/api/runs":
                 self._send_json(200, list_runs(project_dir))
             elif path == "/api/version":
-                self._send_json(200, version.check(project_dir))
+                # project_dir: which FTJA folder this viewer is showing. /ftja-run
+                # compares it with its own folder, since two clones share the port.
+                self._send_json(200, {**version.check(project_dir), "project_dir": os.path.realpath(project_dir)})
             elif path == "/api/live":
                 # the run in progress, read from its working directory; polled by the Results tab
                 self._send_json(200, {"run": live.state(project_dir)})
