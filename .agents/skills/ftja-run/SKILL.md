@@ -35,6 +35,11 @@ path.
 
 ## 0. Preflight
 
+- Run `venv/bin/python -m ftja.version check`. If it prints `update
+  available`, pass that line on to the user in your final report (and offer
+  `/ftja-update` if this run is interactive). Never update in the middle of
+  a run, and never let this check stop one: it prints something and exits
+  0 even when offline.
 - Check `rubric.md` and `criteria.json` exist in the project root. If either
   is missing, STOP and tell the user to run `/ftja-setup` first — do not
   improvise a rubric yourself.

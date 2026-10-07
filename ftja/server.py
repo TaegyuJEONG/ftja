@@ -26,7 +26,7 @@ from urllib.parse import urlparse, parse_qs
 
 from ftja.state import connect, record_criterion_feedback, update_decision, VALID_FEEDBACK_VOTES, VALID_USER_ACTIONS
 from ftja.pipeline_view import read_config, write_config, keyword_stats
-from ftja import live
+from ftja import live, version
 from ftja.verdict import DEFAULT_CRITERIA_PATH, criteria_status, load_criteria, save_criteria
 from ftja.runs_view import list_runs
 from ftja.onboarding import OnboardingError, apply_action, bridge_is_ready, build_checklist, read_bridge, read_state, write_action, write_state
@@ -210,6 +210,8 @@ def make_handler(db_path: str, project_dir: str):
                 self.wfile.write(body)
             elif path == "/api/runs":
                 self._send_json(200, list_runs(project_dir))
+            elif path == "/api/version":
+                self._send_json(200, version.check(project_dir))
             elif path == "/api/live":
                 # the run in progress, read from its working directory; polled by the Results tab
                 self._send_json(200, {"run": live.state(project_dir)})

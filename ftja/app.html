@@ -196,6 +196,12 @@ h1.serif { font-size: 38px; font-weight: 400; line-height: 1; margin-bottom: 8px
   .jbody { padding: 0 0 13px; }
 }
 
+.update-banner {
+  font-size: 12px; color: var(--accent-text); background: var(--accent-dim); border: 1px solid var(--accent-border);
+  padding: 9px 14px; margin: -14px 0 24px;
+}
+.update-banner code { font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; }
+
 /* a run in progress */
 .run-item .live-badge, .badge.judging {
   font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;
@@ -603,6 +609,7 @@ select.sort-select {
   <div class="main-tab mono" data-view="pipeline">Pipeline</div>
 </div>
 
+<div id="update-banner" class="update-banner" hidden></div>
 <div id="view-results" class="view">
   <div class="results-layout">
     <aside class="run-sidebar">
@@ -2256,6 +2263,13 @@ function renderKeywordSection() {
 
 // ---- init ----
 (async () => { const onboarding = await maybeStartOnboarding(); if (!onboarding) { document.querySelector('.main-tab[data-view=\"results\"]').classList.add('active'); document.getElementById('view-results').classList.add('active'); loadRuns(); } setInterval(pollLive, 1500); pollLive(); })();
+// A clone only changes when its owner pulls; say so when there is something to pull.
+fetch('/api/version').then(r => r.json()).then(v => {
+  if (!v.update_available) return;
+  const banner = document.getElementById('update-banner');
+  banner.innerHTML = `FTJA ${esc(v.latest)} is available (you have ${esc(v.current)}). Run <code>/ftja-update</code> in your coding agent to get it.`;
+  banner.hidden = false;
+}).catch(() => {});
 </script>
 </body>
 </html>

@@ -93,6 +93,25 @@ To stop the automation:
 launchctl unload ~/Library/LaunchAgents/com.ftja.run.plist
 ```
 
+## Updating
+
+FTJA is a clone of this repository, so it stays at the version you cloned
+until you pull. It tells you when a newer version is published: `/ftja-run`
+mentions it at the start of a run and the viewer shows a banner. To update,
+run `/ftja-update` in your coding agent. It pulls, reinstalls dependencies,
+restarts the viewer and summarizes what changed ([CHANGELOG.md](CHANGELOG.md)).
+Your own files (`criteria.json`, `rubric.md`, `profile/`, `seen.db`,
+digests) are ignored by git and are never touched.
+
+The check is one request for the `VERSION` file on GitHub, at most twice a
+day, and sends nothing about you. Set `FTJA_NO_UPDATE_CHECK=1` to turn it
+off.
+
+Releasing a version (maintainers): bump `VERSION`, add a section to
+`CHANGELOG.md` that starts with "What changes for you after updating",
+merge to `main`, then tag it (`git tag v0.2.0 && git push --tags`) and
+publish a GitHub release with the same notes.
+
 ## Layout
 
 ```
