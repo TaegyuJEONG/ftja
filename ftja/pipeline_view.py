@@ -124,10 +124,10 @@ def keyword_stats(db_path: str = "seen.db") -> list[dict]:
         except json.JSONDecodeError:
             keywords = []
         for kw in keywords:
-            # status is always stage1_fail/stage2_fail/passed here — a row only
+            # status is always stage1_fail/stage2_fail/review/passed here — a row only
             # gets t1_matched_keywords once it clears Stage0's tier1 check, so
             # stage0_fail never appears (those jobs never reach mark_seen at all).
-            c = counts.setdefault(kw, {"matched": 0, "passed": 0, "stage2_fail": 0, "stage1_fail": 0})
+            c = counts.setdefault(kw, {"matched": 0, "passed": 0, "review": 0, "stage2_fail": 0, "stage1_fail": 0})
             c["matched"] += 1
             c[status] = c.get(status, 0) + 1
 

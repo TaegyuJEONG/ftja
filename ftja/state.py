@@ -4,7 +4,8 @@ Schema: seen_jobs(job_url_hash PK, job_url, title, company, location, status,
                    stage_reached, verdict, t1_matched_keywords,
                    t1_matched_sentences, reasoning, evidence_sentences,
                    rubric_version, user_action, user_reason, user_decided_at,
-                   last_seen_at)
+                   criteria, criteria_feedback, description,
+                   company_line, employer, notes, t1_blocks, last_seen_at)
   status: 'stage0_fail' | 'stage1_fail' | 'stage2_fail' | 'passed'
   stage_reached: 0, 1, or 2
   t1_matched_keywords / t1_matched_sentences: JSON-encoded lists — which
@@ -14,6 +15,10 @@ Schema: seen_jobs(job_url_hash PK, job_url, title, company, location, status,
   (user's own observation) — spot-check keyword-matching quality with e.g.
   `sqlite3 seen.db "SELECT title, t1_matched_keywords, t1_matched_sentences
   FROM seen_jobs WHERE status='passed'"` any time, no extra file needed.
+  t1_blocks: Stage 1's reading of each keyword sentence — a JSON list of
+  {sentence, keywords, why}, one per [T1] sentence, where `why` is the
+  model's one-line take on that sentence. Shown in the viewer for jobs
+  that stopped at Stage 1. NULL for runs before Stage 1 gave reasons.
   reasoning / evidence_sentences: Stage1/2's own free-text verdict reasoning,
   persisted here (not just in digest/rejected .md) so a later user decision
   can be joined back to *why the pipeline judged it that way* — without
@@ -48,9 +53,24 @@ Schema: seen_jobs(job_url_hash PK, job_url, title, company, location, status,
   by record_decision whenever the reason changes, so an edited reason gets
   reconsidered.
 
-Only title/company/location/match-evidence/reasoning are kept for future
-dedup/analysis reference — the full JD text is never persisted here (it
-lives only in /tmp for the duration of one run, then is discarded).
+  criteria: Stage 2's structured judgment — a JSON list with one entry per
+  rubric criterion ({id, kind, label, text, result, quote, why,
+  quote_verified}; see ftja.verdict). `reasoning` and `evidence_sentences` are still filled for
+  these jobs (a one-line summary and the verified quotes), so older readers
+  keep working. Rows judged before this existed have criteria NULL.
+  criteria_feedback: the candidate's own take on single criteria, from the
+  viewer — a JSON object {criterion_id: {"vote": "disagree", "comment":
+  str, "at": iso8601, "reviewed": null|"applied"|"declined"}}. Like
+  user_action, mark_seen never overwrites it.
+  description: the full JD text, for jobs that reached Stage 2 only. Kept
+  so a quote can be re-checked after LinkedIn takes the posting down. The
+  viewer does not show it.
+  company_line / employer / notes: what Stage 2 reports besides the
+  criteria, none of it part of the verdict — one sentence on what the
+  company does; a JSON list of what the employer asks for ({kind:
+  must|preferred, label, quote, candidate: meets|unclear|gap, why}); and a
+  JSON list of up to three notes ({text, quote}) on things no criterion
+  covers.
 """
 import argparse
 import hashlib
@@ -80,6 +100,13 @@ CREATE TABLE IF NOT EXISTS seen_jobs (
     user_decided_at TEXT,
     run_id TEXT,
     decision_review_status TEXT,
+    criteria TEXT,
+    criteria_feedback TEXT,
+    description TEXT,
+    company_line TEXT,
+    employer TEXT,
+    notes TEXT,
+    t1_blocks TEXT,
     last_seen_at TEXT NOT NULL
 );
 """
@@ -95,7 +122,8 @@ def _migrate(conn: sqlite3.Connection):
     for col in ("title", "company", "location", "t1_matched_keywords", "t1_matched_sentences",
                 "reasoning", "evidence_sentences", "rubric_version",
                 "user_action", "user_reason", "user_decided_at", "run_id",
-                "decision_review_status"):
+                "decision_review_status", "criteria", "criteria_feedback",
+                "description", "company_line", "employer", "notes", "t1_blocks"):
         if col not in cols:
             conn.execute(f"ALTER TABLE seen_jobs ADD COLUMN {col} TEXT")
     conn.commit()
@@ -132,21 +160,30 @@ def is_seen(conn: sqlite3.Connection, job_url: str) -> bool:
     return row is not None
 
 
+def _json_or_none(value):
+    return json.dumps(value, ensure_ascii=False) if value is not None else None
+
+
 def mark_seen(conn: sqlite3.Connection, job_url: str, status: str, stage_reached: int,
               verdict: str = "", title: str = "", company: str = "", location: str = "",
               t1_matched_keywords: list[str] | None = None,
               t1_matched_sentences: list[str] | None = None,
               reasoning: str = "", evidence_sentences: list[str] | None = None,
-              rubric_version: str = "", run_id: str = ""):
+              rubric_version: str = "", run_id: str = "",
+              criteria: list[dict] | None = None, description: str | None = None,
+              company_line: str | None = None, employer: list[dict] | None = None,
+              notes: list[dict] | None = None, t1_blocks: list[dict] | None = None):
     """Note: the ON CONFLICT clause intentionally does NOT touch
-    user_action/user_reason/user_decided_at — a re-scrape or an alias URL
-    from content dedup must never overwrite a decision the user already
-    recorded via /ftja-review."""
+    user_action/user_reason/user_decided_at/criteria_feedback — a re-scrape
+    or an alias URL from content dedup must never overwrite a decision the
+    user already recorded via /ftja-review."""
     conn.execute(
         """INSERT INTO seen_jobs (job_url_hash, job_url, title, company, location, status,
                                   stage_reached, verdict, t1_matched_keywords, t1_matched_sentences,
-                                  reasoning, evidence_sentences, rubric_version, run_id, last_seen_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                  reasoning, evidence_sentences, rubric_version, run_id,
+                                  criteria, description, company_line, employer, notes, t1_blocks,
+                                  last_seen_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON CONFLICT(job_url_hash) DO UPDATE SET
              title=excluded.title, company=excluded.company, location=excluded.location,
              status=excluded.status, stage_reached=excluded.stage_reached,
@@ -154,11 +191,16 @@ def mark_seen(conn: sqlite3.Connection, job_url: str, status: str, stage_reached
              t1_matched_sentences=excluded.t1_matched_sentences,
              reasoning=excluded.reasoning, evidence_sentences=excluded.evidence_sentences,
              rubric_version=excluded.rubric_version, run_id=excluded.run_id,
+             criteria=excluded.criteria, description=excluded.description,
+             company_line=excluded.company_line, employer=excluded.employer, notes=excluded.notes,
+             t1_blocks=excluded.t1_blocks,
              last_seen_at=excluded.last_seen_at""",
         (hash_url(job_url), job_url, title, company, location, status, stage_reached, verdict,
          json.dumps(t1_matched_keywords or [], ensure_ascii=False),
          json.dumps(t1_matched_sentences or [], ensure_ascii=False),
          reasoning, json.dumps(evidence_sentences or [], ensure_ascii=False), rubric_version, run_id,
+         _json_or_none(criteria), description, company_line, _json_or_none(employer), _json_or_none(notes),
+         _json_or_none(t1_blocks),
          datetime.now(timezone.utc).isoformat()),
     )
     conn.commit()
@@ -239,6 +281,81 @@ def mark_reviewed(conn: sqlite3.Connection, job_url: str, status: str):
     conn.commit()
 
 
+VALID_FEEDBACK_VOTES = ("disagree",)
+
+
+def _read_feedback(conn: sqlite3.Connection, job_url: str) -> dict | None:
+    row = conn.execute("SELECT criteria_feedback FROM seen_jobs WHERE job_url_hash=?", (hash_url(job_url),)).fetchone()
+    if row is None:
+        return None
+    try:
+        value = json.loads(row[0]) if row[0] else {}
+    except json.JSONDecodeError:
+        value = {}
+    return value if isinstance(value, dict) else {}
+
+
+def _write_feedback(conn: sqlite3.Connection, job_url: str, feedback: dict):
+    conn.execute("UPDATE seen_jobs SET criteria_feedback=? WHERE job_url_hash=?",
+                 (json.dumps(feedback, ensure_ascii=False) if feedback else None, hash_url(job_url)))
+    conn.commit()
+
+
+def record_criterion_feedback(conn: sqlite3.Connection, job_url: str, criterion_id: str,
+                              vote: str | None, comment: str = "") -> dict:
+    """The candidate disagrees with ONE criterion's result on one job (the
+    whole-job outcome stays in user_action/user_reason). vote=None withdraws
+    it. Saving again resets `reviewed`, so an edited comment is looked at
+    again. Returns the job's full feedback object; raises KeyError for a
+    job that was never seen."""
+    if vote is not None and vote not in VALID_FEEDBACK_VOTES:
+        raise ValueError(f"vote must be one of {VALID_FEEDBACK_VOTES} or None, got {vote!r}")
+    feedback = _read_feedback(conn, job_url)
+    if feedback is None:
+        raise KeyError(job_url)
+    if vote is None:
+        feedback.pop(criterion_id, None)
+    else:
+        feedback[criterion_id] = {"vote": vote, "comment": comment.strip(),
+                                  "at": datetime.now(timezone.utc).isoformat(), "reviewed": None}
+    _write_feedback(conn, job_url, feedback)
+    return feedback
+
+
+def pending_criterion_feedback(conn: sqlite3.Connection) -> list[dict]:
+    """Every criterion-level disagreement /ftja-review hasn't resolved yet,
+    with the judgment it disagrees with."""
+    rows = conn.execute(
+        """SELECT job_url, title, company, criteria, criteria_feedback
+           FROM seen_jobs WHERE criteria_feedback IS NOT NULL"""
+    ).fetchall()
+    pending = []
+    for job_url, title, company, criteria_json, feedback_json in rows:
+        try:
+            feedback = json.loads(feedback_json) or {}
+            criteria = {c["id"]: c for c in json.loads(criteria_json or "[]")}
+        except (json.JSONDecodeError, TypeError, KeyError):
+            continue
+        for cid, fb in feedback.items():
+            if fb.get("reviewed"):
+                continue
+            judged = criteria.get(cid, {})
+            pending.append({"job_url": job_url, "title": title, "company": company,
+                            "criterion_id": cid, "label": judged.get("label"),
+                            "result": judged.get("result"), "quote": judged.get("quote"),
+                            "why": judged.get("why"), "comment": fb.get("comment", ""), "at": fb.get("at")})
+    return pending
+
+
+def mark_feedback_reviewed(conn: sqlite3.Connection, job_url: str, criterion_id: str, status: str):
+    if status not in VALID_REVIEW_STATUSES:
+        raise ValueError(f"status must be one of {VALID_REVIEW_STATUSES}, got {status!r}")
+    feedback = _read_feedback(conn, job_url) or {}
+    if criterion_id in feedback:
+        feedback[criterion_id]["reviewed"] = status
+        _write_feedback(conn, job_url, feedback)
+
+
 def unseen_only(conn: sqlite3.Connection, jobs: list[dict], url_key: str = "job_url") -> list[dict]:
     return [j for j in jobs if not is_seen(conn, j.get(url_key, ""))]
 
@@ -261,6 +378,15 @@ def main():
     mr.add_argument("--status", required=True, choices=VALID_REVIEW_STATUSES)
     mr.add_argument("--db", default="seen.db")
 
+    pf = sub.add_parser("pending-feedback", help="list criterion-level disagreements not yet reviewed")
+    pf.add_argument("--db", default="seen.db")
+
+    mf = sub.add_parser("mark-feedback-reviewed", help="mark one criterion-level disagreement as applied/declined")
+    mf.add_argument("--job-url", required=True)
+    mf.add_argument("--criterion-id", required=True)
+    mf.add_argument("--status", required=True, choices=VALID_REVIEW_STATUSES)
+    mf.add_argument("--db", default="seen.db")
+
     args = ap.parse_args()
     if args.cmd == "record-decision":
         with connect(args.db) as conn:
@@ -274,6 +400,14 @@ def main():
         with connect(args.db) as conn:
             mark_reviewed(conn, args.job_url, args.status)
         print(f"marked: {args.job_url} -> {args.status}", file=sys.stderr)
+    elif args.cmd == "pending-feedback":
+        with connect(args.db) as conn:
+            pending = pending_criterion_feedback(conn)
+        print(json.dumps(pending, ensure_ascii=False, indent=2))
+    elif args.cmd == "mark-feedback-reviewed":
+        with connect(args.db) as conn:
+            mark_feedback_reviewed(conn, args.job_url, args.criterion_id, args.status)
+        print(f"marked: {args.job_url} {args.criterion_id} -> {args.status}", file=sys.stderr)
 
 
 if __name__ == "__main__":

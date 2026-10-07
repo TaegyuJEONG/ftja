@@ -101,7 +101,9 @@ criteria.json, rubric.md       # personal configuration — gitignored
 profile/                   # your resume/portfolio — gitignored
 seen.db                    # dedup state (SQLite) — gitignored
 digest-*.md                # daily results — gitignored
+rubric-criteria.json       # the rubric as a list of single criteria (Pass / Fail / Preferences), edited in the viewer's Pipeline tab — gitignored
 run.log                    # append-only run history — gitignored
+.ftja-run/                 # each run's working files (last 5 runs); the viewer's live view reads them — gitignored
 ftja/                      # the pipeline code
 .claude/skills/ftja-*/     # the three skills: setup, run, tune
 ```

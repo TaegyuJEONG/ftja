@@ -30,10 +30,27 @@ if the routing rule in this project's CLAUDE.md covers it.
    existing dealbreaker being loosened, or two preferences that can't both
    hold), surface the conflict explicitly and ask which one wins. Don't
    silently pick.
-4. On confirmation, edit the file (`rubric.md` for narrative criteria,
+4. On confirmation, edit the file (the rubric for narrative criteria,
    `criteria.json` for structured filters — a "no on-site" statement likely
-   touches both: an `exclude_keywords` entry AND a rubric.md dealbreaker
-   line, ask if unsure which).
+   touches both: an `exclude_keywords` entry AND a rubric Fail criterion,
+   ask if unsure which).
+
+   The rubric exists in two forms that must stay the same rubric:
+   `rubric-criteria.json` (a list of single criteria, which the user also
+   edits in the viewer's Pipeline tab) and `rubric.md` (what the models
+   read). If `rubric-criteria.json` exists, make the change there — add an
+   entry (`kind`: `pass` / `fail` / `preference`, a `label` that reads on
+   its own, the rule as `text`) or reword one, leaving every other entry's
+   `id` as it is — then rewrite `rubric.md` from it:
+
+   ```
+   venv/bin/python -c "import json; from ftja.verdict import save_criteria; d = json.load(open('rubric-criteria.json')); save_criteria('.', d['criteria'], d.get('notes'))"
+   ```
+
+   Editing `rubric.md` as text instead would leave the list stale, and the
+   user's next save in the Pipeline tab would overwrite your edit. Only
+   when `rubric-criteria.json` doesn't exist yet (no run since setup) edit
+   `rubric.md` directly.
 5. Commit:
    ```
    git add rubric.md criteria.json

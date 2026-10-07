@@ -102,6 +102,7 @@ h1.serif { font-size: 38px; font-weight: 400; line-height: 1; margin-bottom: 8px
 }
 .badge.pass { color: var(--accent-text); background: var(--accent-dim); border: 1px solid var(--accent); }
 .badge.fail { color: var(--danger-text); background: var(--danger-bg); }
+.badge.review { color: var(--warn-text); background: var(--warn-bg); border: 1px solid var(--warn); }
 .link { color: var(--text3); font-size: 11px; word-break: break-all; }
 .link a { color: var(--accent-text); text-decoration: none; }
 .link a:hover { text-decoration: underline; }
@@ -112,6 +113,186 @@ h1.serif { font-size: 38px; font-weight: 400; line-height: 1; margin-bottom: 8px
   border-left: 3px solid var(--border2); padding: 6px 10px; border-radius: 0 4px 4px 0; font-style: italic;
 }
 .empty { color: var(--text3); font-style: italic; }
+
+/* Stage 2 judgment: a ledger. One ruled line per criterion, scannable
+   closed; a line opens to show the rule, the quote and the feedback box. */
+.company-line { font-size: 12.5px; color: var(--text2); margin-top: 6px; max-width: 70ch; }
+.judgment { margin: 18px 0 4px; }
+.jgroup + .jgroup { margin-top: 20px; }
+.jgroup-head {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text3); padding-bottom: 6px; border-bottom: 1px solid var(--border2);
+}
+.jgroup-head .tally { color: var(--text2); text-transform: none; letter-spacing: 0; }
+.jrow { border-bottom: 1px solid var(--border); }
+.jrow > summary {
+  display: grid; grid-template-columns: 124px minmax(0, 1fr) 26px; column-gap: 14px; align-items: center;
+  padding: 8px 0; cursor: pointer; list-style: none;
+}
+.jrow > summary::-webkit-details-marker { display: none; }
+.jrow > summary:hover .jline b { text-decoration: underline; text-decoration-color: var(--border2); text-underline-offset: 3px; }
+.jresult {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.04em; color: var(--text3); white-space: nowrap;
+}
+.jresult::before {
+  content: ''; display: inline-block; width: 7px; height: 7px; margin-right: 8px;
+  border: 1px solid currentColor; vertical-align: 1px;
+}
+.jresult.good { color: var(--success-text); }
+.jresult.good::before, .jresult.bad::before { background: currentColor; }
+.jresult.open { color: var(--warn-text); }
+.jresult.bad { color: var(--danger-text); }
+.jline { font-size: 12.5px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.jline b { font-weight: 600; color: var(--text); }
+.jline .jtag {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--text3); margin-right: 8px;
+}
+.jrow[open] > summary .jline { white-space: normal; }
+.jbody { padding: 0 40px 13px 138px; }
+.jrule { font-size: 12px; color: var(--text3); line-height: 1.6; margin-top: 8px; }
+.jrule-text { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
+.jrule-text.full { display: block; }
+.jrule a { color: var(--accent-text); white-space: nowrap; }
+.jquote {
+  font-size: 12px; color: var(--text2); background: var(--surface2);
+  border-left: 3px solid var(--border2); padding: 6px 10px; font-style: italic;
+}
+.jnote { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--danger-text); margin-top: 6px; }
+.jflag {
+  width: 26px; height: 26px; display: grid; place-items: center;
+  background: none; border: 1px solid transparent; border-radius: 2px; color: var(--border2); cursor: pointer;
+}
+.jflag:hover { color: var(--text2); border-color: var(--border); }
+.jflag:focus-visible, .jrow > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.jrow.disputed .jflag { color: var(--accent-text); border-color: var(--accent-border); background: var(--accent-dim); }
+.jrow.disputed .jflag svg { fill: currentColor; }
+.jfeedback { margin-top: 12px; }
+.jfeedback label { font-size: 11px; color: var(--text3); display: block; margin-bottom: 6px; }
+.jfeedback .reason-row { align-items: flex-start; }
+.text-btn {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text3);
+  background: none; border: none; cursor: pointer; padding: 9px 4px; text-decoration: underline;
+}
+.text-btn:hover { color: var(--text); }
+.jsaved { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--text3); margin-top: 6px; }
+.fold { border-bottom: 1px solid var(--border); }
+.fold > summary {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text3);
+  padding: 8px 0; cursor: pointer; list-style: none;
+}
+.fold > summary::-webkit-details-marker { display: none; }
+.fold > summary::before { content: '+ '; }
+.fold[open] > summary::before { content: '\2212  '; }
+.fold > summary:hover { color: var(--text); }
+.fold > .jrow:last-child { border-bottom: none; }
+.jnotes { list-style: none; }
+.jnotes li { font-size: 12.5px; color: var(--text2); padding: 8px 0; border-bottom: 1px solid var(--border); }
+@media (max-width: 620px) {
+  .jrow > summary { grid-template-columns: minmax(0, 1fr) 26px; row-gap: 2px; }
+  .jresult { grid-column: 1 / -1; }
+  .jbody { padding: 0 0 13px; }
+}
+
+/* a run in progress */
+.run-item .live-badge, .badge.judging {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;
+}
+.run-item .live-badge { color: var(--accent-text); display: block; margin-bottom: 2px; }
+.run-item .live-badge::before, .funnel-row.active .funnel-label::before {
+  content: ''; display: inline-block; width: 6px; height: 6px; margin-right: 7px; background: var(--accent); vertical-align: 1px;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+@keyframes pulse { 50% { opacity: .2; } }
+.badge.judging { color: var(--text3); background: transparent; border: 1px solid var(--border2); }
+.funnel-row.waiting .funnel-content { color: var(--text3); }
+.funnel-content .n-open { color: var(--text3); }
+.term-list { margin: 8px 0 6px; display: grid; grid-template-columns: minmax(0, max-content) minmax(40px, 1fr) max-content; column-gap: 12px; row-gap: 5px; align-items: center; max-width: 520px; }
+.term-list .term { font-size: 12px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.term-list .bar { height: 2px; background: var(--border); }
+.term-list .bar i { display: block; height: 100%; background: var(--accent); transition: width .5s ease; }
+.term-list .count { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text); text-align: right; }
+.term-list .count small { color: var(--text3); font-size: 10.5px; }
+.conditions { font-size: 11.5px; color: var(--text3); margin-top: 6px; }
+.conditions b { color: var(--text2); font-weight: 600; }
+.link-btn {
+  font: inherit; color: var(--danger-text); font-weight: 600; background: none; border: none; padding: 0; cursor: pointer;
+  text-decoration: underline; text-decoration-color: var(--border2); text-underline-offset: 3px;
+}
+.link-btn:hover { text-decoration-color: currentColor; }
+.live-note { font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: var(--text3); padding: 6px 0 18px; }
+.judging-line { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text3); margin: 14px 0 2px; }
+.judging-line::after, .live-note.busy::after { content: '…'; animation: pulse 1.2s ease-in-out infinite; }
+.job-card.live .decide-block, .job-card.live .jflag { display: none; }
+/* A finished card fills in top to bottom: each line appears, then its result
+   settles a beat later, and the verdict badge comes last. --d is set per
+   line in renderLive. */
+.job-card.arriving .company-line, .job-card.arriving .jgroup-head, .job-card.arriving .jrow,
+.job-card.arriving .fold, .job-card.arriving .jnotes li {
+  animation: arrive .4s ease-out both; animation-delay: var(--d, 0ms);
+}
+.job-card.arriving .jrow .jresult { animation: settle .45s ease-out both; animation-delay: calc(var(--d, 0ms) + 380ms); }
+.job-card.arriving .jrow .jline { animation: arrive .4s ease-out both; animation-delay: calc(var(--d, 0ms) + 380ms); }
+.job-card.entering { animation: arrive .4s ease-out both; animation-delay: var(--d, 0ms); }
+@keyframes arrive { from { opacity: 0; transform: translateY(5px); } }
+@keyframes settle { from { opacity: 0; } 40% { opacity: .35; color: var(--text3); } }
+@media (prefers-reduced-motion: reduce) {
+  .job-card.arriving *, .job-card.entering { animation: none !important; }
+  .run-item .live-badge::before, .funnel-row.active .funnel-label::before, .judging-line::after { animation: none; }
+}
+
+/* why jobs stopped at Stage 1 */
+dialog.s1-dialog {
+  width: min(760px, calc(100vw - 32px)); max-height: min(82vh, 900px); padding: 0; margin: auto;
+  background: var(--surface); color: var(--text); border: 1px solid var(--border2); border-radius: 2px;
+}
+dialog.s1-dialog::backdrop { background: rgba(29, 27, 25, .38); }
+.s1-head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 20px 24px 12px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--surface); }
+.s1-head h3 { font-family: 'Instrument Serif', Georgia, serif; font-size: 24px; font-weight: 400; }
+.s1-body { padding: 4px 24px 22px; }
+.s1-explain { font-size: 12px; color: var(--text3); padding: 12px 0; }
+.s1-row { padding: 12px 0; border-bottom: 1px solid var(--border); }
+.s1-row .s1-title { font-size: 12.5px; font-weight: 600; }
+.s1-row .s1-title a { color: var(--text); text-decoration: none; }
+.s1-row .s1-title a:hover { text-decoration: underline; }
+.s1-row .s1-title span { font-weight: 400; color: var(--text3); }
+.s1-row .s1-reason { font-size: 12.5px; color: var(--text2); margin-top: 3px; }
+.s1-row .s1-reason.none { color: var(--text3); font-style: italic; }
+.s1-row .jquote { margin-top: 7px; }
+.s1-row.entering { animation: arrive .4s ease-out both; animation-delay: var(--d, 0ms); }
+.revealing .drop-item { animation: arrive .45s ease-out both; animation-delay: var(--d, 0ms); display: inline-block; white-space: pre; }
+@media (prefers-reduced-motion: reduce) { .s1-row.entering, .revealing .drop-item { animation: none; } }
+.s1-keywords { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; margin-top: 8px; }
+.s1-keywords > span:first-child { font-family: 'IBM Plex Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text3); margin-right: 4px; }
+.s1-block { margin-top: 8px; }
+.s1-why { font-size: 12px; color: var(--text2); padding: 4px 0 0 13px; }
+.s1-why b { font-weight: 600; color: var(--text); }
+.page-gap { color: var(--text3); padding: 5px 2px; font-size: 11px; }
+
+/* Pipeline tab: the rubric, one criterion at a time */
+.rc-kind + .rc-kind { margin-top: 26px; }
+.rc-kind-head {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--accent-text); padding-bottom: 6px; border-bottom: 1px solid var(--border2);
+}
+.rc-kind-intro { font-size: 12px; color: var(--text3); padding: 8px 0 2px; }
+.rc-item { border-bottom: 1px solid var(--border); }
+.rc-item > summary {
+  display: flex; gap: 12px; align-items: baseline; padding: 9px 0; cursor: pointer; list-style: none; font-size: 12.5px;
+}
+.rc-item > summary::-webkit-details-marker { display: none; }
+.rc-item > summary b { font-weight: 600; color: var(--text); flex-shrink: 0; }
+.rc-item > summary .rc-preview { color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.rc-item[open] > summary .rc-preview { display: none; }
+.rc-item.flash { background: var(--accent-dim); }
+.rc-body { padding: 2px 0 14px; }
+.rc-body textarea { width: 100%; display: block; min-height: 64px; }
+.rc-body input[type="text"] { width: 100%; }
+.rc-together { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--text3); margin-bottom: 10px; }
+.rc-add { margin-top: 4px; padding-left: 0; }
+.rc-warn { font-size: 12px; color: var(--warn-text); background: var(--warn-bg); padding: 8px 10px; margin-bottom: 14px; }
 
 /* action buttons */
 .decide-block { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
@@ -1000,7 +1181,13 @@ async function loadRuns() {
 
 function renderRunList() {
   const list = document.getElementById('run-list');
-  if (runs.length === 0) {
+  const liveItem = liveRun ? `<div class="run-item ${liveSelected ? 'selected' : ''}" data-live="1">
+      <span class="live-badge">${liveRun.replay ? 'Replay' : 'Running'}</span>
+      <span class="date">${esc(fmtDate(liveRun.replay_of || liveRun.ts_start))}</span>
+      <span class="pass-badge">${fmtN((liveRun.stage2 || {}).passed || 0)} passed</span>
+      <span class="muted">${fmtN(liveRun.scrape.total)} scraped${liveRun.stage1 ? ' · ' + fmtN(liveRun.stage1.pass + liveRun.stage1.fail) + ' evaluated' : ''}</span>
+    </div>` : '';
+  if (runs.length === 0 && !liveRun) {
     list.innerHTML = '<div class="empty">No runs yet — run /ftja-run once to populate this.</div>';
     document.getElementById('run-pagination').innerHTML = '';
     return;
@@ -1010,8 +1197,8 @@ function renderRunList() {
   const start = (runPage - 1) * RUN_PAGE_SIZE;
   const pageRuns = runs.slice(start, start + RUN_PAGE_SIZE);
 
-  list.innerHTML = pageRuns.map(r => {
-    const selected = r.run_id === selectedRunId ? 'selected' : '';
+  list.innerHTML = liveItem + pageRuns.map(r => {
+    const selected = !liveSelected && r.run_id === selectedRunId ? 'selected' : '';
     return `<div class="run-item ${selected}" data-run-id="${esc(r.run_id)}">
       <span class="date">${esc(fmtDate(r.ts_end))}</span>
       <span class="pass-badge">${fmtN(r.passed)} passed</span>
@@ -1019,7 +1206,7 @@ function renderRunList() {
     </div>`;
   }).join('');
   list.querySelectorAll('.run-item').forEach(el => {
-    el.addEventListener('click', () => selectRun(el.dataset.runId));
+    el.addEventListener('click', () => el.dataset.live ? selectLive() : selectRun(el.dataset.runId));
   });
 
   const pagEl = document.getElementById('run-pagination');
@@ -1033,6 +1220,7 @@ function renderRunList() {
 }
 
 function selectRun(runId) {
+  liveSelected = false;
   selectedRunId = runId;
   statusFilter = "passed";
   currentJobPage = 1;
@@ -1042,43 +1230,300 @@ function selectRun(runId) {
   loadJobs();
 }
 
+function yesNo(v) { return v ? 'Yes' : 'No'; }
+function count(key, n) { return `<span data-count="${key}" data-value="${n ?? ''}">${fmtN(n)}</span>`; }
+
+// The run's funnel, for a finished run (numbers from runs.jsonl) and for a
+// run in progress (numbers from /api/live) alike. `v`:
+//   {runId, live, scraped, terms: [{term, count, wanted, done}]|null, cs,
+//    stage0: {passed, dropped}|null, skip, stage1: {pass, fail, pending}|null,
+//    stage2: {passed, review, fail, pending}|null, meta}
+function funnelHtml(v) {
+  const cs = v.cs || {};
+  const wanted = cs.results_wanted;
+  let scrape = `<div class="line">Scraped <b>${count('scraped', v.scraped)}</b></div>`;
+  if (v.terms && v.terms.length) {
+    scrape += `<div class="term-list">${v.terms.map((t, i) => {
+      const cap = t.wanted || wanted || 0;
+      const pct = cap ? Math.min(100, Math.round(100 * (t.count || 0) / cap)) : (t.done ? 100 : 0);
+      return `<span class="term">${esc(t.term)}</span><span class="bar"><i style="width:${pct}%"></i></span>
+        <span class="count">${count('term' + i, t.count)}${cap ? ` <small>/ ${fmtN(cap)}</small>` : ''}</span>`;
+    }).join('')}</div>`;
+  } else if (cs.search_terms) {
+    scrape += `<div class="chips">${cs.search_terms.map(t => `<span class="chip">${esc(t)}</span>`).join('')}</div>`;
+  }
+  if (v.cs) {
+    const parts = [`Location <b>${esc(cs.location || 'anywhere')}</b>`, `Remote only <b>${yesNo(cs.is_remote)}</b>`,
+      `Posted within <b>${esc(cs.hours_old)} hours</b>`, `Up to <b>${fmtN(wanted)}</b> per search term`];
+    if (cs.exact_phrase_search !== undefined) parts.push(`Exact phrase <b>${yesNo(cs.exact_phrase_search)}</b>`);
+    scrape += `<div class="conditions">${parts.join(' · ')}</div>`;
+  }
+
+  const row = (label, state, content) => `<div class="funnel-row ${state}"><div class="funnel-label">${label}</div><div class="funnel-content">${content}</div></div>`;
+  const waiting = '<div class="line">Waiting</div>';
+  const active = v.live ? (!v.stage0 ? 'scrape' : !v.stage1 ? 'stage0' : (v.stage1.pending || !v.stage2) ? 'stage1' : 'stage2') : '';
+  const is = name => active === name ? 'active' : '';
+
+  let s0 = waiting;
+  if (v.stage0) {
+    const dropLine = Object.entries(v.stage0.dropped || {}).map(([k, n], i) =>
+      `<span class="drop-item" style="--d:${500 + i * 450}ms">${i ? ' · ' : ''}${esc(DROP_LABELS[k] || k)} ${count('drop_' + k, n)}</span>`).join('') || 'no record';
+    const skipNote = (v.skip !== null && v.skip !== undefined) ? ` (skipped as already seen: ${fmtN(v.skip)})` : '';
+    s0 = `<div class="line">Passed <span class="n-pass">${count('s0', v.stage0.passed)}</span>${esc(skipNote)} — code only, no AI calls</div>
+      <div class="line empty">Dropped: ${dropLine}</div>`;
+  }
+  let s1 = waiting;
+  if (v.stage1) {
+    const failed = v.stage1.fail
+      ? `<button class="link-btn" type="button" data-stage1-fails="${esc(v.runId)}">Failed ${count('s1f', v.stage1.fail)} — see why</button>`
+      : `Failed <span class="n-fail">0</span>`;
+    s1 = `<div class="line">Passed <span class="n-pass">${count('s1p', v.stage1.pass)}</span> / ${failed}${v.stage1.pending ? ` <span class="n-open">· ${count('s1o', v.stage1.pending)} in progress</span>` : ''}</div>`;
+  }
+  let s2 = waiting;
+  if (v.stage2) {
+    s2 = `<div class="line">Final passed <span class="n-pass">${count('s2p', v.stage2.passed)}</span>${(v.stage2.review || v.live) ? ` / To review <b>${count('s2r', v.stage2.review)}</b>` : ''} / Failed <span class="n-fail">${count('s2f', v.stage2.fail)}</span>${v.stage2.pending ? ` <span class="n-open">· ${count('s2o', v.stage2.pending)} in progress</span>` : ''}</div>`;
+  }
+  return row('Scraping', is('scrape'), scrape)
+    + row('Stage0', v.stage0 ? is('stage0') : 'waiting', s0)
+    + row('Stage1', v.stage1 ? is('stage1') : 'waiting', s1)
+    + row('Stage2', v.stage2 ? is('stage2') : 'waiting', s2)
+    + (v.meta ? `<div class="meta-line">${v.meta}</div>` : '');
+}
+
+// Numbers count up to their new value instead of jumping.
+let shownCounts = {};
+function tweenCounts(root, animate) {
+  root.querySelectorAll('[data-count]').forEach(el => {
+    const to = el.dataset.value === '' ? null : Number(el.dataset.value);
+    const from = shownCounts[el.dataset.count];
+    shownCounts[el.dataset.count] = to;
+    if (!animate || to === null || from === undefined || from === null || from === to) return;
+    // a number inside a line that is itself fading in starts counting when the line shows
+    const delay = parseInt((el.closest('.revealing .drop-item') || el).style.getPropertyValue('--d') || '0', 10);
+    const step = (now, t0) => {
+      const k = Math.min(1, (now - t0) / 600);
+      el.textContent = fmtN(Math.round(from + (to - from) * k));
+      if (k < 1 && el.isConnected) requestAnimationFrame(n => step(n, t0));
+    };
+    el.textContent = fmtN(from);
+    setTimeout(() => requestAnimationFrame(n => step(n, n)), delay);
+  });
+}
+
+function bindFunnel(el) {
+  el.querySelectorAll('[data-stage1-fails]').forEach(b => b.addEventListener('click', () => openStage1Fails(b.dataset.stage1Fails)));
+}
+
 function renderRunDetail() {
   const run = runs.find(r => r.run_id === selectedRunId);
   const el = document.getElementById('run-detail');
   if (!run) { el.innerHTML = ''; return; }
+  el.innerHTML = funnelHtml({
+    runId: run.run_id, live: false, scraped: run.scraped_count, terms: run.scraped_by_term || null, cs: run.criteria_snapshot,
+    stage0: {passed: run.stage0_passed, dropped: run.stage0_dropped}, skip: run.already_seen_skipped,
+    stage1: {pass: run.stage1_pass, fail: run.stage1_fail}, stage2: {passed: run.stage2_pass, review: run.stage2_review, fail: run.stage2_fail},
+    meta: `Duration ${run.duration_seconds ? Math.round(run.duration_seconds) + 's' : '-'} · Tokens ${fmtN(run.total_tokens)}`,
+  });
+  shownCounts = {};
+  bindFunnel(el);
+}
 
-  const cs = run.criteria_snapshot;
-  let scrapeLines = `<div class="line">Scrape result: <b>${fmtN(run.scraped_count)}</b></div>`;
-  if (cs) {
-    scrapeLines += `<div class="chips">${(cs.search_terms || []).map(t => `<span class="chip">${esc(t)}</span>`).join('')}</div>`;
-    scrapeLines += `<div class="line" style="margin-top:6px;">location: ${esc(cs.location)} · is_remote: ${esc(cs.is_remote)} · hours_old: ${esc(cs.hours_old)} · results_wanted: ${esc(cs.results_wanted)}</div>`;
+// ---- a run in progress ----
+// /api/live is derived from the files in the run's working directory, so it
+// advances as the pipeline writes them. Cards are kept by job_url and only
+// touched when their state changes: a poll never redraws what you're reading.
+let liveRun = null;
+let liveSelected = false;
+let liveFilter = 'all';
+let liveCards = new Map();
+let liveFunnelKey = '';
+let liveStage0Shown = false;
+
+async function pollLive() {
+  if (document.body.classList.contains('onboarding-active')) return;
+  let run;
+  try { run = (await (await fetch('/api/live', {cache: 'no-store'})).json()).run; } catch (e) { return; }
+  if (!run && !liveRun) return;
+  if (!run) {  // it just finished: show the finished run in its place
+    const finished = liveRun, wasSelected = liveSelected;
+    liveRun = null; liveSelected = false; liveCards = new Map(); liveFunnelKey = '';
+    runs = (await (await fetch('/api/runs')).json()).filter(r => r.run_id);
+    const landed = finished.replay_of || finished.run_id;
+    if (wasSelected && runs.some(r => r.run_id === landed)) selectRun(landed);
+    else if (wasSelected && runs.length) selectRun(runs[0].run_id);
+    else renderRunList();
+    return;
+  }
+  const appeared = !liveRun || liveRun.run_id !== run.run_id;
+  liveRun = run;
+  if (appeared) { selectLive(); return; }
+  renderRunList();
+  if (liveSelected) renderLive();
+  if (stage1Dialog && stage1Dialog.runId === run.run_id) stage1Dialog.refresh().catch(() => {});
+}
+
+function selectLive() {
+  liveSelected = true;
+  liveFilter = 'all';
+  liveCards = new Map();
+  liveFunnelKey = '';
+  liveStage0Shown = false;
+  shownCounts = {};
+  document.getElementById('job-list').innerHTML = '<div class="live-note busy" id="live-note"></div>';
+  document.getElementById('job-pagination').innerHTML = '';
+  renderRunList();
+  renderLive();
+}
+
+function renderLive() {
+  const run = liveRun;
+  const view = {
+    runId: run.run_id, live: true, scraped: run.stage0 ? run.stage0.scraped : run.scrape.total, terms: run.scrape.terms, cs: run.criteria_snapshot,
+    stage0: run.stage0, skip: run.already_seen_skipped, stage1: run.stage1, stage2: run.stage2,
+    meta: !run.replay ? ''
+      : run.replay_sample ? `Replay of a sample of the ${esc(fmtDate(run.replay_of))} run, as if each search term were capped. Verdicts are from that run; counts are scaled down and the timing is compressed.`
+      : `Replay of the ${esc(fmtDate(run.replay_of))} run. Every number and verdict is from that run; the timing is compressed.`,
+  };
+  const key = JSON.stringify(view);
+  if (key !== liveFunnelKey) {
+    const el = document.getElementById('run-detail');
+    el.innerHTML = funnelHtml(view);
+    // Stage 0 finishes in one step (it is code); its result is laid out one
+    // drop reason at a time, each counting up from zero
+    if (run.stage0 && !liveStage0Shown && liveFunnelKey !== '') {
+      liveStage0Shown = true;
+      el.classList.add('revealing');
+      shownCounts.s0 = 0;
+      Object.keys(run.stage0.dropped || {}).forEach(k => { shownCounts['drop_' + k] = 0; });
+      setTimeout(() => el.classList.remove('revealing'), 500 + 450 * Object.keys(run.stage0.dropped || {}).length + 800);
+    } else if (run.stage0) {
+      liveStage0Shown = true;
+    }
+    tweenCounts(el, liveFunnelKey !== '');
+    bindFunnel(el);
+    liveFunnelKey = key;
   }
 
-  const dropped = run.stage0_dropped || {};
-  const dropLine = Object.entries(dropped).map(([k, v]) => `${DROP_LABELS[k] || k} ${v}`).join(' · ') || 'no record';
-  const skip = run.already_seen_skipped;
-  const skipNote = (skip !== null && skip !== undefined) ? ` (skipped as already seen: ${skip})` : '';
+  const s2 = run.stage2 || {total: 0, passed: 0, review: 0, fail: 0};
+  const tabs = [['all', 'All', s2.total], ['passed', 'Passed', s2.passed], ['review', 'Review', s2.review], ['stage2_fail', 'Failed', s2.fail]];
+  const tabsEl = document.getElementById('status-tabs');
+  tabsEl.innerHTML = tabs.map(([value, label, n]) =>
+    `<div class="status-tab mono ${liveFilter === value ? 'active' : ''}" data-status="${value}">${label} ${fmtN(n)}</div>`).join('');
+  tabsEl.querySelectorAll('.status-tab').forEach(t => t.addEventListener('click', () => { liveFilter = t.dataset.status; renderLive(); }));
 
-  el.innerHTML = `
-    <div class="funnel-row"><div class="funnel-label">Scraping</div><div class="funnel-content">${scrapeLines}</div></div>
-    <div class="funnel-row"><div class="funnel-label">Stage0</div><div class="funnel-content">
-      <div class="line">Passed <span class="n-pass">${fmtN(run.stage0_passed)}</span>${esc(skipNote)}</div>
-      <div class="line empty">Dropped: ${esc(dropLine)}</div>
-    </div></div>
-    <div class="funnel-row"><div class="funnel-label">Stage1</div><div class="funnel-content">
-      <div class="line">Passed <span class="n-pass">${fmtN(run.stage1_pass)}</span> / Failed <span class="n-fail">${fmtN(run.stage1_fail)}</span></div>
-    </div></div>
-    <div class="funnel-row"><div class="funnel-label">Stage2</div><div class="funnel-content">
-      <div class="line">Final passed <span class="n-pass">${fmtN(run.stage2_pass)}</span> / Failed <span class="n-fail">${fmtN(run.stage2_fail)}</span></div>
-    </div></div>
-    <div class="meta-line">Duration ${run.duration_seconds ? Math.round(run.duration_seconds) + 's' : '-'} · Tokens ${fmtN(run.total_tokens)}</div>
-  `;
+  const note = document.getElementById('live-note');
+  if (note) {
+    const doing = !run.stage0 ? 'Scraping LinkedIn' : !run.stage1 ? 'Filtering with code'
+      : !run.stage2 ? 'Stage 1 is reading the sentences around your keywords' : '';
+    note.textContent = doing;
+    note.hidden = !doing;
+  }
+
+  const list = document.getElementById('job-list');
+  let entering = 0;
+  run.jobs.forEach(job => {
+    let card = liveCards.get(job.job_url);
+    if (!card) {  // the jobs Stage 1 let through come into view one at a time
+      card = document.createElement('div');
+      card.className = 'job-card live entering';
+      card.style.setProperty('--d', (entering++ * 140) + 'ms');
+      card.addEventListener('animationend', () => card.classList.remove('entering'), {once: true});
+      list.appendChild(card);
+      liveCards.set(job.job_url, card);
+    }
+    if (card.dataset.status !== job.status) {
+      const arrived = card.dataset.status === 'judging' && job.status !== 'judging';
+      card.dataset.status = job.status;
+      card.innerHTML = jobCardInner(job);
+      bindCriterionFeedback(card, job);
+      if (arrived) {  // finished cards stack up above the ones still being read
+        const firstJudging = [...list.querySelectorAll('.job-card')].find(c => c.dataset.status === 'judging');
+        if (firstJudging) list.insertBefore(card, firstJudging);
+        // The answer arrived whole; it is laid out line by line so it can be
+        // read as it lands. A line that carries a quote takes longer.
+        let at = 0;
+        card.querySelectorAll('.company-line, .jgroup-head, .judgment > .jgroup > .jrow, .judgment > .jgroup > .fold, .jnotes li')
+          .forEach(el => {
+            el.style.setProperty('--d', Math.round(at) + 'ms');
+            at += el.classList.contains('jgroup-head') ? 260
+              : el.classList.contains('jrow') ? (el.querySelector('.jquote') ? 520 : 340) + Math.random() * 260
+              : 300;
+          });
+        const badge = card.querySelector('.badge');
+        const verdict = [badge.className, badge.textContent];
+        badge.className = 'badge judging mono';
+        badge.textContent = 'Judging';
+        card.classList.remove('entering');
+        card.classList.add('arriving');
+        setTimeout(() => { [badge.className, badge.textContent] = verdict; }, at + 500);
+        setTimeout(() => card.classList.remove('arriving'), at + 1500);
+      }
+    }
+    card.hidden = liveFilter !== 'all' && job.status !== liveFilter;
+  });
+}
+
+// ---- why jobs stopped at Stage 1 ----
+let stage1Dialog = null;
+async function openStage1Fails(runId) {
+  let dialog = document.getElementById('s1-dialog');
+  if (!dialog) {
+    dialog = document.createElement('dialog');
+    dialog.id = 's1-dialog';
+    dialog.className = 's1-dialog';
+    document.body.appendChild(dialog);
+    dialog.addEventListener('click', (e) => { if (e.target === dialog) dialog.close(); });
+  }
+  dialog.innerHTML = `
+    <div class="s1-head"><h3>Stopped at Stage 1</h3><button class="text-btn" type="button" data-close>Close</button></div>
+    <div class="s1-body">
+      <div class="s1-explain">Stage 1 reads only the sentences around your keywords, never the whole posting. These are the jobs it turned down, with the sentences it read and why.</div>
+      <div id="s1-rows"></div>
+      <div class="pagination" id="s1-pages"></div>
+    </div>`;
+  dialog.querySelector('[data-close]').addEventListener('click', () => dialog.close());
+  let current = 1, known = null, total = -1;
+  const load = async (page, turned) => {
+    const data = await (await fetch(`/api/stage1-fails?run_id=${encodeURIComponent(runId)}&page=${page}`)).json();
+    if (!turned && data.total === total) return;  // a live refresh with nothing new
+    current = page; total = data.total;
+    dialog.querySelector('h3').textContent = `Stopped at Stage 1 · ${fmtN(data.total)}`;
+    // rows not on screen before come in one after another; the rest stay put
+    let fresh = 0;
+    dialog.querySelector('#s1-rows').innerHTML = data.jobs.map(j => `
+      <div class="s1-row ${known && known.has(j.job_url) ? '' : 'entering'}" style="--d:${known && known.has(j.job_url) ? 0 : fresh++ * 110}ms">
+        <div class="s1-title"><a href="${esc(j.job_url)}" target="_blank">${esc(j.title)}</a> <span>— ${esc(j.company)}${j.location ? ' · ' + esc(j.location) : ''}</span></div>
+        <div class="s1-reason ${j.reason ? '' : 'none'}">${j.reason ? esc(j.reason) : 'No reason recorded — this run is older than Stage 1 reasons.'}</div>
+        ${(j.keywords || []).length ? `<div class="s1-keywords"><span>Matched</span>${j.keywords.map(k => `<span class="chip">${esc(k)}</span>`).join('')}</div>` : ''}
+        ${(j.blocks || []).map(b => `
+          <div class="s1-block">
+            <div class="jquote">${quoteText(b.sentence)}</div>
+            ${b.why ? `<div class="s1-why">${(b.keywords || []).length ? `<b>${b.keywords.map(esc).join(', ')}</b> — ` : ''}${esc(b.why)}</div>` : ''}
+          </div>`).join('')}
+      </div>`).join('') || '<div class="empty">Nothing has been turned down at Stage 1.</div>';
+    known = new Set(data.jobs.map(j => j.job_url));
+    const pages = dialog.querySelector('#s1-pages');
+    // first, last and the pages around the current one
+    const shown = [...new Set([1, data.total_pages, page - 2, page - 1, page, page + 1, page + 2])]
+      .filter(p => p >= 1 && p <= data.total_pages).sort((a, b) => a - b);
+    pages.innerHTML = data.total_pages <= 1 ? '' : shown.map((p, i) =>
+      (i && p - shown[i - 1] > 1 ? '<span class="page-gap">…</span>' : '')
+      + `<span class="page-btn ${p === page ? 'active' : ''}" data-page="${p}">${p}</span>`).join('');
+    pages.querySelectorAll('.page-btn').forEach(b => b.addEventListener('click', () => { known = null; load(parseInt(b.dataset.page, 10), true); }));
+    if (turned) dialog.scrollTop = 0;
+  };
+  // while the run is live, pollLive calls this: new verdicts land on top of page 1
+  stage1Dialog = {runId, refresh: () => load(current, false)};
+  dialog.addEventListener('close', () => { stage1Dialog = null; }, {once: true});
+  await load(1, true);
+  dialog.showModal();
 }
 
 function renderStatusTabs() {
   const el = document.getElementById('status-tabs');
   el.innerHTML = `
     <div class="status-tab mono ${statusFilter === 'passed' ? 'active' : ''}" data-status="passed">Passed</div>
+    <div class="status-tab mono ${statusFilter === 'review' ? 'active' : ''}" data-status="review">Review</div>
     <div class="status-tab mono ${statusFilter === 'stage2_fail' ? 'active' : ''}" data-status="stage2_fail">Failed</div>
   `;
   el.querySelectorAll('.status-tab').forEach(t => {
@@ -1095,8 +1540,215 @@ async function loadJobs() {
   if (!selectedRunId) return;
   const res = await fetch(`/api/jobs?run_id=${encodeURIComponent(selectedRunId)}&status=${statusFilter}&page=${currentJobPage}`);
   const data = await res.json();
+  if (liveSelected) return;
   renderJobs(data.jobs);
   renderJobPagination(data.page, data.total_pages);
+}
+
+const RESULT_VIEW = {
+  met: {text: 'Met', tone: 'good'},
+  meets: {text: 'Meets', tone: 'good'},
+  not_met: {text: 'Not met', tone: 'quiet'},
+  unclear: {text: 'Unclear', tone: 'open'},
+  triggered: {text: 'Triggered', tone: 'bad'},
+  gap: {text: 'Gap', tone: 'bad'},
+  not_applicable: {text: 'Not applicable', tone: 'quiet'},
+};
+const STATUS_BADGE = {passed: ['pass', 'Pass'], review: ['review', 'Review'], stage2_fail: ['fail', 'Fail']};
+const KIND_TITLES = [['pass', 'Pass'], ['fail', 'Fail'], ['preference', 'Preferences']];
+const QUIET_RESULTS = ['not_met', 'not_applicable'];
+const FLAG_ICON = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 14.5v-13M3.5 2.5h8.5l-2 3.25 2 3.25H3.5"/></svg>';
+
+// Quotes are stored as scraped (markdown: `**bold**`, `\-`); show them as text.
+function quoteText(q) {
+  return esc(String(q || '').replace(/\\([\\`*_{}\[\]()#+\-.!&|~<>])/g, '$1').replace(/\*\*|__/g, ''));
+}
+
+function resultCell(result) {
+  const view = RESULT_VIEW[result] || {text: result, tone: 'quiet'};
+  return `<span class="jresult ${view.tone}">${esc(view.text)}</span>`;
+}
+
+// One criterion: closed, a single line (result, name, the reason). Open:
+// the rule it checks with a link to edit it, the quote, and the feedback box.
+function criterionRow(c, feedback) {
+  const fb = feedback[c.id];
+  const notes = [];
+  if (c.quote && c.quote_verified === false) notes.push('Quote not found in the posting.');
+  if (c.downgraded_from) notes.push(`The model said "${(RESULT_VIEW[c.downgraded_from] || {}).text || c.downgraded_from}" without a quote that checks out, so this counts as unclear.`);
+  return `
+    <details class="jrow ${fb ? 'disputed' : ''}" data-criterion="${esc(c.id)}">
+      <summary>
+        ${resultCell(c.result)}
+        <span class="jline"><b>${esc(c.label)}</b>${c.why ? ' — ' + esc(c.why) : ''}</span>
+        <button class="jflag" type="button" title="Disagree with this judgment" aria-label="Disagree with this judgment: ${esc(c.label)}">${FLAG_ICON}</button>
+      </summary>
+      <div class="jbody">
+        ${c.quote ? `<div class="jquote">${quoteText(c.quote)}</div>` : ''}
+        ${notes.map(n => `<div class="jnote">${esc(n)}</div>`).join('')}
+        <div class="jrule">
+          ${c.text ? `<span class="jrule-text" title="Click to read the whole rule">Checks: ${esc(c.text)}</span>` : ''}
+          <a href="#" data-edit-criterion="${esc(c.id)}">Edit in rubric</a>
+        </div>
+        <div class="jfeedback" ${fb ? '' : 'hidden'}>
+          <label>What did it get wrong? /ftja-review reads this when it proposes rubric changes.</label>
+          <div class="reason-row">
+            <textarea data-field="criterion-comment">${esc(fb ? fb.comment : '')}</textarea>
+            <button class="save-btn" type="button" data-action="save-feedback">Save</button>
+            <button class="text-btn" type="button" data-action="withdraw-feedback" ${fb ? '' : 'hidden'}>Withdraw</button>
+          </div>
+          <div class="jsaved" ${fb ? '' : 'hidden'}>Marked as disagreed</div>
+        </div>
+      </div>
+    </details>`;
+}
+
+function employerRow(e) {
+  return `
+    <details class="jrow">
+      <summary>
+        ${resultCell(e.candidate)}
+        <span class="jline"><b>${esc(e.label)}</b>${e.why ? ' — ' + esc(e.why) : ''}</span>
+        <span></span>
+      </summary>
+      <div class="jbody"><div class="jquote">${quoteText(e.quote)}</div></div>
+    </details>`;
+}
+
+function jgroup(title, tally, body) {
+  return `<div class="jgroup"><div class="jgroup-head"><span>${title}</span><span class="tally">${tally}</span></div>${body}</div>`;
+}
+
+function fold(summary, body) {
+  return `<details class="fold"><summary>${summary}</summary>${body}</details>`;
+}
+
+// The rubric's own three categories, in order. In each, the lines that say
+// something about this posting are listed; "not met" and "not applicable"
+// are counted and folded. Then what the employer asks for, then notes.
+function judgmentHtml(job) {
+  const fb = job.criteria_feedback || {};
+  let html = '';
+  KIND_TITLES.forEach(([kind, title]) => {
+    const all = job.criteria.filter(c => c.kind === kind);
+    if (!all.length) return;
+    const loud = all.filter(c => !QUIET_RESULTS.includes(c.result));
+    let body = loud.map(c => criterionRow(c, fb)).join('');
+    QUIET_RESULTS.forEach(result => {
+      const quiet = all.filter(c => c.result === result);
+      if (quiet.length) body += fold(`${quiet.length} ${RESULT_VIEW[result].text.toLowerCase()}`, quiet.map(c => criterionRow(c, fb)).join(''));
+    });
+    const counts = {};
+    loud.forEach(c => { counts[c.result] = (counts[c.result] || 0) + 1; });
+    const tally = Object.entries(counts).map(([r, n]) => `${n} ${RESULT_VIEW[r].text.toLowerCase()}`).join(' · ')
+      || (kind === 'fail' ? 'none triggered' : '');
+    html += jgroup(title, tally, body);
+  });
+
+  const employer = job.employer || [];
+  if (employer.length) {
+    let body = '';
+    [['must', 'Must have'], ['preferred', 'Preferred']].forEach(([kind, title]) => {
+      const items = employer.filter(e => e.kind === kind);
+      if (!items.length) return;
+      const loud = items.filter(e => kind === 'must' || e.candidate === 'gap');
+      const quiet = items.filter(e => !loud.includes(e));
+      const gaps = items.filter(e => e.candidate === 'gap').length;
+      html += jgroup(`They ask for · ${title}`, gaps ? `${gaps} gap${gaps > 1 ? 's' : ''}` : 'no gaps',
+        loud.map(employerRow).join('') + (quiet.length ? fold(`${quiet.length} more`, quiet.map(employerRow).join('')) : ''));
+    });
+  }
+
+  if ((job.notes || []).length) {
+    html += jgroup('Notes', '', `<ul class="jnotes">${job.notes.map(n => `<li>${esc(n.text)}</li>`).join('')}</ul>`);
+  }
+  return `<div class="judgment">${html}</div>`;
+}
+
+function bindCriterionFeedback(card, job) {
+  card.querySelectorAll('.jrule-text').forEach(rule => rule.addEventListener('click', () => rule.classList.toggle('full')));
+  card.querySelectorAll('[data-edit-criterion]').forEach(link => {
+    link.addEventListener('click', (e) => { e.preventDefault(); goToCriterion(link.dataset.editCriterion); });
+  });
+  card.querySelectorAll('.jrow[data-criterion]').forEach(row => {
+    const id = row.dataset.criterion;
+    const box = row.querySelector('.jfeedback');
+    const send = async (vote) => {
+      const res = await fetch('/api/criterion-feedback', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({job_url: job.job_url, criterion_id: id, vote,
+                              comment: row.querySelector('[data-field="criterion-comment"]').value})
+      });
+      if (!res.ok) return;
+      job.criteria_feedback = (await res.json()).criteria_feedback;
+      const on = !!job.criteria_feedback[id];
+      row.classList.toggle('disputed', on);
+      row.querySelector('.jsaved').hidden = !on;
+      row.querySelector('[data-action="withdraw-feedback"]').hidden = !on;
+      if (!on) { row.querySelector('[data-field="criterion-comment"]').value = ''; box.hidden = true; }
+    };
+    // the flag sits inside <summary>; don't let it toggle the row shut
+    row.querySelector('.jflag').addEventListener('click', (e) => {
+      e.preventDefault();
+      const closing = row.open && !box.hidden && !row.classList.contains('disputed');
+      box.hidden = closing;
+      row.open = true;
+      if (!closing) row.querySelector('[data-field="criterion-comment"]').focus();
+    });
+    row.querySelector('[data-action="save-feedback"]').addEventListener('click', () => send('disagree'));
+    row.querySelector('[data-action="withdraw-feedback"]').addEventListener('click', () => send(null));
+  });
+}
+
+// "Edit in rubric" on a judgment line: open the Pipeline tab on that criterion.
+async function goToCriterion(id) {
+  openMainView('pipeline');
+  await loadPipeline();
+  const item = document.getElementById('rc-' + id) || document.getElementById('rubric-editor');
+  if (!item) return;
+  if (item.tagName === 'DETAILS') item.open = true;
+  item.scrollIntoView({block: 'center'});
+  item.classList.add('flash');
+  setTimeout(() => item.classList.remove('flash'), 1600);
+  const field = item.querySelector('textarea');
+  if (field) field.focus({preventScroll: true});
+}
+
+function jobCardInner(job) {
+  const judging = job.status === 'judging';
+  const [badgeClass, badgeText] = judging ? ['judging', 'Judging'] : (STATUS_BADGE[job.status] || ['fail', job.status]);
+  const repostNote = job.repost_count > 1 ? ` <span class="repost-note">(same posting, reposted ${job.repost_count}x)</span>` : '';
+  // jobs judged before Stage 2 returned per-criterion results only have prose
+  const judgment = judging ? '<div class="judging-line">Reading the posting against your rubric</div>'
+    : job.criteria ? judgmentHtml(job)
+    : `<div class="reasoning">${esc(job.reasoning)}</div>
+      <div class="evidence">${(job.evidence_sentences || []).map(s => `<blockquote>${esc(s)}</blockquote>`).join('')}</div>`;
+  const actionButtons = ACTIONS.map(a =>
+    `<button class="action-btn ${job.user_action === a.value ? 'selected' : ''}" data-action="${a.value}">${a.label}</button>`
+  ).join('');
+  return `
+    <div class="card-head">
+      <div>
+        <div class="card-title">${esc(job.title)}${repostNote}</div>
+        <div class="card-company">${esc(job.company)}${job.location ? ' · ' + esc(job.location) : ''}</div>
+        ${job.company_line ? `<div class="company-line">${esc(job.company_line)}</div>` : ''}
+      </div>
+      <span class="badge ${badgeClass} mono">${badgeText}</span>
+    </div>
+    <div class="link"><a href="${esc(job.job_url)}" target="_blank">${esc(job.job_url)}</a></div>
+    ${judgment}
+    <div class="decide-block">
+      <div class="decide-label">Application status</div>
+      <div class="action-buttons">${actionButtons}</div>
+      <div class="reason-field">
+        <label>Your take on the job as a whole (optional)</label>
+        <div class="reason-row">
+          <textarea data-field="reason">${esc(job.user_reason || '')}</textarea>
+          <button class="save-btn" data-action="save-reason">Save</button>
+        </div>
+      </div>
+      <div class="saved-note mono">Saved</div>
+    </div>`;
 }
 
 function renderJobs(jobs) {
@@ -1105,43 +1757,12 @@ function renderJobs(jobs) {
     list.innerHTML = '<div class="empty">No matching jobs</div>';
     return;
   }
-  list.innerHTML = jobs.map((job, i) => {
-    const badgeClass = job.status === 'passed' ? 'pass' : 'fail';
-    const badgeText = job.status === 'passed' ? 'Passed' : 'Failed';
-    const repostNote = job.repost_count > 1 ? ` <span class="repost-note">(same posting, reposted ${job.repost_count}x)</span>` : '';
-    const evidence = (job.evidence_sentences || []).map(s => `<blockquote>${esc(s)}</blockquote>`).join('');
-    const actionButtons = ACTIONS.map(a =>
-      `<button class="action-btn ${job.user_action === a.value ? 'selected' : ''}" data-action="${a.value}">${a.label}</button>`
-    ).join('');
-    return `
-      <div class="job-card ${job.user_action ? 'decided' : ''}" data-idx="${i}">
-        <div class="card-head">
-          <div>
-            <div class="card-title">${esc(job.title)}${repostNote}</div>
-            <div class="card-company">${esc(job.company)}${job.location ? ' · ' + esc(job.location) : ''}</div>
-          </div>
-          <span class="badge ${badgeClass} mono">${badgeText}</span>
-        </div>
-        <div class="link"><a href="${esc(job.job_url)}" target="_blank">${esc(job.job_url)}</a></div>
-        <div class="reasoning">${esc(job.reasoning)}</div>
-        <div class="evidence">${evidence}</div>
-        <div class="decide-block">
-          <div class="decide-label">Application status</div>
-          <div class="action-buttons">${actionButtons}</div>
-          <div class="reason-field">
-            <label>Reason (optional)</label>
-            <div class="reason-row">
-              <textarea data-field="reason">${esc(job.user_reason || '')}</textarea>
-              <button class="save-btn" data-action="save-reason">Save</button>
-            </div>
-          </div>
-          <div class="saved-note mono">Saved</div>
-        </div>
-      </div>`;
-  }).join('');
+  list.innerHTML = jobs.map((job, i) =>
+    `<div class="job-card ${job.user_action ? 'decided' : ''}" data-idx="${i}">${jobCardInner(job)}</div>`).join('');
 
   list.querySelectorAll('.job-card').forEach((card, i) => {
     const job = jobs[i];
+    bindCriterionFeedback(card, job);
     card.querySelectorAll('.action-btn').forEach(btn => {
       btn.addEventListener('click', async () => {
         const action = btn.dataset.action;
@@ -1156,8 +1777,8 @@ function renderJobs(jobs) {
         }
       });
     });
-    card.querySelector('[data-action="save-reason"]').addEventListener('click', async () => {
-      const reason = card.querySelector('[data-field="reason"]').value;
+    card.querySelector('.decide-block [data-action="save-reason"]').addEventListener('click', async () => {
+      const reason = card.querySelector('.decide-block [data-field="reason"]').value;
       const res = await fetch('/api/decide', {
         method: 'POST', headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({job_url: job.job_url, user_reason: reason})
@@ -1193,6 +1814,7 @@ const KW_PAGE_SIZE = 10;
 const KW_SORT_OPTIONS = [
   {value: "matched", label: "Matches"},
   {value: "passed", label: "Passed"},
+  {value: "review", label: "To review"},
   {value: "stage2_fail", label: "Stage2 failed"},
   {value: "stage1_fail", label: "Stage1 failed"},
 ];
@@ -1375,6 +1997,100 @@ function initProfileSources() {
   });
 }
 
+// ---- Pipeline tab: the rubric as a list, one criterion at a time ----
+const RUBRIC_KINDS = [
+  ['pass', 'Pass', 'A job passes when it meets any one of these.'],
+  ['fail', 'Fail', 'Any one of these fails a job, whatever else it offers.'],
+  ['preference', 'Preferences', 'Shown on every job. They never decide pass or fail.'],
+];
+
+function rubricItemHtml(c, all) {
+  const together = c.kind === 'pass' && c.group ? all.filter(o => o.kind === 'pass' && o.group === c.group && o !== c) : [];
+  return `
+    <details class="rc-item" id="${c.id ? 'rc-' + esc(c.id) : ''}" data-id="${esc(c.id || '')}" data-kind="${c.kind}" data-group="${esc(c.group || '')}" ${c.id ? '' : 'open'}>
+      <summary><b>${esc(c.label || 'New criterion')}</b><span class="rc-preview">${esc(c.text || '')}</span></summary>
+      <div class="rc-body">
+        ${together.length ? `<div class="rc-together">Counts only together with: ${together.map(o => esc(o.label)).join(', ')}</div>` : ''}
+        <div class="field"><label>Name — what shows on each job</label><input type="text" data-rc="label" value="${esc(c.label || '')}"></div>
+        <div class="field"><label>Rule — what the model checks the posting against</label><textarea data-rc="text" rows="3">${esc(c.text || '')}</textarea></div>
+        <button class="text-btn rc-add" type="button" data-rc-remove>Remove this criterion</button>
+      </div>
+    </details>`;
+}
+
+function rubricEditorHtml() {
+  const data = pipelineConfig.rubric_criteria;
+  const plain = `
+    <div class="field"><label>rubric.md</label><textarea id="cfg-rubric" class="rubric-textarea" rows="16">${esc(pipelineConfig.rubric_md)}</textarea></div>
+    <div class="save-row"><button class="save-btn" id="save-rubric">Save text</button><span class="saved-note mono">Saved</span></div>`;
+  if (!data) {
+    return `<div class="rc-warn">The rubric is still one block of text. The next /ftja-run splits it into single criteria, and they become editable one by one here.</div>${plain}`;
+  }
+  const stale = pipelineConfig.rubric_criteria_status === 'stale'
+    ? `<div class="rc-warn">rubric.md was edited as text after this list was made. The next /ftja-run rebuilds the list from the text; saving the list here replaces the text instead.</div>` : '';
+  const notes = data.notes || {};
+  const sections = RUBRIC_KINDS.map(([kind, title, intro]) => `
+    <div class="rc-kind" data-kind="${kind}">
+      <div class="rc-kind-head">${title}</div>
+      <div class="rc-kind-intro">${intro}</div>
+      <div class="rc-list">${data.criteria.filter(c => c.kind === kind).map(c => rubricItemHtml(c, data.criteria)).join('')}</div>
+      <button class="text-btn rc-add" type="button" data-rc-add="${kind}">Add a criterion</button>
+      <details class="fold"><summary>Notes for this section</summary>
+        <div class="rc-body"><textarea data-rc-notes="${kind}" rows="4">${esc(notes[kind] || '')}</textarea></div>
+      </details>
+    </div>`).join('');
+  return `${stale}${sections}
+    <div class="save-row"><button class="save-btn" id="save-rubric-criteria">Save rubric</button><span class="saved-note mono">Saved</span></div>
+    <details class="fold" style="margin-top:18px;"><summary>Edit as plain text</summary><div class="rc-body">
+      <div class="rc-kind-intro" style="padding-bottom:10px;">This is the file the models read. It is rewritten from the list above each time you save the list.</div>${plain}</div>
+    </details>`;
+}
+
+function bindRubricEditor() {
+  const root = document.getElementById('rubric-editor');
+  const rerender = () => { root.innerHTML = rubricEditorHtml(); bindRubricEditor(); };
+
+  document.getElementById('save-rubric').addEventListener('click', async (e) => {
+    const rubric_md = document.getElementById('cfg-rubric').value;
+    pipelineConfig.rubric_md = rubric_md;
+    await saveConfig({rubric_md}, e.target);
+    if (pipelineConfig.rubric_criteria && pipelineConfig.rubric_criteria_status !== 'stale') {
+      pipelineConfig.rubric_criteria_status = 'stale';
+      rerender();
+    }
+  });
+  if (!pipelineConfig.rubric_criteria) return;
+
+  root.querySelectorAll('[data-rc-add]').forEach(btn => btn.addEventListener('click', () => {
+    const list = btn.parentElement.querySelector('.rc-list');
+    list.insertAdjacentHTML('beforeend', rubricItemHtml({kind: btn.dataset.rcAdd}, []));
+    const item = list.lastElementChild;
+    item.querySelector('[data-rc-remove]').addEventListener('click', () => item.remove());
+    item.querySelector('[data-rc="label"]').focus();
+  }));
+  root.querySelectorAll('[data-rc-remove]').forEach(btn => btn.addEventListener('click', () => btn.closest('.rc-item').remove()));
+
+  document.getElementById('save-rubric-criteria').addEventListener('click', async (e) => {
+    const criteria = [...root.querySelectorAll('.rc-item')].map(item => ({
+      id: item.dataset.id || undefined, kind: item.dataset.kind, group: item.dataset.group || undefined,
+      label: item.querySelector('[data-rc="label"]').value.trim(),
+      text: item.querySelector('[data-rc="text"]').value.trim(),
+    }));
+    const notes = {};
+    root.querySelectorAll('[data-rc-notes]').forEach(t => { notes[t.dataset.rcNotes] = t.value; });
+    const res = await fetch('/api/rubric-criteria', {
+      method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({criteria, notes})
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { alert('Save failed: ' + (data.error || res.status)); return; }
+    Object.assign(pipelineConfig, {rubric_criteria: data.rubric_criteria, rubric_criteria_status: data.rubric_criteria_status, rubric_md: data.rubric_md});
+    rerender();
+    const note = root.querySelector('#save-rubric-criteria + .saved-note');
+    note.style.display = 'inline';
+    setTimeout(() => { note.style.display = 'none'; }, 1500);
+  });
+}
+
 function renderConfigSection() {
   const c = pipelineConfig.criteria;
   const el = document.getElementById('pipeline-config');
@@ -1385,13 +2101,15 @@ function renderConfigSection() {
     <div class="explain">Searches LinkedIn directly with these terms. Location is set here only — Stage0 doesn't filter location again.</div>
     <div class="field"><label>Search terms</label>${renderChipInput('cfg-search-terms', c.search_terms)}</div>
     <div class="field-row">
-      <div class="field"><label>location</label><input type="text" id="cfg-location" value="${esc(c.location)}"></div>
-      <div class="field"><label>hours_old</label><input type="number" id="cfg-hours-old" value="${esc(c.hours_old)}"></div>
-      <div class="field"><label>results_wanted</label><input type="number" id="cfg-results-wanted" value="${esc(c.results_wanted)}"></div>
+      <div class="field"><label>Location</label><input type="text" id="cfg-location" value="${esc(c.location)}"></div>
+      <div class="field"><label>Posted within (hours)</label><input type="number" id="cfg-hours-old" value="${esc(c.hours_old)}"></div>
+      <div class="field"><label>Max results per search term</label><input type="number" id="cfg-results-wanted" value="${esc(c.results_wanted)}"></div>
     </div>
     <div class="field-row">
-      <label class="check-label"><input type="checkbox" id="cfg-is-remote" ${c.is_remote ? 'checked' : ''}> is_remote</label>
-      <label class="check-label"><input type="checkbox" id="cfg-exact-phrase" ${c.exact_phrase_search ? 'checked' : ''}> exact_phrase_search</label>
+      <div class="field"><label>Remote only — No searches on-site, hybrid and remote alike</label>
+        <select id="cfg-is-remote" class="sort-select mono"><option value="no" ${c.is_remote ? '' : 'selected'}>No</option><option value="yes" ${c.is_remote ? 'selected' : ''}>Yes</option></select></div>
+      <div class="field"><label>Exact phrase — Yes matches each search term as a whole phrase</label>
+        <select id="cfg-exact-phrase" class="sort-select mono"><option value="yes" ${c.exact_phrase_search ? 'selected' : ''}>Yes</option><option value="no" ${c.exact_phrase_search ? '' : 'selected'}>No</option></select></div>
     </div>
     <div class="save-row"><button class="save-btn" id="save-scrape">Save</button><span class="saved-note mono">Saved</span></div>
   </div>
@@ -1413,8 +2131,8 @@ function renderConfigSection() {
   <div class="card">
     <div class="explain">
       For postings that passed Stage0, shows <b>only the sentence where the keyword appears plus the sentences right before/after it</b> to a cheap AI model (haiku).
-      The full posting is not shown — it's a first-pass filter for "does this look promising" based only on the Pass/Fail sections of rubric.md. The judgment
-      criteria themselves are edited together in the rubric.md field under Stage2 (section 4) below.
+      The full posting is not shown — it's a first-pass filter for "does this look promising" based only on the Pass/Fail sections of rubric.md. The criteria
+      themselves are edited one by one under Stage2 (section 4) below.
     </div>
   </div>
 </div>
@@ -1424,10 +2142,9 @@ function renderConfigSection() {
   <div class="card">
     <div class="explain">
       Only postings that passed Stage1 get shown to a pricier AI model (sonnet) with <b>the full posting + the entire judgment criteria below + the profile summary</b>,
-      which then makes the final pass/fail call.
+      and answers each criterion below with a quote from the posting. Code turns those answers into pass / review / fail.
     </div>
-    <div class="field"><label>Judgment criteria (full rubric.md)</label><textarea id="cfg-rubric" class="rubric-textarea" rows="16">${esc(pipelineConfig.rubric_md)}</textarea></div>
-    <div class="save-row"><button class="save-btn" id="save-rubric">Save</button><span class="saved-note mono">Saved</span></div>
+    <div id="rubric-editor">${rubricEditorHtml()}</div>
   </div>
 </div>
 
@@ -1454,8 +2171,8 @@ function renderConfigSection() {
       location: document.getElementById('cfg-location').value,
       hours_old: parseInt(document.getElementById('cfg-hours-old').value, 10) || 0,
       results_wanted: parseInt(document.getElementById('cfg-results-wanted').value, 10) || 0,
-      is_remote: document.getElementById('cfg-is-remote').checked,
-      exact_phrase_search: document.getElementById('cfg-exact-phrase').checked,
+      is_remote: document.getElementById('cfg-is-remote').value === 'yes',
+      exact_phrase_search: document.getElementById('cfg-exact-phrase').value === 'yes',
     };
     pipelineConfig.criteria = criteria;
     saveConfig({criteria}, e.target);
@@ -1469,11 +2186,7 @@ function renderConfigSection() {
     pipelineConfig.criteria = criteria;
     saveConfig({criteria}, e.target);
   });
-  document.getElementById('save-rubric').addEventListener('click', (e) => {
-    const rubric_md = document.getElementById('cfg-rubric').value;
-    pipelineConfig.rubric_md = rubric_md;
-    saveConfig({rubric_md}, e.target);
-  });
+  bindRubricEditor();
   document.getElementById('save-profile').addEventListener('click', (e) => {
     const profile_md = document.getElementById('cfg-profile').value;
     pipelineConfig.profile_md = profile_md;
@@ -1485,7 +2198,8 @@ async function loadPipeline() {
   if (pipelineLoaded) return;
   const res = await fetch('/api/pipeline');
   const data = await res.json();
-  pipelineConfig = {criteria: data.criteria, rubric_md: data.rubric_md, profile_md: data.profile_md, profile_sources: data.profile_sources || []};
+  pipelineConfig = {criteria: data.criteria, rubric_md: data.rubric_md, profile_md: data.profile_md, profile_sources: data.profile_sources || [],
+                    rubric_criteria: data.rubric_criteria, rubric_criteria_status: data.rubric_criteria_status};
   renderConfigSection();
   keywordStats = data.keyword_stats || [];
   renderKeywordSection();
@@ -1541,7 +2255,7 @@ function renderKeywordSection() {
 }
 
 // ---- init ----
-(async () => { const onboarding = await maybeStartOnboarding(); if (!onboarding) { document.querySelector('.main-tab[data-view=\"results\"]').classList.add('active'); document.getElementById('view-results').classList.add('active'); loadRuns(); } })();
+(async () => { const onboarding = await maybeStartOnboarding(); if (!onboarding) { document.querySelector('.main-tab[data-view=\"results\"]').classList.add('active'); document.getElementById('view-results').classList.add('active'); loadRuns(); } setInterval(pollLive, 1500); pollLive(); })();
 </script>
 </body>
 </html>

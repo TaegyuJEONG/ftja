@@ -14,11 +14,18 @@ Decisions are recorded through the review server, not by hand-editing
 digest files: tell the user to run `venv/bin/python -m ftja.server` and
 open `http://127.0.0.1:8765` in a browser (Chrome, Edge, or Safari — it's
 a local HTTP server, not a static file, so any browser works) if they
-haven't already. There they see every job that reached Stage 2 (passed or
-stage2_fail) with its full reasoning and evidence, and can set application
-status/reason per job — each save calls `POST /api/decide`, which writes straight into
-`seen.db` via `ftja.state.record_decision`. Nothing for this skill to parse
-out of a markdown file.
+haven't already. There they see every job that reached Stage 2 (passed,
+review or stage2_fail) with one result per rubric criterion and the JD
+quote behind it, and can record two things:
+
+- for the job as a whole, an application status and a reason — each save
+  calls `POST /api/decide`, which writes straight into `seen.db` via
+  `ftja.state.update_decision`;
+- for a single criterion, a disagreement ("it said this was met, but the
+  sentence is about engineers building") — the flag on that row
+  calls `POST /api/criterion-feedback`.
+
+Nothing for this skill to parse out of a markdown file.
 
 **This skill's steps 2-3 also run automatically inside `/ftja-run`'s
 preflight** whenever pending decisions exist and the run is interactive —
@@ -34,7 +41,16 @@ venv/bin/python -m ftja.state pending-review
 
 Returns every `skipped_fit` decision with a non-empty reason that hasn't
 been proposed-and-resolved yet (`decision_review_status IS NULL`). If
-empty, tell the user there's nothing pending and stop.
+empty, there are no whole-job decisions pending.
+
+```
+venv/bin/python -m ftja.state pending-feedback
+```
+
+Returns every criterion-level disagreement that hasn't been resolved yet:
+the job, the criterion id and label, what Stage 2 answered (`result`,
+`quote`, `why`) and the user's `comment`. If both lists are empty, tell the
+user there's nothing pending and stop.
 
 ## 2. Propose concrete changes
 
@@ -53,6 +69,17 @@ whether the reason maps to a concrete change:
 - **Already covered** — if `exclude_keywords`/`rubric.md` already addresses
   this reason and the miss looks like one-off LLM judgment noise rather
   than a real gap, say so and treat it as declined (nothing to change).
+
+A criterion-level disagreement is more specific than a whole-job reason:
+it names the rubric line that was misapplied and shows the sentence it was
+misapplied to. Read that criterion's text in `rubric.md` next to the quote
+and the comment, and propose the wording change that would have produced
+the answer the user expected — usually a clarifying clause or a
+counter-example in that one line, not a new rule. Group feedback by
+criterion id first: several disagreements on the same id are one proposal.
+A disagreement with an empty comment still counts as a signal, but only
+propose a change from it when the quote makes the problem obvious;
+otherwise ask the user what was wrong.
 
 If multiple pending decisions point at the same theme (e.g. three separate
 reasons all about company stage), fold them into one proposal rather than
@@ -76,6 +103,12 @@ This is what stops the same reason from being re-proposed every single
   already covered / noise):
   `venv/bin/python -m ftja.state mark-reviewed --job-url "<url>" --status declined`
 
+Resolve every criterion-level disagreement from step 1 the same way:
+
+```
+venv/bin/python -m ftja.state mark-feedback-reviewed --job-url "<url>" --criterion-id "<id>" --status applied|declined
+```
+
 A decision marked either way stays resolved permanently — it only becomes
 pending again if the user edits that job's action/reason through the
 review server (record_decision resets the status).
@@ -86,6 +119,18 @@ After the user approves any edits:
 git add rubric.md criteria.json
 git commit -m "tune: <short summary of what changed and why>"
 ```
+
+`rubric.md` and `rubric-criteria.json` are the same rubric in two forms.
+When a change is to one criterion's wording, or adds or removes a
+criterion, make it in `rubric-criteria.json` (keep every other id as it
+is) and then rewrite `rubric.md` from it:
+
+```
+venv/bin/python -c "import json; from ftja.verdict import save_criteria; d = json.load(open('rubric-criteria.json')); save_criteria('.', d['criteria'], d.get('notes'))"
+```
+
+If you edited `rubric.md` as text instead, the list is stale and the next
+`/ftja-run` rebuilds it in its preflight.
 
 (The review server's Pipeline tab reads `criteria.json`/`rubric.md` live on
 every request — nothing to regenerate.)

@@ -44,18 +44,53 @@ path.
 - Acquire the lock: `venv/bin/python -m ftja.lock acquire .ftja.lock`.
 - **Always release the lock before finishing** (`venv/bin/python -m ftja.lock release .ftja.lock`),
   including on any error path. Treat this like a try/finally.
-- Note the wall-clock start time both as an epoch (for `duration_seconds`)
-  and as an ISO8601 UTC string (`ts_start`, for the stats file in step 5),
-  and start a running total of tokens spent (add each Stage1/Stage2 Agent
+- Start a running total of tokens spent (add each Stage1/Stage2 Agent
   call's `usage.subagent_tokens`, visible in that call's completion
   notification, as it arrives).
-- Snapshot `criteria_snapshot` from `criteria.json` right now: `{search_terms,
-  location, is_remote, hours_old, results_wanted}`. This goes into the stats
-  file as-is — criteria.json can change later via /ftja-tune, and a run
-  record should show what was actually used for THAT run, not whatever
-  criteria.json holds when someone opens the review server afterward.
+- **Check the criteria list**: `venv/bin/python -m ftja.verdict status`.
+  `rubric-criteria.json` is the rubric as a list of single criteria with
+  stable ids; Stage 2 answers per criterion and `finalize` computes the
+  verdict from those answers. The user edits this list one criterion at a
+  time in the viewer's Pipeline tab, which rewrites `rubric.md` from it. If
+  the command prints `ok`, continue. If it prints `missing`, `stale`
+  (rubric.md was edited as text since) or `invalid: ...`, rewrite the file
+  from `rubric.md` yourself before going on:
+
+  ```json
+  {"rubric_version": "<venv/bin/python -c 'from ftja.state import rubric_version; print(rubric_version())'>",
+   "criteria": [
+     {"id": "direct_build", "kind": "pass", "group": "builder", "label": "Builds the product personally", "text": "<the rule>"},
+     {"id": "internship", "kind": "fail", "label": "Internship or trainee position", "text": "<the rule>"},
+     {"id": "ownership", "kind": "preference", "label": "Hands-on, zero-to-one ownership", "text": "<the rule>"}],
+   "notes": {"pass": "", "fail": "", "preference": ""}}
+  ```
+
+  - `kind` is one of the rubric's three categories. `pass`: a reason the
+    role is a match. `fail`: a reason to reject it, wherever the rubric
+    states it — including any "Fail when ..." line under Preferences.
+    `preference`: everything else; shown to the user, never decides.
+  - `group` (pass only, optional): give the same group name to pass
+    criteria that only count together ("both must be evidenced"). A job
+    passes on any one group, or on any one ungrouped pass criterion. Most
+    rubrics need no groups.
+  - `label` is what the user sees on every job, next to Met / Not met /
+    Triggered. Write it so it reads on its own, in at most 6 words:
+    "Requires a language the candidate doesn't speak", not "Language".
+  - `text` is the rule the model applies. Carry the rubric's own wording
+    over, with its examples and exceptions; do not shorten it into a
+    paraphrase and do not add anything the rubric doesn't say.
+  - `notes`: guidance in a section that belongs to no single criterion
+    (how strict to be, a Stage 1 note). Leave out "fail if nothing passes";
+    the rule already does that.
+  - Keep the id of every criterion that still exists, even if its wording
+    changed. The viewer stores the user's per-criterion feedback under
+    these ids. New ids: short snake_case.
+  - Do not rewrite `rubric.md` here. Run `ftja.verdict status` again; it
+    must print `ok`.
 - **Check for pending review decisions**: `venv/bin/python -m ftja.state
-  pending-review`. This is what replaces a live watcher — review "just
+  pending-review` and `venv/bin/python -m ftja.state pending-feedback` (the
+  second lists single criteria the user disagreed with in the viewer;
+  "empty" below means both are). This is what replaces a live watcher — review "just
   happens" as part of the normal run cadence instead of needing a
   background process. If it's empty, continue straight to step 1. If this
   is an **unattended invocation** (triggered by the scheduled launchd
@@ -68,98 +103,83 @@ path.
   applying) before moving on to step 1 — this is the only place that skill's
   logic runs unless the user explicitly calls `/ftja-review` on its own.
 
-## 1. Scrape (Stage 0a)
+## 1. Start the run and scrape (Stage 0a)
 
-Read `criteria.json` for `search_terms` (list), `location`, `is_remote`,
-`hours_old`, `results_wanted`, `exact_phrase_search` (bool — whether each
-search term is sent to LinkedIn as an exact quoted phrase; default `true`
-if the key is missing, for backward compatibility with criteria.json files
-written before this option existed). For each search term, run:
+Do this only after the preflight above is settled (the criteria list is
+`ok`, pending reviews are handled), because it copies `criteria.json`'s
+search settings and `rubric-criteria.json` for this run:
 
 ```
-venv/bin/python -m ftja.scrape --search-term "<term>" --location "<location>" \
-  --results-wanted <results_wanted> --hours-old <hours_old> \
-  --exact-phrase / --no-exact-phrase (per exact_phrase_search) \
-  --out /tmp/ftja-scraped-<n>.json
+venv/bin/python -m ftja.live start
 ```
 
-Merge all the output files into one list (dedup by `job_url` across terms).
-Note the merged count — this is `scraped_count` for the stats file.
+It prints `{"run_id": ..., "run_dir": ".ftja-run/<id>", ...}`. Every later
+command takes that `run_dir` as `--dir`; every file of this run lives in it
+(nothing goes to /tmp). From this moment the run is visible in the viewer's
+Results tab, and it advances there by itself as the files below appear —
+you never report progress, and you never write these files by hand.
+
+Then scrape each search term in `criteria.json`'s `search_terms`, by its
+index (0, 1, 2, ...), one after another:
+
+```
+venv/bin/python -m ftja.live scrape --dir <run_dir> --term <index>
+```
+
+Each call reads the term, location, remote-only flag, time window, cap per
+term and exact-phrase setting from the run's own snapshot, scrapes in
+batches of 10, and updates that term's count after every batch.
 
 ## 2. Deterministic filter (Stage 0b)
 
 ```
-venv/bin/python -m ftja.filter_stage0 --jobs <merged_scraped.json> --criteria criteria.json --out /tmp/ftja-stage0.json --dropped-out /tmp/ftja-stage0-dropped.json
+venv/bin/python -m ftja.live stage0 --dir <run_dir>
 ```
 
-Read the printed `Stage0: N -> M (dropped: {...})` line — `M` is your
+Merges the scrapes (one entry per `job_url`), runs `ftja.filter_stage0`,
+and prints `{"scraped": N, "passed": M, "dropped": {...}}`. `M` is your
 coverage number for this run (compare it, over time, against what
 LinkedIn's own search UI shows for the same term — that's the Acceptance
-Criteria #2 check, not something to automate here). The `dropped` dict
-(language/no_tier1_hit/exclude_keyword/language_requirement/duplicate_content
-counts) goes into the stats file as `stage0_dropped`. Location is not part of Stage 0 — it's already
-deterministic at scrape time via `criteria.json`'s `location`/`is_remote`.
+Criteria #2 check, not something to automate here). Location is not part
+of Stage 0 — it's already deterministic at scrape time.
 
-The language check (langdetect against `criteria.json`'s `languages` list)
-already ran inside `filter_stage0` — a job whose JD isn't written in a
-language the candidate reads never reaches Stage 1, even if it doesn't
-explicitly state a language *requirement*.
-
-`filter_stage0` also drops a JD that plainly requires a language outside
-`languages` ("Fluent in German and English" when the candidate reads only
-English and French). It keeps anything ambiguous ("German is a plus", "the
-German market"), so Stage 2 still checks language requirements. These drops
-are saved to `--dropped-out` with the sentence that triggered each one; pass
-that file to finalize in step 5 so they show up in the rejected file. They
-are not results: do not add them to the results list or to `seen.db`.
-
-`filter_stage0`'s output is already deduped by content — the same JD
-reposted under multiple LinkedIn URLs (companies/agencies do this to look
-"freshly posted") collapses into one job carrying `_duplicate_job_urls`
-(the other URLs). Don't judge those separately; the representative's
-verdict applies to all of them — pass `duplicate_job_urls` through
-unchanged into that job's entry in the Stage 5 results list, so `finalize`
-marks every alias URL as seen too, and the digest/rejected files show one
-entry (noting the repost count) instead of N identical ones. `dropped
-duplicate_content` (in the stats file) counts how many were merged — the
-`merged_duplicates` figure — expect this to be small (~2% historically),
-not a major lever.
-
-Also carry forward, per job, the `matched=True` entries from `_t1_blocks`:
-`t1_matched_keywords` (their `matched_keywords`, deduped) and
-`t1_matched_sentences` (their `sentence` text) into that job's Stage 5
-results entry. This is the audit trail for keyword-matching quality — it
-persists in `seen.db`, not a separate report file, so it's queryable any
-time (`sqlite3 seen.db "SELECT title, t1_matched_keywords,
-t1_matched_sentences FROM seen_jobs WHERE status='passed'"`) instead of
-only existing for the duration of one run.
-
-Before continuing, drop any job whose `job_url` is already in `seen.db`
-(query it with `sqlite3 seen.db "SELECT job_url_hash FROM seen_jobs"` and
-compare against `ftja.state.hash_url(job_url)` — or just let jobs pass
-through to Stage 1/2 and skip already-verdicted ones there; either is fine,
-but do not re-spend LLM calls on a job already recorded as
-passed/stage1_fail/stage2_fail). Count how many were dropped this way —
-that's `already_seen_skipped` for the stats file.
+What the filter does, all in code with no LLM call: drops a JD not written
+in a language the candidate reads (langdetect against `criteria.json`'s
+`languages`); drops a JD that plainly requires a language outside that list
+("Fluent in German and English"), keeping anything ambiguous ("German is a
+plus") for Stage 2; requires a tier-1 keyword; applies exclude keywords;
+and collapses the same JD reposted under several URLs into one job. The
+language-requirement drops are listed in the rejected file with the
+sentence that triggered each, and are not recorded as seen.
 
 ## 3. Stage 1 — cheap-model sentence-block judgment
 
-Prompt template: `stage1_prompt.md`. Each job in the Stage 0 output carries
-a `_t1_blocks` field: a list of `{index, s_id, sentence, matched}` — render
-each as `<s_id>[T1 or ctx] <sentence>` and fill the template's
-`{title}`/`{company}`/`{blocks}`/`{rubric_pass_fail_excerpt}` placeholders
-(the last one is `rubric.md`'s "Pass"/"Fail" sections only, not the whole
-file — Stage 2 reads the whole file).
+```
+venv/bin/python -m ftja.live prepare-stage1 --dir <run_dir>
+```
 
-Write each filled prompt to its own file (e.g. `/tmp/ftja-s1-<N>.txt`).
-Then call the `Agent` tool with `model: "haiku"`, giving **each subagent a
-batch of up to 10 jobs**: it reads each prompt file, judges each job on its
-own, and writes each result to `/tmp/ftja-s1-out-<N>.json`. For each job the
-result is ONLY:
+Drops jobs already judged on an earlier run (they're in `seen.db`), then
+writes one filled prompt per remaining job to `<run_dir>/s1/<n>.txt`
+(template: `stage1_prompt.md`; the job's keyword sentences with their
+neighbours, plus `rubric.md`'s Pass/Fail sections). It prints how many jobs
+there are; they are numbered `0 .. jobs-1`.
+
+Call the `Agent` tool with `model: "haiku"`, giving **each subagent a batch
+of up to 10 job numbers**: it reads `<run_dir>/s1/<n>.txt` for each, judges
+each job on its own, and writes each answer to `<run_dir>/s1/<n>.out.json`.
+The answer is ONLY:
 
 ```json
-{"verdict": "pass" | "fail", "evidence_sids": ["S3", "S4"]}
+{"verdict": "pass" | "fail", "evidence_sids": ["S3", "S4"], "reason": "<one sentence, at most 15 words>",
+ "blocks": [{"sid": "S3", "why": "<12 words max>"}, ...]}
 ```
+
+`reason` is shown to the user next to every job Stage 1 turned down, so it
+must say what decided it, not "no pass criterion met". `blocks` has one
+entry per [T1] sentence: what the model made of that sentence. The user
+sees it under each matched sentence, next to the keyword that matched. Tell the subagent
+to write each job's file as soon as that job is judged, not all at the end
+— the viewer counts them as they land.
 
 Batching is deliberate: every subagent carries a fixed overhead of roughly
 45k tokens, so one job per subagent cost about 5× more for the same verdicts
@@ -172,86 +192,83 @@ and calls beyond it fail. Send the next wave after the previous one returns.
 
 Ask each subagent to also reply with one line per job (`N <json>`). Writes
 can fail on transient permission-check errors; when an output file is
-missing, recover that job's verdict from the reply. If neither exists, rerun
-that job.
-
-No hallucinated quotes — evidence is by S-id only (this mirrors
-`job_evaluator.py:968-1010`'s design, ported here without the Supabase
-plumbing). Collect the `pass` jobs as the Stage 1 output list. Add each
-call's `usage.subagent_tokens` to the running token total.
+missing, write it yourself from the reply. If neither exists, rerun that
+job. Evidence is by S-id only, so there are no quotes to hallucinate. Add
+each call's `usage.subagent_tokens` to the running token total.
 
 ## 4. Stage 2 — mid-model resume/portfolio judgment
 
-Prompt template: `stage2_prompt.md`. For each Stage 1 `pass` job, call the
-`Agent` tool with `model: "sonnet"` — **one job per subagent; do not batch
-Stage 2.** In a measured comparison, borderline jobs that failed in every
-single-job run passed when judged in a batch alongside similar postings.
-Stage 2 is the final verdict, so it stays single-job. Fill
-`{title}`/`{company}`/`{location}`/`{full_description}` — the subagent
-reads `rubric.md` (full file) and `profile/summary.md` itself via the Read
-tool (don't paste their content into the prompt; the template only carries
-the JD text and identifiers). If `profile/summary.md` doesn't exist yet,
-STOP and tell the user to run `/ftja-setup` (or re-run it) — don't fall
-back to reading the raw CV/portfolio, that reintroduces the token cost this
-file exists to avoid. If a description is somehow empty, skip Stage 2 for
-that job and record it as `stage1_fail` with a note, don't fabricate content.
+If `profile/summary.md` doesn't exist, STOP and tell the user to run
+`/ftja-setup` — don't fall back to reading the raw CV/portfolio, that
+reintroduces the token cost the summary exists to avoid.
 
-The subagent returns:
-
-```json
-{"verdict": "pass" | "fail", "evidence_sentences": ["<verbatim quote>", ...], "reasoning": "<one paragraph>"}
+```
+venv/bin/python -m ftja.live prepare-stage2 --dir <run_dir>
 ```
 
-Run these calls in parallel waves of at most 20 per message, as in Stage 1.
-Have each subagent write its JSON to `/tmp/ftja-s2-out-<N>.json` and also
-return it in its reply, so a failed write does not lose the verdict.
+It refuses, naming the job numbers, while any Stage 1 answer is missing or
+unreadable — fix those first. Otherwise it writes one filled prompt per
+Stage 1 pass to `<run_dir>/s2/<n>.txt` (template: `stage2_prompt.md`, with
+the run's criteria list and the full JD) and prints how many there are,
+numbered `0 .. jobs-1`. A job whose description is empty is left out and
+recorded as a Stage 1 fail with a note.
 
+For each one, call the `Agent` tool with `model: "sonnet"` — **one job per
+subagent; do not batch Stage 2.** In a measured comparison, borderline jobs
+that failed in every single-job run passed when judged in a batch alongside
+similar postings. Stage 2 is the final verdict, so it stays single-job. The
+subagent reads `<run_dir>/s2/<n>.txt` and follows it (it reads `rubric.md`
+and `profile/summary.md` itself), writes its JSON answer to
+`<run_dir>/s2/<n>.out.json`, and returns the same JSON in its reply so a
+failed write does not lose it.
+
+The answer has one result per criterion and no overall verdict, plus what
+the employer asks for, a one-line company description and notes:
+
+```json
+{"company_line": "...",
+ "criteria": [{"id": "direct_build", "result": "met", "quote": "<verbatim from the JD>", "why": "<one short sentence>"}, ...],
+ "employer_requirements": [{"kind": "must", "label": "...", "quote": "...", "candidate": "meets", "why": "..."}, ...],
+ "notes": [{"text": "...", "quote": "..."}]}
+```
+
+Do not decide pass/fail from this yourself, and do not edit, drop or "fix"
+any entry: copy a reply into the output file exactly as returned. Code
+checks each quote against the JD and computes `passed` / `review` /
+`stage2_fail` by a fixed rule (`ftja/verdict.py`): a result the model gave
+without a quote that really appears in the JD is downgraded to `unclear`, a
+criterion the model skipped counts as `unclear`, and an employer
+requirement or note whose quote isn't in the JD is dropped. The viewer
+shows each job's card the moment its file lands.
+
+Run these calls in parallel waves of at most 20 per message, as in Stage 1.
 Add each call's `usage.subagent_tokens` to the running token total.
 
 ## 5. Finalize
 
-Assemble a single JSON list, one entry per job touched this run (every job
-that reached Stage 0 output, regardless of where it stopped):
-
-```json
-[
-  {"job_url": "...", "title": "...", "company": "...", "location": "...",
-   "status": "stage1_fail" | "stage2_fail" | "passed",
-   "stage_reached": 1 | 2,
-   "verdict": "...", "evidence_sentences": [...], "reasoning": "...",
-   "duplicate_job_urls": ["...", "..."],
-   "t1_matched_keywords": ["...", "..."], "t1_matched_sentences": ["...", "..."]}
-]
+```
+venv/bin/python -m ftja.live results --dir <run_dir>
 ```
 
-`duplicate_job_urls`, `t1_matched_keywords`, `t1_matched_sentences` are all
-optional — carry them straight through from that job's Stage 0 fields when
-present (see step 2). Omit entirely rather than writing an empty list.
-
-Also write a small stats file:
-
-```json
-{"ts_start": "<ISO8601 UTC from step 0>", "duration_seconds": <now - start_time>,
- "total_tokens": <running total>, "scraped_count": <merged count from step 1>,
- "already_seen_skipped": <count from step 2>, "stage0_dropped": <dropped dict from step 2>,
- "criteria_snapshot": <snapshot from step 0>}
-```
-
-Write both to temp files and run:
+It refuses, naming the job numbers, while any Stage 1 or Stage 2 answer is
+missing or isn't valid JSON with a `criteria` list — rerun those jobs and
+call it again. Otherwise it writes the run's `results.json` and
+`stats.json`. Then:
 
 ```
-venv/bin/python -m ftja.finalize --results /tmp/ftja-results.json --stats /tmp/ftja-stats.json --stage0-dropped /tmp/ftja-stage0-dropped.json --db seen.db --out-dir .
+venv/bin/python -m ftja.finalize --run-dir <run_dir> --total-tokens <running total>
 ```
 
-This records everything in `seen.db` (including title/company/location —
-the full JD text is never persisted, only these identifying fields), writes
-`digest-YYYY-MM-DD.md` (passed) and `rejected-YYYY-MM-DD.md` (Stage1/2
-fails, with their reasoning — Stage1/2 verdicts are free-text LLM judgment,
-not a fixed category the way Stage0's dropped-reason counts are, so this is
-where "why did X fail" stays readable after the run ends instead of only
-existing in the moment), appends `run.log` and `runs.jsonl`, and fires the
-macOS notification — do this even if 0 jobs passed (silent failure is
-exactly what we're avoiding).
+This computes each Stage 2 job's verdict against the criteria list copied
+at the start of the run, records everything in `seen.db` (title/company/
+location and the Stage 1 reason for every job; for jobs that reached Stage
+2 also the per-criterion results, the employer's requirements, notes and
+the full JD text), writes `digest-YYYY-MM-DD.md` (passed, then the ones to
+review) and `rejected-YYYY-MM-DD.md` (Stage1/2 fails, with their reasoning,
+so "why did X fail" stays readable after the run ends), appends `run.log`
+and `runs.jsonl`, fires the macOS notification, and marks the run finished
+so the viewer swaps the live view for the finished run — do this even if 0
+jobs passed (silent failure is exactly what we're avoiding).
 
 ## 6. Release the lock and report
 
@@ -260,6 +277,6 @@ venv/bin/python -m ftja.lock release .ftja.lock
 ```
 
 If this was invoked interactively (not from launchd), tell the user the
-digest path, the pass count, and that this run now shows up in the review
-server's Results tab (`venv/bin/python -m ftja.server` if it's not already
-running) — nothing to regenerate, it reads `runs.jsonl`/`seen.db` live.
+digest path, the pass and review counts (`finalize` prints both; "review"
+means the posting was ambiguous on a deciding point and the user should
+read it), and that the run is in the viewer's Results tab.
