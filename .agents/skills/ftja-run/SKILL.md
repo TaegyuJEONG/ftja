@@ -48,11 +48,24 @@ path.
 
 ## 0. Preflight
 
-- Run `venv/bin/python -m ftja.version check`. If it prints `update
-  available`, pass that line on to the user in your final report (and offer
-  `/ftja-update` if this run is interactive). Never update in the middle of
-  a run, and never let this check stop one: it prints something and exits
-  0 even when offline.
+- **Newer version?** Run `venv/bin/python -m ftja.version check` before
+  anything else in this list. It prints something and exits 0 even when
+  offline; it never stops a run.
+  - `up to date`, or it could not check: go on.
+  - `update available`, on an **interactive** run: ask the user now, before
+    the lock is taken, whether to update first — name both versions, and
+    say that it takes about a minute and their own files are not touched.
+    - Yes: follow the `ftja-update` skill (`.agents/skills/ftja-update/SKILL.md`)
+      from its step 2. If it stops (local changes, a diverged branch),
+      report why and ask whether to run on the current version instead.
+      When it succeeds, this file may have changed under you: read
+      `.agents/skills/ftja-run/SKILL.md` again from disk and start over
+      from step 0a with what it says now. Do not ask about updating again.
+    - No: go on with the installed version and repeat the `update
+      available` line in your final report.
+  - `update available`, on an **unattended** run: never update and never
+    ask. Go on, and append the line to `run.log` so it is seen later.
+  Never update once the run has started.
 - Check `rubric.md` and `criteria.json` exist in the project root. If either
   is missing, STOP and tell the user to run `/ftja-setup` first — do not
   improvise a rubric yourself.

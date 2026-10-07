@@ -96,9 +96,10 @@ launchctl unload ~/Library/LaunchAgents/com.ftja.run.plist
 ## Updating
 
 FTJA is a clone of this repository, so it stays at the version you cloned
-until you pull. It tells you when a newer version is published: `/ftja-run`
-mentions it at the start of a run and the viewer shows a banner. To update,
-run `/ftja-update` in your coding agent. It pulls, reinstalls dependencies,
+until you pull. It tells you when a newer version is published: the viewer
+shows a banner, and `/ftja-run` asks at the start of a run whether to update
+first (a scheduled run never updates; it only notes it in `run.log`). You
+can also run `/ftja-update` yourself at any time. It pulls, reinstalls dependencies,
 restarts the viewer and summarizes what changed ([CHANGELOG.md](CHANGELOG.md)).
 Your own files (`criteria.json`, `rubric.md`, `profile/`, `seen.db`,
 digests) are ignored by git and are never touched.
