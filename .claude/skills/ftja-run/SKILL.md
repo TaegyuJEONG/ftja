@@ -17,7 +17,10 @@ FTJA repository before running anything:
 1. Run `pwd` and `git rev-parse --show-toplevel`. Continue only if the resolved
    repository is the user's existing FTJA workspace. Do not clone a new copy or
    choose a similarly named folder.
-2. Call `mcp__ccd_directory__change_directory` with that exact absolute repo
+2. If `pwd` is already that repository, the session is attached: skip this
+   step (asking to move a session into the folder it is already in only
+   shows the user a pointless prompt). Otherwise call
+   `mcp__ccd_directory__change_directory` with that exact absolute repo
    path and require the `Folder access granted` result. A shell `cd` alone is
    not enough. If the repo is not the active workspace, stop and tell the user
    to open/connect the existing FTJA folder; never run against a scratch folder.
