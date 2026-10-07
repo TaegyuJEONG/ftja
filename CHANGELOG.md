@@ -5,6 +5,19 @@ What changed in each version, newest first. If you cloned FTJA earlier, run
 these. Your own files — `criteria.json`, `rubric.md`, `profile/`, `seen.db`,
 digests — are never touched by an update.
 
+## 0.2.3 — 2026-10-07
+
+### What changes for you after updating
+
+- The viewer opens on Results instead of Pipeline.
+
+### Fixed
+
+- If the viewer opened on Pipeline, clicking Results showed no earlier runs
+  until the page was reloaded.
+- Returning to Results keeps the run and tab you were on, and stays on a run
+  in progress.
+
 ## 0.2.2 — 2026-10-07
 
 ### What changes for you after updating

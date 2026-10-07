@@ -1168,20 +1168,16 @@ async function maybeStartOnboarding() {
   if (!data.has_onboarding_state && data.has_criteria && data.has_rubric) return false;
   onboardingState = {...(data.state || {stage:'profile', phase:'sources'}), bridge: data.bridge || {status: 'offline'}};
   onboardingChecklist = data.checklist || [];
-  if (onboardingIsComplete(onboardingState)) { openMainView('pipeline'); return true; }
+  // set up already: open on Results, where runs are (and where a run in progress shows)
+  if (onboardingIsComplete(onboardingState)) { openMainView('results'); return true; }
   document.body.classList.add('onboarding-active'); document.querySelectorAll('.main-tab, .view:not(#view-onboarding)').forEach(x => x.style.display = 'none'); document.getElementById('view-onboarding').classList.add('active');
   await refreshOnboarding(true); onboardingRefreshTimer = setInterval(() => refreshOnboarding(false).catch(() => {}), 1200); return true;
 }
 
 // ---- top-level tabs ----
 document.querySelectorAll('.main-tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    document.getElementById('view-' + tab.dataset.view).classList.add('active');
-    if (tab.dataset.view === 'pipeline') loadPipeline();
-  });
+  // the same path as every other way into a view, so Results always loads its runs
+  tab.addEventListener('click', () => openMainView(tab.dataset.view));
 });
 
 // ---- Results: run list (left, paginated) ----
@@ -1189,7 +1185,8 @@ async function loadRuns() {
   const res = await fetch('/api/runs');
   runs = (await res.json()).filter(r => r.run_id);  // drop pre-migration records with no join key
   renderRunList();
-  if (runs.length > 0) selectRun(runs[0].run_id);
+  if (liveSelected) return;  // watching a run in progress: stay on it
+  if (runs.length > 0) selectRun(runs.some(r => r.run_id === selectedRunId) ? selectedRunId : runs[0].run_id, statusFilter);
 }
 
 function renderRunList() {
