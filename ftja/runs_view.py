@@ -23,6 +23,7 @@ def _normalize_run(r: dict) -> dict:
     r.setdefault("stage1_fail", by_status.get("stage1_fail", 0))
     r.setdefault("stage2_fail", by_status.get("stage2_fail", 0))
     r.setdefault("stage2_pass", r.get("passed", 0))
+    r.setdefault("stage2_review", by_status.get("review", 0))
     r.setdefault("stage1_pass", r.get("total_evaluated", 0) - r.get("stage1_fail", 0))
     dropped = r.get("stage0_dropped") or {}
     scraped = r.get("scraped_count")

@@ -60,8 +60,10 @@ Claude Code agent itself as the judgment engine.
      (deterministic, no LLM)                                     [N jobs]
   2. survivors → Agent(model:"haiku"): judge the keyword sentence
      ±1 block, S-id evidence                                     [M jobs]
-  3. survivors → Agent(model:"sonnet"): judge full JD + rubric.md +
-     resume/portfolio                                            [K jobs]
+  3. survivors → Agent(model:"sonnet"): one result per rubric criterion
+     (rubric-criteria.json), each with a verbatim JD quote, from the
+     full JD + rubric.md + profile summary. Code checks the quotes
+     against the JD and computes pass / review / fail             [K jobs]
   4. record per-job_url_hash status in seen.db (SQLite) to prevent
      re-judging duplicates
   5. generate digest-YYYY-MM-DD.md + macOS notification

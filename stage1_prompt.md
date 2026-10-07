@@ -19,4 +19,16 @@ Do not judge language or location here — already filtered upstream (Stage 0).
 TITLE: {title} | COMPANY: {company}
 {blocks}
 
-Output ONLY this JSON, nothing else: {"verdict": "pass"|"fail", "evidence_sids": ["S.."]}
+`reason` is one sentence in English, at most 15 words, that the candidate
+will read to understand the verdict: what in these sentences decided it.
+For a fail, say what is missing or what rules it out ("Prototypes are built
+by the engineering team, not by this role"), not just "no pass criterion met".
+
+`blocks` has one entry for every [T1] sentence, in order (not for [ctx]
+sentences): what you made of that sentence, in at most 12 words — why it
+does or does not show a pass criterion, or why it triggers a fail one
+("Describes the company's product, not what this role builds", "The team
+prototypes; the role coordinates"). The candidate reads these under each
+sentence to see how their keyword was judged.
+
+Output ONLY this JSON, nothing else: {"verdict": "pass"|"fail", "evidence_sids": ["S.."], "reason": "<one sentence>", "blocks": [{"sid": "S..", "why": "<12 words max>"}, ...]}

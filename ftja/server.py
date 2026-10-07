@@ -24,8 +24,10 @@ from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
-from ftja.state import connect, update_decision, VALID_USER_ACTIONS
+from ftja.state import connect, record_criterion_feedback, update_decision, VALID_FEEDBACK_VOTES, VALID_USER_ACTIONS
 from ftja.pipeline_view import read_config, write_config, keyword_stats
+from ftja import live, version
+from ftja.verdict import DEFAULT_CRITERIA_PATH, criteria_status, load_criteria, save_criteria
 from ftja.runs_view import list_runs
 from ftja.onboarding import OnboardingError, apply_action, bridge_is_ready, build_checklist, read_bridge, read_state, write_action, write_state
 
@@ -64,10 +66,25 @@ def _write_onboarding_state(project_dir: str, state: dict):
         f.write("\n")
 
 
+def _rubric_criteria(project_dir: str) -> dict:
+    """The rubric as a list of criteria, for the Pipeline tab's editor.
+    `rubric_criteria` is null until /ftja-run has split rubric.md once
+    (status 'missing'); 'stale' means rubric.md was edited as text since."""
+    path = os.path.join(project_dir, DEFAULT_CRITERIA_PATH)
+    status = criteria_status(path, os.path.join(project_dir, "rubric.md"))
+    data = None
+    if status in ("ok", "stale"):
+        data = load_criteria(path)
+    return {"rubric_criteria": data, "rubric_criteria_status": status}
+
+
 def _fetch_jobs(db_path: str, run_id: str, status: str, page: int) -> dict:
-    """Jobs from ONE run, filtered by status, 10 per page. Only Stage2-
+    """Jobs from ONE run, filtered by status ('all': passed, then review,
+    then failed), 10 per page. Only Stage2-
     reached jobs are ever returned (stage_reached=2) — Stage0/1 fails have
-    no reasoning worth reviewing here.
+    no reasoning worth reviewing here. `criteria` is null for a job judged
+    before Stage 2 returned per-criterion results; the viewer falls back to
+    `reasoning`/`evidence_sentences` for those.
 
     Content-hash dedup (ftja.filter_stage0.dedupe_by_content) makes
     finalize() write one seen.db row per URL alias of the same repost —
@@ -79,15 +96,19 @@ def _fetch_jobs(db_path: str, run_id: str, status: str, page: int) -> dict:
         rows = conn.execute(
             """SELECT job_url, title, company, location, status, verdict,
                       reasoning, evidence_sentences, t1_matched_keywords,
-                      user_action, user_reason, last_seen_at
+                      user_action, user_reason, last_seen_at,
+                      criteria, criteria_feedback, company_line, employer, notes,
+                      t1_blocks, stage1_reason, pruned_at
                FROM seen_jobs
-               WHERE stage_reached = 2 AND run_id = ? AND status = ?
-               ORDER BY last_seen_at DESC""",
-            (run_id, status),
+               WHERE stage_reached = 2 AND run_id = ? AND (status = ? OR ? = 'all')
+               ORDER BY CASE status WHEN 'passed' THEN 0 WHEN 'review' THEN 1 ELSE 2 END, last_seen_at DESC""",
+            (run_id, status, status),
         ).fetchall()
     cols = ["job_url", "title", "company", "location", "status", "verdict",
             "reasoning", "evidence_sentences", "t1_matched_keywords",
-            "user_action", "user_reason", "last_seen_at"]
+            "user_action", "user_reason", "last_seen_at",
+            "criteria", "criteria_feedback", "company_line", "employer", "notes",
+            "t1_blocks", "stage1_reason", "pruned_at"]
     seen_groups: dict[tuple, dict] = {}
     for row in rows:
         job = dict(zip(cols, row))
@@ -96,6 +117,12 @@ def _fetch_jobs(db_path: str, run_id: str, status: str, page: int) -> dict:
                 job[key] = json.loads(job[key]) if job[key] else []
             except (TypeError, json.JSONDecodeError):
                 job[key] = []
+        for key, empty in (("criteria", None), ("criteria_feedback", {}), ("employer", []), ("notes", []),
+                           ("t1_blocks", [])):
+            try:
+                job[key] = json.loads(job[key]) if job[key] else empty
+            except (TypeError, json.JSONDecodeError):
+                job[key] = empty
         group_key = (job["title"], job["company"], job["reasoning"])
         if group_key not in seen_groups:
             job["repost_count"] = 1
@@ -187,6 +214,18 @@ def make_handler(db_path: str, project_dir: str):
                 self.wfile.write(body)
             elif path == "/api/runs":
                 self._send_json(200, list_runs(project_dir))
+            elif path == "/api/version":
+                self._send_json(200, version.check(project_dir))
+            elif path == "/api/live":
+                # the run in progress, read from its working directory; polled by the Results tab
+                self._send_json(200, {"run": live.state(project_dir)})
+            elif path == "/api/stage1-fails":
+                run_id = (qs.get("run_id") or [""])[0]
+                page = int((qs.get("page") or ["1"])[0])
+                if not run_id:
+                    self._send_json(400, {"error": "run_id required"})
+                    return
+                self._send_json(200, live.stage1_fails(project_dir, db_path, run_id, page))
             elif path == "/api/jobs":
                 run_id = (qs.get("run_id") or [""])[0]
                 status = (qs.get("status") or ["passed"])[0]
@@ -211,6 +250,7 @@ def make_handler(db_path: str, project_dir: str):
             elif path == "/api/pipeline":
                 self._send_json(200, {
                     **read_config(project_dir),
+                    **_rubric_criteria(project_dir),
                     "keyword_stats": keyword_stats(db_path),
                 })
             else:
@@ -240,6 +280,37 @@ def make_handler(db_path: str, project_dir: str):
                 with connect(db_path) as conn:
                     update_decision(conn, job_url, user_action=user_action, user_reason=user_reason)
                 self._send_json(200, {"ok": True})
+            elif self.path == "/api/criterion-feedback":
+                job_url = data.get("job_url", "")
+                criterion_id = data.get("criterion_id", "")
+                vote = data.get("vote")
+                if not job_url or not criterion_id:
+                    self._send_json(400, {"error": "job_url and criterion_id required"})
+                    return
+                if vote is not None and vote not in VALID_FEEDBACK_VOTES:
+                    self._send_json(400, {"error": f"vote must be one of {VALID_FEEDBACK_VOTES} or null"})
+                    return
+                try:
+                    with connect(db_path) as conn:
+                        feedback = record_criterion_feedback(conn, job_url, criterion_id, vote,
+                                                             str(data.get("comment") or ""))
+                except KeyError:
+                    self._send_json(404, {"error": "job not found"})
+                    return
+                self._send_json(200, {"ok": True, "criteria_feedback": feedback})
+            elif self.path == "/api/rubric-criteria":
+                # Pipeline tab's rubric editor: one criterion at a time. Saving
+                # rewrites rubric.md from the list, so both stay the same rubric.
+                if not isinstance(data.get("criteria"), list):
+                    self._send_json(400, {"error": "criteria list required"})
+                    return
+                try:
+                    save_criteria(project_dir, data["criteria"], data.get("notes"))
+                except (TypeError, ValueError, OSError) as e:
+                    self._send_json(400, {"error": str(e)})
+                    return
+                self._send_json(200, {"ok": True, **_rubric_criteria(project_dir),
+                                      "rubric_md": read_config(project_dir)["rubric_md"]})
             elif self.path == "/api/onboarding-action":
                 if not bridge_is_ready(project_dir):
                     bridge = read_bridge(project_dir)
