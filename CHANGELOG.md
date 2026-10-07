@@ -42,6 +42,12 @@ digests — are never touched by an update.
   view.
 - FTJA tells you when a newer version is published, and `/ftja-update`
   installs it.
+- Each Stage 2 card also shows what Stage 1 read and why it let the job
+  through.
+- Details of jobs judged more than two months ago can be removed to save
+  space. `/ftja-run` shows what would go and how much space comes back, and
+  asks first. The job stays on record: it is never judged again, and it
+  still counts in every statistic. Jobs you applied to are left whole.
 
 ### Changed
 

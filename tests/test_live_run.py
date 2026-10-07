@@ -87,7 +87,13 @@ def test_a_run_from_start_to_finish_as_the_viewer_sees_it(project, capsys):
     assert context and all(b["why"] == "" and b["keywords"] == [] for b in context)
     assert any("Beta sells insurance software" in b["sentence"] for b in context)
 
-    assert live.prepare_stage2(run_dir, project)["jobs"] == 1
+    live._write_json(os.path.join(run_dir, "s1", "1.out.json.keep"), live._read_json(os.path.join(run_dir, "s1", "1.out.json")))
+    os.remove(os.path.join(run_dir, "s1", "1.out.json"))  # as if job 1's verdict hadn't landed yet
+    early = live.prepare_stage2(run_dir, project, partial=True)  # Stage 2 can start on the passes so far
+    assert (early["jobs"], early["new"], early["stage1_still_pending"]) == (1, [0], 1)
+    os.rename(os.path.join(run_dir, "s1", "1.out.json.keep"), os.path.join(run_dir, "s1", "1.out.json"))
+    done = live.prepare_stage2(run_dir, project)  # nothing is renumbered or repeated
+    assert (done["jobs"], done["new"]) == (1, [])
     prompt = open(os.path.join(run_dir, "s2", "0.txt")).read()
     assert "- builds (pass) Builds personally: Builds it personally." in prompt and BUILD in prompt
     assert f"Read `{os.path.join(run_dir, 'rubric.md')}`" in prompt  # the run's own copy of the rubric
@@ -124,6 +130,9 @@ def test_a_run_from_start_to_finish_as_the_viewer_sees_it(project, capsys):
     assert live.state(project) is None  # finished: no longer live
     with connect(db) as conn:
         rows = {r[0]: r[1:] for r in conn.execute("SELECT company, status, reasoning, criteria FROM seen_jobs")}
+    with connect(db) as conn:  # what Stage 1 read is kept for a job that went on to Stage 2 as well
+        kept = conn.execute("SELECT t1_blocks, stage1_reason FROM seen_jobs WHERE company='Alpha'").fetchone()
+    assert any(b["matched"] for b in json.loads(kept[0])) and kept[1] == ""
     assert rows["Alpha"][0] == "passed" and [c["id"] for c in json.loads(rows["Alpha"][2])] == ["builds", "intern"]
     assert rows["Beta"][:2] == ("stage1_fail", "Engineers do the prototyping.")
     record = json.loads(open(os.path.join(project, "runs.jsonl")).read())

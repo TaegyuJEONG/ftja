@@ -5,7 +5,8 @@ Schema: seen_jobs(job_url_hash PK, job_url, title, company, location, status,
                    t1_matched_sentences, reasoning, evidence_sentences,
                    rubric_version, user_action, user_reason, user_decided_at,
                    criteria, criteria_feedback, description,
-                   company_line, employer, notes, t1_blocks, last_seen_at)
+                   company_line, employer, notes, t1_blocks, stage1_reason,
+                   pruned_at, last_seen_at)
   status: 'stage0_fail' | 'stage1_fail' | 'stage2_fail' | 'passed'
   stage_reached: 0, 1, or 2
   t1_matched_keywords / t1_matched_sentences: JSON-encoded lists — which
@@ -20,6 +21,11 @@ Schema: seen_jobs(job_url_hash PK, job_url, title, company, location, status,
   keyword and carry the model's one-line take (`why`); the others are the
   neighbouring sentences it saw as context. Shown in the viewer for jobs
   that stopped at Stage 1. NULL for runs before Stage 1 gave reasons.
+  stage1_reason: Stage 1's one-sentence reason, for jobs that went on to
+  Stage 2 (for a Stage 1 fail the reason is in `reasoning`).
+  pruned_at: when this row's bulky details were removed to save space (see
+  `prune`). The row itself stays, so the job is never re-judged and counts
+  in every statistic.
   reasoning / evidence_sentences: Stage1/2's own free-text verdict reasoning,
   persisted here (not just in digest/rejected .md) so a later user decision
   can be joined back to *why the pipeline judged it that way* — without
@@ -76,6 +82,7 @@ Schema: seen_jobs(job_url_hash PK, job_url, title, company, location, status,
 import argparse
 import hashlib
 import json
+import os
 import sqlite3
 import sys
 from contextlib import contextmanager
@@ -108,6 +115,8 @@ CREATE TABLE IF NOT EXISTS seen_jobs (
     employer TEXT,
     notes TEXT,
     t1_blocks TEXT,
+    stage1_reason TEXT,
+    pruned_at TEXT,
     last_seen_at TEXT NOT NULL
 );
 """
@@ -124,7 +133,8 @@ def _migrate(conn: sqlite3.Connection):
                 "reasoning", "evidence_sentences", "rubric_version",
                 "user_action", "user_reason", "user_decided_at", "run_id",
                 "decision_review_status", "criteria", "criteria_feedback",
-                "description", "company_line", "employer", "notes", "t1_blocks"):
+                "description", "company_line", "employer", "notes", "t1_blocks",
+                "stage1_reason", "pruned_at"):
         if col not in cols:
             conn.execute(f"ALTER TABLE seen_jobs ADD COLUMN {col} TEXT")
     conn.commit()
@@ -173,7 +183,8 @@ def mark_seen(conn: sqlite3.Connection, job_url: str, status: str, stage_reached
               rubric_version: str = "", run_id: str = "",
               criteria: list[dict] | None = None, description: str | None = None,
               company_line: str | None = None, employer: list[dict] | None = None,
-              notes: list[dict] | None = None, t1_blocks: list[dict] | None = None):
+              notes: list[dict] | None = None, t1_blocks: list[dict] | None = None,
+              stage1_reason: str | None = None):
     """Note: the ON CONFLICT clause intentionally does NOT touch
     user_action/user_reason/user_decided_at/criteria_feedback — a re-scrape
     or an alias URL from content dedup must never overwrite a decision the
@@ -183,8 +194,8 @@ def mark_seen(conn: sqlite3.Connection, job_url: str, status: str, stage_reached
                                   stage_reached, verdict, t1_matched_keywords, t1_matched_sentences,
                                   reasoning, evidence_sentences, rubric_version, run_id,
                                   criteria, description, company_line, employer, notes, t1_blocks,
-                                  last_seen_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                  stage1_reason, last_seen_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON CONFLICT(job_url_hash) DO UPDATE SET
              title=excluded.title, company=excluded.company, location=excluded.location,
              status=excluded.status, stage_reached=excluded.stage_reached,
@@ -194,14 +205,14 @@ def mark_seen(conn: sqlite3.Connection, job_url: str, status: str, stage_reached
              rubric_version=excluded.rubric_version, run_id=excluded.run_id,
              criteria=excluded.criteria, description=excluded.description,
              company_line=excluded.company_line, employer=excluded.employer, notes=excluded.notes,
-             t1_blocks=excluded.t1_blocks,
+             t1_blocks=excluded.t1_blocks, stage1_reason=excluded.stage1_reason, pruned_at=NULL,
              last_seen_at=excluded.last_seen_at""",
         (hash_url(job_url), job_url, title, company, location, status, stage_reached, verdict,
          json.dumps(t1_matched_keywords or [], ensure_ascii=False),
          json.dumps(t1_matched_sentences or [], ensure_ascii=False),
          reasoning, json.dumps(evidence_sentences or [], ensure_ascii=False), rubric_version, run_id,
          _json_or_none(criteria), description, company_line, _json_or_none(employer), _json_or_none(notes),
-         _json_or_none(t1_blocks),
+         _json_or_none(t1_blocks), stage1_reason,
          datetime.now(timezone.utc).isoformat()),
     )
     conn.commit()
@@ -357,6 +368,65 @@ def mark_feedback_reviewed(conn: sqlite3.Connection, job_url: str, criterion_id:
         _write_feedback(conn, job_url, feedback)
 
 
+# What `prune` removes from an old row, and how to say it to the user.
+PRUNE_COLUMNS = {
+    "description": "the full text of the posting",
+    "criteria": "the per-criterion results and their quotes",
+    "employer": "what the employer asked for",
+    "notes": "notes on the posting",
+    "company_line": "the one-line company description",
+    "t1_blocks": "the sentences Stage 1 read and what it made of each",
+    "t1_matched_sentences": "the keyword sentences",
+    "evidence_sentences": "the quoted evidence",
+}
+PRUNE_KEEPS = ("that the job was judged (it is never judged again)", "its title, company, location and link",
+               "the verdict and the one-line reason", "the keywords that matched (keyword statistics)",
+               "your own decision, reason and feedback")
+PRUNE_AFTER_DAYS = 60
+PRUNE_WORTH_ASKING_BYTES = 1_000_000  # below this, don't bother the user
+
+
+def _prunable(days: int) -> tuple[str, tuple]:
+    """Rows whose details are old enough to remove. Age is counted from when
+    FTJA judged the job; it scrapes postings at most a few days old, so that
+    is within days of when the posting went up. Jobs the user applied to are
+    kept whole: those are the ones they may want to look up again."""
+    cutoff = datetime.fromtimestamp(datetime.now(timezone.utc).timestamp() - days * 86400, timezone.utc).isoformat()
+    has_detail = " OR ".join(f"{c} IS NOT NULL" for c in PRUNE_COLUMNS)
+    return (f"last_seen_at < ? AND pruned_at IS NULL AND COALESCE(user_action, '') != 'applied' AND ({has_detail})",
+            (cutoff,))
+
+
+def prune_preview(conn: sqlite3.Connection, db_path: str, days: int = PRUNE_AFTER_DAYS) -> dict:
+    """What `prune` would do, without doing it: how many jobs, from when to
+    when, and roughly how much space comes back."""
+    where, params = _prunable(days)
+    size = " + ".join(f"COALESCE(LENGTH(CAST({c} AS BLOB)), 0)" for c in PRUNE_COLUMNS)
+    count, freed, oldest, newest = conn.execute(
+        f"SELECT COUNT(*), COALESCE(SUM({size}), 0), MIN(last_seen_at), MAX(last_seen_at) FROM seen_jobs WHERE {where}",
+        params).fetchone()
+    by_status = dict(conn.execute(f"SELECT status, COUNT(*) FROM seen_jobs WHERE {where} GROUP BY status", params))
+    return {"older_than_days": days, "jobs": count, "by_status": by_status,
+            "judged_from": (oldest or "")[:10], "judged_to": (newest or "")[:10],
+            "database_bytes": os.path.getsize(db_path), "bytes_freed_estimate": freed,
+            "worth_asking": freed >= PRUNE_WORTH_ASKING_BYTES,
+            "removes": list(PRUNE_COLUMNS.values()), "keeps": list(PRUNE_KEEPS),
+            "not_touched": "jobs you marked as applied, and everything newer"}
+
+
+def prune(conn: sqlite3.Connection, db_path: str, days: int = PRUNE_AFTER_DAYS) -> dict:
+    """Remove the bulky details of jobs judged more than `days` ago. The rows
+    stay, so nothing is re-judged and every count still adds up."""
+    where, params = _prunable(days)
+    before = os.path.getsize(db_path)
+    clear = ", ".join(f"{c} = NULL" for c in PRUNE_COLUMNS)
+    cursor = conn.execute(f"UPDATE seen_jobs SET {clear}, pruned_at = ? WHERE {where}",
+                          (datetime.now(timezone.utc).isoformat(), *params))
+    conn.commit()
+    conn.execute("VACUUM")  # hand the space back to the file system
+    return {"jobs": cursor.rowcount, "database_bytes_before": before, "database_bytes_after": os.path.getsize(db_path)}
+
+
 def unseen_only(conn: sqlite3.Connection, jobs: list[dict], url_key: str = "job_url") -> list[dict]:
     return [j for j in jobs if not is_seen(conn, j.get(url_key, ""))]
 
@@ -388,7 +458,18 @@ def main():
     mf.add_argument("--status", required=True, choices=VALID_REVIEW_STATUSES)
     mf.add_argument("--db", default="seen.db")
 
+    for name, help_ in (("prune-preview", "what pruning old jobs' details would remove and free (changes nothing)"),
+                        ("prune", "remove the bulky details of old jobs; the rows stay")):
+        pp = sub.add_parser(name, help=help_)
+        pp.add_argument("--days", type=int, default=PRUNE_AFTER_DAYS)
+        pp.add_argument("--db", default="seen.db")
+
     args = ap.parse_args()
+    if args.cmd in ("prune-preview", "prune"):
+        with connect(args.db) as conn:
+            out = (prune_preview if args.cmd == "prune-preview" else prune)(conn, args.db, args.days)
+        print(json.dumps(out, ensure_ascii=False, indent=2))
+        return
     if args.cmd == "record-decision":
         with connect(args.db) as conn:
             record_decision(conn, args.job_url, args.action, args.reason)

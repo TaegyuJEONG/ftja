@@ -97,7 +97,8 @@ def _fetch_jobs(db_path: str, run_id: str, status: str, page: int) -> dict:
             """SELECT job_url, title, company, location, status, verdict,
                       reasoning, evidence_sentences, t1_matched_keywords,
                       user_action, user_reason, last_seen_at,
-                      criteria, criteria_feedback, company_line, employer, notes
+                      criteria, criteria_feedback, company_line, employer, notes,
+                      t1_blocks, stage1_reason, pruned_at
                FROM seen_jobs
                WHERE stage_reached = 2 AND run_id = ? AND (status = ? OR ? = 'all')
                ORDER BY CASE status WHEN 'passed' THEN 0 WHEN 'review' THEN 1 ELSE 2 END, last_seen_at DESC""",
@@ -106,7 +107,8 @@ def _fetch_jobs(db_path: str, run_id: str, status: str, page: int) -> dict:
     cols = ["job_url", "title", "company", "location", "status", "verdict",
             "reasoning", "evidence_sentences", "t1_matched_keywords",
             "user_action", "user_reason", "last_seen_at",
-            "criteria", "criteria_feedback", "company_line", "employer", "notes"]
+            "criteria", "criteria_feedback", "company_line", "employer", "notes",
+            "t1_blocks", "stage1_reason", "pruned_at"]
     seen_groups: dict[tuple, dict] = {}
     for row in rows:
         job = dict(zip(cols, row))
@@ -115,7 +117,8 @@ def _fetch_jobs(db_path: str, run_id: str, status: str, page: int) -> dict:
                 job[key] = json.loads(job[key]) if job[key] else []
             except (TypeError, json.JSONDecodeError):
                 job[key] = []
-        for key, empty in (("criteria", None), ("criteria_feedback", {}), ("employer", []), ("notes", [])):
+        for key, empty in (("criteria", None), ("criteria_feedback", {}), ("employer", []), ("notes", []),
+                           ("t1_blocks", [])):
             try:
                 job[key] = json.loads(job[key]) if job[key] else empty
             except (TypeError, json.JSONDecodeError):

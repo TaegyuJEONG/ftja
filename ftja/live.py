@@ -251,11 +251,15 @@ def _stage1_results(run_dir: str) -> tuple[list[dict], list[dict], list[int]]:
     return passed, failed, pending
 
 
-def prepare_stage2(run_dir: str, project_dir: str = ".") -> dict:
-    """Step 4 setup: one prompt file per Stage 1 pass. Refuses while Stage 1
-    verdicts are missing, naming them, so none is silently dropped."""
+def prepare_stage2(run_dir: str, project_dir: str = ".", partial: bool = False) -> dict:
+    """Step 4 setup: one prompt file per Stage 1 pass. It only ever adds: a
+    job keeps the number it was first given, so it can be called again as
+    more Stage 1 verdicts land (`partial`) and Stage 2 can start on the
+    first passes while Stage 1 is still working through the rest. Without
+    `partial` it refuses while Stage 1 verdicts are missing, naming them,
+    so none is silently dropped."""
     passed, _, pending = _stage1_results(run_dir)
-    if pending:
+    if pending and not partial:
         raise SystemExit(f"Stage 1 has no usable verdict yet for: {pending}. Rerun those jobs, then call this again.")
     by_url = {j["job_url"]: j for j in _read_json(os.path.join(run_dir, "stage0.json"), [])}
     definitions = load_criteria(os.path.join(run_dir, DEFAULT_CRITERIA_PATH))["criteria"]
@@ -263,13 +267,18 @@ def prepare_stage2(run_dir: str, project_dir: str = ".") -> dict:
                 .replace("{criteria_list}", render_criteria_list(definitions))
                 .replace("Read `rubric.md`", f"Read `{os.path.join(run_dir, 'rubric.md')}`"))  # this run's copy
     os.makedirs(os.path.join(run_dir, "s2"), exist_ok=True)
-    manifest, empty = [], []
+    manifest = _read_json(os.path.join(run_dir, "s2", "manifest.json"), []) or []
+    known = {e["job_url"] for e in manifest}
+    empty, new = [], []
     for entry in passed:
         job = by_url.get(entry["job_url"], {})
         if not str(job.get("description") or "").strip():
             empty.append(entry["n"])
             continue
+        if entry["job_url"] in known:
+            continue
         n = len(manifest)
+        new.append(n)
         prompt = (template.replace("{title}", str(job.get("title") or "")).replace("{company}", str(job.get("company") or ""))
                   .replace("{location}", str(job.get("location") or "")).replace("{full_description}", job["description"]))
         with open(os.path.join(run_dir, "s2", f"{n}.txt"), "w") as f:
@@ -278,7 +287,8 @@ def prepare_stage2(run_dir: str, project_dir: str = ".") -> dict:
                          "company": entry.get("company"), "location": entry.get("location")})
     _write_json(os.path.join(run_dir, "s2", "manifest.json"), manifest)
     _write_json(os.path.join(run_dir, "s2", "empty.json"), empty)
-    return {"jobs": len(manifest), "skipped_empty_description": len(empty),
+    return {"jobs": len(manifest), "new": new, "stage1_still_pending": len(pending),
+            "skipped_empty_description": len(empty),
             "prompt_files": os.path.join(run_dir, "s2", "<n>.txt"), "output_files": os.path.join(run_dir, "s2", "<n>.out.json")}
 
 
@@ -311,7 +321,8 @@ def assemble_results(run_dir: str) -> dict:
                         "t1_blocks": entry["t1_blocks"]})
     for entry in passed:
         if entry["job_url"] in answers:
-            results.append({**base(entry), "stage_reached": 2, "stage2": answers[entry["job_url"]]})
+            results.append({**base(entry), "stage_reached": 2, "stage2": answers[entry["job_url"]],
+                            "stage1_reason": entry["reason"], "t1_blocks": entry["t1_blocks"]})
         else:  # passed Stage 1 but had no JD text to judge
             results.append({**base(entry), "status": "stage1_fail", "stage_reached": 1, "verdict": "fail",
                             "reasoning": "Passed Stage 1, but the posting had no description to judge."})
@@ -428,16 +439,16 @@ def stage1_fails(project_dir: str, db_path: str, run_id: str, page: int = 1) -> 
         with connect(db_path) as conn:
             found = conn.execute(
                 """SELECT job_url, title, company, location, reasoning, t1_blocks, t1_matched_sentences,
-                          t1_matched_keywords
+                          t1_matched_keywords, pruned_at
                    FROM seen_jobs WHERE run_id = ? AND status = 'stage1_fail' ORDER BY title""", (run_id,)).fetchall()
         rows, shown = [], set()
-        for job_url, title, company, location, reasoning, blocks, matched, keywords in found:
+        for job_url, title, company, location, reasoning, blocks, matched, keywords, pruned_at in found:
             if (title, company, reasoning) in shown:  # a repost under another URL: same judgment, one row
                 continue
             shown.add((title, company, reasoning))
             reason = _real_reason(reasoning)
             rows.append({"job_url": job_url, "title": title, "company": company, "location": location,
-                         "reason": reason, "keywords": _loads_list(keywords),
+                         "reason": reason, "keywords": _loads_list(keywords), "pruned_at": pruned_at,
                          "blocks": _loads_list(blocks)
                          or [{"sentence": s, "matched": True, "keywords": [], "why": ""} for s in _loads_list(matched)]})
     total = len(rows)
@@ -597,6 +608,9 @@ def main():
                         ("results", "assemble results.json and stats.json for finalize")):
         p = sub.add_parser(name, help=help_)
         p.add_argument("--dir", required=True, help="the run directory printed by `start`")
+        if name == "prepare-stage2":
+            p.add_argument("--partial", action="store_true",
+                           help="add prompts for the Stage 1 passes so far, without waiting for all of Stage 1")
         if name == "scrape":
             p.add_argument("--term", type=int, required=True, help="index into criteria.json's search_terms")
     rp = sub.add_parser("replay", help="play a finished run back through the live view (demo)")
@@ -615,7 +629,7 @@ def main():
     elif args.cmd == "prepare-stage1":
         out = prepare_stage1(args.dir, args.project_dir)
     elif args.cmd == "prepare-stage2":
-        out = prepare_stage2(args.dir, args.project_dir)
+        out = prepare_stage2(args.dir, args.project_dir, args.partial)
     elif args.cmd == "results":
         out = assemble_results(args.dir)
     else:

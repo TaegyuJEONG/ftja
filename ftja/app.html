@@ -273,6 +273,8 @@ dialog.s1-dialog::backdrop { background: rgba(29, 27, 25, .38); }
 .s1-keywords { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; margin-top: 8px; }
 .s1-keywords > span:first-child { font-family: 'IBM Plex Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text3); margin-right: 4px; }
 .s1-block { margin-top: 8px; }
+.s1-in-card { padding: 0 0 12px; }
+.pruned-note { font-size: 12px; color: var(--text3); margin: 12px 0 4px; line-height: 1.6; }
 .s1-block .jquote b { font-weight: 700; font-style: normal; color: var(--text); }
 .s1-block .jquote span { display: block; }
 .s1-block .jquote span + span { margin-top: 3px; }
@@ -1493,6 +1495,18 @@ function stage1Passages(blocks) {
   return passages;
 }
 
+// What Stage 1 read for one job: each passage, keywords in bold, context in a
+// lighter tone, and under it what the model made of each keyword sentence.
+function stage1BlocksHtml(blocks, keywords) {
+  return stage1Passages(blocks || []).map(passage => `
+    <div class="s1-block">
+      <div class="jquote">${passage.map(b => b.matched === false
+        ? `<span class="ctx">${quoteText(b.sentence)}</span>`
+        : `<span>${quoteWithKeywords(b.sentence, (b.keywords || []).length ? b.keywords : keywords)}</span>`).join('')}</div>
+      ${passage.filter(b => b.why).map(b => `<div class="s1-why">${(b.keywords || []).length ? `<b>${b.keywords.map(esc).join(', ')}</b> — ` : ''}${esc(b.why)}</div>`).join('')}
+    </div>`).join('');
+}
+
 // ---- why jobs stopped at Stage 1 ----
 let stage1Dialog = null;
 async function openStage1Fails(runId) {
@@ -1525,13 +1539,7 @@ async function openStage1Fails(runId) {
         <div class="s1-title"><a href="${esc(j.job_url)}" target="_blank">${esc(j.title)}</a> <span>— ${esc(j.company)}${j.location ? ' · ' + esc(j.location) : ''}</span></div>
         <div class="s1-reason ${j.reason ? '' : 'none'}">${j.reason ? esc(j.reason) : 'No reason recorded — this run is older than Stage 1 reasons.'}</div>
         ${(j.keywords || []).length ? `<div class="s1-keywords"><span>Matched</span>${j.keywords.map(k => `<span class="chip">${esc(k)}</span>`).join('')}</div>` : ''}
-        ${stage1Passages(j.blocks || []).map(passage => `
-          <div class="s1-block">
-            <div class="jquote">${passage.map(b => b.matched === false
-              ? `<span class="ctx">${quoteText(b.sentence)}</span>`
-              : `<span>${quoteWithKeywords(b.sentence, (b.keywords || []).length ? b.keywords : j.keywords)}</span>`).join('')}</div>
-            ${passage.filter(b => b.why).map(b => `<div class="s1-why">${(b.keywords || []).length ? `<b>${b.keywords.map(esc).join(', ')}</b> — ` : ''}${esc(b.why)}</div>`).join('')}
-          </div>`).join('')}
+        ${j.pruned_at ? `<div class="pruned-note">The sentences were removed on ${esc(fmtDate(j.pruned_at))} to save space.</div>` : stage1BlocksHtml(j.blocks, j.keywords)}
       </div>`).join('') || '<div class="empty">Nothing has been turned down at Stage 1.</div>';
     known = new Set(data.jobs.map(j => j.job_url));
     const pages = dialog.querySelector('#s1-pages');
@@ -1704,6 +1712,10 @@ function judgmentHtml(job) {
   if ((job.notes || []).length) {
     html += jgroup('Notes', '', `<ul class="jnotes">${job.notes.map(n => `<li>${esc(n.text)}</li>`).join('')}</ul>`);
   }
+  if ((job.t1_blocks || []).length) {  // how it got here: what Stage 1 read and why it let the job through
+    html += `<div class="jgroup">${fold(`Stage 1 let it through${job.stage1_reason ? ' — ' + esc(job.stage1_reason) : ''}`,
+      `<div class="s1-in-card">${stage1BlocksHtml(job.t1_blocks, job.t1_matched_keywords)}</div>`)}</div>`;
+  }
   return `<div class="judgment">${html}</div>`;
 }
 
@@ -1762,6 +1774,7 @@ function jobCardInner(job) {
   const repostNote = job.repost_count > 1 ? ` <span class="repost-note">(same posting, reposted ${job.repost_count}x)</span>` : '';
   // jobs judged before Stage 2 returned per-criterion results only have prose
   const judgment = judging ? '<div class="judging-line">Reading the posting against your rubric</div>'
+    : job.pruned_at ? `<div class="pruned-note">${job.reasoning ? esc(job.reasoning) + '<br>' : ''}The details of this judgment (quotes, per-criterion results, the posting's text) were removed on ${esc(fmtDate(job.pruned_at))} to save space. The verdict and your decision are kept.</div>`
     : job.criteria ? judgmentHtml(job)
     : `<div class="reasoning">${esc(job.reasoning)}</div>
       <div class="evidence">${(job.evidence_sentences || []).map(s => `<blockquote>${esc(s)}</blockquote>`).join('')}</div>`;

@@ -95,6 +95,20 @@ path.
     these ids. New ids: short snake_case.
   - Do not rewrite `rubric.md` here. Run `ftja.verdict status` again; it
     must print `ok`.
+- **Old details** (interactive runs only): `venv/bin/python -m ftja.state
+  prune-preview`. It changes nothing. If `worth_asking` is false, say
+  nothing and go on. If it is true, tell the user, before anything else
+  runs, exactly what it reports and ask whether to remove it:
+  - how many jobs, judged between which dates (`jobs`, `judged_from`,
+    `judged_to`, older than `older_than_days` days), and how they break
+    down (`by_status`);
+  - what would be removed from each of them (`removes`) and what stays
+    (`keeps`), and that jobs they marked as applied are not touched;
+  - the database's size now and about how much comes back
+    (`database_bytes`, `bytes_freed_estimate`, in MB).
+  Only on a clear yes run `venv/bin/python -m ftja.state prune` and report
+  the size before and after. It cannot be undone. On an unattended run
+  never prune and never ask.
 - **Check for pending review decisions**: `venv/bin/python -m ftja.state
   pending-review` and `venv/bin/python -m ftja.state pending-feedback` (the
   second lists single criteria the user disagreed with in the viewer;
@@ -186,9 +200,15 @@ The answer is ONLY:
 `reason` is shown to the user next to every job Stage 1 turned down, so it
 must say what decided it, not "no pass criterion met". `blocks` has one
 entry per [T1] sentence: what the model made of that sentence. The user
-sees it under each matched sentence, next to the keyword that matched. Tell the subagent
-to write each job's file as soon as that job is judged, not all at the end
-— the viewer counts them as they land.
+sees it under each matched sentence, next to the keyword that matched.
+
+Tell the subagent to work in as few steps as it can: read all of its
+prompt files in one step (the Read calls together), decide every job, then
+write all of its answers in one step (the Write calls together). Do NOT
+ask it to finish one job before reading the next: every extra step is a
+round trip, and in a measured run that made a batch of 7 take 262 seconds
+instead of 83 for the same verdicts. The viewer's Stage 1 count therefore
+moves a batch at a time.
 
 Batching is deliberate: every subagent carries a fixed overhead of roughly
 45k tokens, so one job per subagent cost about 5× more for the same verdicts
@@ -198,6 +218,15 @@ in a measured run. Stage 1 inputs are short keyword excerpts, so a batch of
 Run the batches in parallel by putting several `Agent` calls in one message,
 but **no more than 20 per message** — that is the concurrent subagent limit,
 and calls beyond it fail. Send the next wave after the previous one returns.
+
+**When Stage 1 needs more than one wave, start Stage 2 early.** After a
+wave returns, run `venv/bin/python -m ftja.live prepare-stage2 --dir
+<run_dir> --partial`: it writes Stage 2 prompts for the jobs that have
+passed so far and prints their numbers as `new`. Put Stage 2 calls for
+those numbers (step 4) in the next wave alongside the remaining Stage 1
+batches, still at most 20 calls per message in total. The user then sees
+the first Stage 2 cards while Stage 1 is still running. A job keeps its
+Stage 2 number, so calling this again never renumbers or repeats one.
 
 Ask each subagent to also reply with one line per job (`N <json>`). Writes
 can fail on transient permission-check errors; when an output file is
@@ -215,9 +244,12 @@ reintroduces the token cost the summary exists to avoid.
 venv/bin/python -m ftja.live prepare-stage2 --dir <run_dir>
 ```
 
-It refuses, naming the job numbers, while any Stage 1 answer is missing or
-unreadable — fix those first. Otherwise it writes one filled prompt per
-Stage 1 pass to `<run_dir>/s2/<n>.txt` (template: `stage2_prompt.md`, with
+Run it without `--partial` once Stage 1 is complete, even if you already
+started some Stage 2 jobs early: it refuses, naming the job numbers, while
+any Stage 1 answer is missing or unreadable — fix those first. Otherwise
+it adds the prompts not yet written (`new` lists their numbers; don't
+re-run numbers you already ran) so there is one filled prompt per
+Stage 1 pass at `<run_dir>/s2/<n>.txt` (template: `stage2_prompt.md`, with
 the run's criteria list and the full JD) and prints how many there are,
 numbered `0 .. jobs-1`. A job whose description is empty is left out and
 recorded as a Stage 1 fail with a note.
