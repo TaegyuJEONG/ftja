@@ -11,8 +11,8 @@ the answer is cached in `.ftja-update-check.json`. The check is one
 unauthenticated GET of a small text file. It sends nothing about the user,
 never raises, and is skipped entirely when FTJA_NO_UPDATE_CHECK is set.
 
-`/ftja-run` reports the result at the start of a run, the viewer shows it
-as a banner, and `/ftja-update` does the pull.
+`/ftja-run` offers the update at the start of an interactive run, the
+viewer shows it as a banner, and `/ftja-update` does the pull.
 """
 import argparse
 import json
@@ -120,7 +120,7 @@ def main():
     if args.cmd == "check":
         result = check(force=args.force)
         if result["update_available"]:
-            print(f"update available: FTJA {result['latest']} (you have {result['current']}) — run /ftja-update")
+            print(f"update available: FTJA {result['latest']} (you have {result['current']})")
         elif result["latest"]:
             print(f"up to date: FTJA {result['current']}")
         else:

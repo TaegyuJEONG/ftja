@@ -2317,7 +2317,7 @@ fetch('/api/version').then(r => r.json()).then(v => {
   document.querySelectorAll('.subtitle').forEach(el => { el.textContent = `Fine Tune Job Agent · ${v.current} · ${v.project_dir}`; });
   if (!v.update_available) return;
   const banner = document.getElementById('update-banner');
-  banner.innerHTML = `FTJA ${esc(v.latest)} is available (you have ${esc(v.current)}). Run <code>/ftja-update</code> in your coding agent to get it.`;
+  banner.innerHTML = `FTJA ${esc(v.latest)} is available (you have ${esc(v.current)}). Your next <code>/ftja-run</code> will offer to install it, or run <code>/ftja-update</code> now.`;
   banner.hidden = false;
 }).catch(() => {});
 </script>
