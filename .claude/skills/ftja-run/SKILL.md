@@ -222,10 +222,13 @@ and calls beyond it fail. Send the next wave after the previous one returns.
 **When Stage 1 needs more than one wave, start Stage 2 early.** After a
 wave returns, run `venv/bin/python -m ftja.live prepare-stage2 --dir
 <run_dir> --partial`: it writes Stage 2 prompts for the jobs that have
-passed so far and prints their numbers as `new`. Put Stage 2 calls for
-those numbers (step 4) in the next wave alongside the remaining Stage 1
-batches, still at most 20 calls per message in total. The user then sees
-the first Stage 2 cards while Stage 1 is still running. A job keeps its
+passed so far and prints their numbers as `new`. If the next wave has
+fewer than 20 Stage 1 batches left to send, fill its spare slots with
+Stage 2 calls for those numbers (step 4), at most 20 calls per message in
+total. Never hold a Stage 1 batch back to make room for Stage 2: a wave
+takes as long as its slowest call, a Stage 1 batch runs about twice as long
+as a Stage 2 job, so a Stage 2 call in a slot a Stage 1 batch could have
+used leaves that slot idle for half the wave and the run gets longer. A job keeps its
 Stage 2 number, so calling this again never renumbers or repeats one.
 
 Ask each subagent to also reply with one line per job (`N <json>`). Writes
