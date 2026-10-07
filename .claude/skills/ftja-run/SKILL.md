@@ -219,18 +219,6 @@ Run the batches in parallel by putting several `Agent` calls in one message,
 but **no more than 20 per message** — that is the concurrent subagent limit,
 and calls beyond it fail. Send the next wave after the previous one returns.
 
-**When Stage 1 needs more than one wave, start Stage 2 early.** After a
-wave returns, run `venv/bin/python -m ftja.live prepare-stage2 --dir
-<run_dir> --partial`: it writes Stage 2 prompts for the jobs that have
-passed so far and prints their numbers as `new`. If the next wave has
-fewer than 20 Stage 1 batches left to send, fill its spare slots with
-Stage 2 calls for those numbers (step 4), at most 20 calls per message in
-total. Never hold a Stage 1 batch back to make room for Stage 2: a wave
-takes as long as its slowest call, a Stage 1 batch runs about twice as long
-as a Stage 2 job, so a Stage 2 call in a slot a Stage 1 batch could have
-used leaves that slot idle for half the wave and the run gets longer. A job keeps its
-Stage 2 number, so calling this again never renumbers or repeats one.
-
 Ask each subagent to also reply with one line per job (`N <json>`). Writes
 can fail on transient permission-check errors; when an output file is
 missing, write it yourself from the reply. If neither exists, rerun that
@@ -247,12 +235,10 @@ reintroduces the token cost the summary exists to avoid.
 venv/bin/python -m ftja.live prepare-stage2 --dir <run_dir>
 ```
 
-Run it without `--partial` once Stage 1 is complete, even if you already
-started some Stage 2 jobs early: it refuses, naming the job numbers, while
+Run it once Stage 1 is complete; Stage 2 starts only then, so the stages
+run and show one after another. It refuses, naming the job numbers, while
 any Stage 1 answer is missing or unreadable — fix those first. Otherwise
-it adds the prompts not yet written (`new` lists their numbers; don't
-re-run numbers you already ran) so there is one filled prompt per
-Stage 1 pass at `<run_dir>/s2/<n>.txt` (template: `stage2_prompt.md`, with
+it writes one filled prompt per Stage 1 pass to `<run_dir>/s2/<n>.txt` (template: `stage2_prompt.md`, with
 the run's criteria list and the full JD) and prints how many there are,
 numbered `0 .. jobs-1`. A job whose description is empty is left out and
 recorded as a Stage 1 fail with a note.
