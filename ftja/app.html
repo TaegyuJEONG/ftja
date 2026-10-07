@@ -274,6 +274,9 @@ dialog.s1-dialog::backdrop { background: rgba(29, 27, 25, .38); }
 .s1-keywords > span:first-child { font-family: 'IBM Plex Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text3); margin-right: 4px; }
 .s1-block { margin-top: 8px; }
 .s1-block .jquote b { font-weight: 700; font-style: normal; color: var(--text); }
+.s1-block .jquote span { display: block; }
+.s1-block .jquote span + span { margin-top: 3px; }
+.s1-block .jquote .ctx { color: var(--text3); }
 .s1-why { font-size: 12px; color: var(--text2); padding: 4px 0 0 13px; }
 .s1-why b { font-weight: 600; color: var(--text); }
 .page-gap { color: var(--text3); padding: 5px 2px; font-size: 11px; }
@@ -1476,6 +1479,20 @@ function renderLive() {
   });
 }
 
+// Stage 1 reads each keyword sentence with the sentence before and after
+// it. Sentences that sit next to each other in the posting form one passage.
+function stage1Passages(blocks) {
+  const passages = [];
+  let last = null;
+  blocks.forEach(b => {
+    const n = parseInt(String(b.sid || '').slice(1), 10);
+    if (passages.length && !isNaN(n) && n === last + 1) passages[passages.length - 1].push(b);
+    else passages.push([b]);
+    last = isNaN(n) ? null : n;
+  });
+  return passages;
+}
+
 // ---- why jobs stopped at Stage 1 ----
 let stage1Dialog = null;
 async function openStage1Fails(runId) {
@@ -1508,10 +1525,12 @@ async function openStage1Fails(runId) {
         <div class="s1-title"><a href="${esc(j.job_url)}" target="_blank">${esc(j.title)}</a> <span>— ${esc(j.company)}${j.location ? ' · ' + esc(j.location) : ''}</span></div>
         <div class="s1-reason ${j.reason ? '' : 'none'}">${j.reason ? esc(j.reason) : 'No reason recorded — this run is older than Stage 1 reasons.'}</div>
         ${(j.keywords || []).length ? `<div class="s1-keywords"><span>Matched</span>${j.keywords.map(k => `<span class="chip">${esc(k)}</span>`).join('')}</div>` : ''}
-        ${(j.blocks || []).map(b => `
+        ${stage1Passages(j.blocks || []).map(passage => `
           <div class="s1-block">
-            <div class="jquote">${quoteWithKeywords(b.sentence, (b.keywords || []).length ? b.keywords : j.keywords)}</div>
-            ${b.why ? `<div class="s1-why">${(b.keywords || []).length ? `<b>${b.keywords.map(esc).join(', ')}</b> — ` : ''}${esc(b.why)}</div>` : ''}
+            <div class="jquote">${passage.map(b => b.matched === false
+              ? `<span class="ctx">${quoteText(b.sentence)}</span>`
+              : `<span>${quoteWithKeywords(b.sentence, (b.keywords || []).length ? b.keywords : j.keywords)}</span>`).join('')}</div>
+            ${passage.filter(b => b.why).map(b => `<div class="s1-why">${(b.keywords || []).length ? `<b>${b.keywords.map(esc).join(', ')}</b> — ` : ''}${esc(b.why)}</div>`).join('')}
           </div>`).join('')}
       </div>`).join('') || '<div class="empty">Nothing has been turned down at Stage 1.</div>';
     known = new Set(data.jobs.map(j => j.job_url));

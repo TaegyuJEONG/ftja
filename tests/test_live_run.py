@@ -78,9 +78,14 @@ def test_a_run_from_start_to_finish_as_the_viewer_sees_it(project, capsys):
     fails = live.stage1_fails(project, db, run["run_id"])
     assert fails["total"] == 1 and fails["jobs"][0]["reason"] == "Engineers do the prototyping."
     assert fails["jobs"][0]["keywords"] == ["prototype"]
-    assert fails["jobs"][0]["blocks"] == [{"sentence": fails["jobs"][0]["blocks"][0]["sentence"],
-                                           "keywords": ["prototype"], "why": "The engineers prototype, not this role."}]
-    assert "Engineers prototype features" in fails["jobs"][0]["blocks"][0]["sentence"]
+    blocks = fails["jobs"][0]["blocks"]  # everything Stage 1 read: the keyword sentence and its neighbours
+    hit = [b for b in blocks if b["matched"]]
+    assert hit == [{"sid": sid, "sentence": hit[0]["sentence"], "matched": True,
+                    "keywords": ["prototype"], "why": "The engineers prototype, not this role."}]
+    assert "Engineers prototype features" in hit[0]["sentence"]
+    context = [b for b in blocks if not b["matched"]]
+    assert context and all(b["why"] == "" and b["keywords"] == [] for b in context)
+    assert any("Beta sells insurance software" in b["sentence"] for b in context)
 
     assert live.prepare_stage2(run_dir, project)["jobs"] == 1
     prompt = open(os.path.join(run_dir, "s2", "0.txt")).read()
@@ -133,9 +138,10 @@ def test_a_run_from_start_to_finish_as_the_viewer_sees_it(project, capsys):
                   t1_matched_sentences=["A sentence."], t1_matched_keywords=["mvp"])
     after = live.stage1_fails(project, db, run["run_id"])  # now served from seen.db
     assert after["total"] == 2 and [j["reason"] for j in after["jobs"]] == ["", "Engineers do the prototyping."]
-    assert after["jobs"][0]["blocks"] == [{"sentence": "A sentence.", "keywords": [], "why": ""}]
+    assert after["jobs"][0]["blocks"] == [{"sentence": "A sentence.", "matched": True, "keywords": [], "why": ""}]
     assert after["jobs"][0]["keywords"] == ["mvp"]
-    assert after["jobs"][1]["blocks"][0]["why"] == "The engineers prototype, not this role."
+    assert [b["why"] for b in after["jobs"][1]["blocks"] if b["matched"]] == ["The engineers prototype, not this role."]
+    assert len(after["jobs"][1]["blocks"]) == len(blocks)  # context sentences are stored too
     assert after["jobs"][1]["keywords"] == ["prototype"]
 
     # the next run doesn't re-judge what this one recorded

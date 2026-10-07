@@ -15,9 +15,10 @@ Schema: seen_jobs(job_url_hash PK, job_url, title, company, location, status,
   (user's own observation) — spot-check keyword-matching quality with e.g.
   `sqlite3 seen.db "SELECT title, t1_matched_keywords, t1_matched_sentences
   FROM seen_jobs WHERE status='passed'"` any time, no extra file needed.
-  t1_blocks: Stage 1's reading of each keyword sentence — a JSON list of
-  {sentence, keywords, why}, one per [T1] sentence, where `why` is the
-  model's one-line take on that sentence. Shown in the viewer for jobs
+  t1_blocks: everything Stage 1 read, in order — a JSON list of {sid,
+  sentence, matched, keywords, why}. `matched` sentences contain a tier-1
+  keyword and carry the model's one-line take (`why`); the others are the
+  neighbouring sentences it saw as context. Shown in the viewer for jobs
   that stopped at Stage 1. NULL for runs before Stage 1 gave reasons.
   reasoning / evidence_sentences: Stage1/2's own free-text verdict reasoning,
   persisted here (not just in digest/rejected .md) so a later user decision

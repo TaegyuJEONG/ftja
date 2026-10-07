@@ -242,9 +242,11 @@ def _stage1_results(run_dir: str) -> tuple[list[dict], list[dict], list[int]]:
                 for b in answer.get("blocks") or [] if isinstance(b, dict)}
         entry = {**entry, "judged_at": _mtime(path), "reason": str(answer.get("reason") or "").strip(),
                  "evidence_sentences": [b["sentence"] for b in entry.get("blocks") or [] if b["s_id"] in sids],
-                 # each keyword sentence with what Stage 1 made of it
-                 "t1_blocks": [{"sentence": b["sentence"], "keywords": b.get("keywords") or [], "why": whys.get(b["s_id"], "")}
-                               for b in entry.get("blocks") or [] if b["matched"]]}
+                 # everything Stage 1 read, in order: each keyword sentence (matched) with what the
+                 # model made of it, and the neighbouring sentences it saw as context
+                 "t1_blocks": [{"sid": b["s_id"], "sentence": b["sentence"], "matched": bool(b["matched"]),
+                                "keywords": b.get("keywords") or [], "why": whys.get(b["s_id"], "") if b["matched"] else ""}
+                               for b in entry.get("blocks") or []]}
         (passed if verdict == "pass" else failed).append(entry)
     return passed, failed, pending
 
@@ -437,7 +439,7 @@ def stage1_fails(project_dir: str, db_path: str, run_id: str, page: int = 1) -> 
             rows.append({"job_url": job_url, "title": title, "company": company, "location": location,
                          "reason": reason, "keywords": _loads_list(keywords),
                          "blocks": _loads_list(blocks)
-                         or [{"sentence": s, "keywords": [], "why": ""} for s in _loads_list(matched)]})
+                         or [{"sentence": s, "matched": True, "keywords": [], "why": ""} for s in _loads_list(matched)]})
     total = len(rows)
     page = max(1, page)
     return {"jobs": rows[(page - 1) * PAGE_SIZE: page * PAGE_SIZE], "page": page, "total": total,
@@ -546,12 +548,13 @@ def replay(project_dir: str, db_path: str, run_id: str | None = None, seconds: f
     def stored_blocks(j):
         # runs before per-sentence reasons: the sentences, with the job's keywords on the first
         return _loads_list(j["t1_blocks"]) or [
-            {"sentence": s, "keywords": _loads_list(j["t1_matched_keywords"]) if i == 0 else [], "why": ""}
+            {"sentence": s, "matched": True, "keywords": _loads_list(j["t1_matched_keywords"]) if i == 0 else [], "why": ""}
             for i, s in enumerate(_loads_list(j["t1_matched_sentences"]))]
 
     s1 = [{"n": n, "job_url": j["job_url"], "title": j["title"], "company": j["company"], "location": j["location"],
-           "blocks": [{"s_id": f"S{i}", "sentence": b["sentence"], "matched": True, "keywords": b.get("keywords") or [],
-                       "why": b.get("why") or ""} for i, b in enumerate(stored_blocks(j))]}
+           "blocks": [{"s_id": b.get("sid") or f"S{i * 3}", "sentence": b["sentence"], "matched": b.get("matched", True),
+                       "keywords": b.get("keywords") or [], "why": b.get("why") or ""}
+                      for i, b in enumerate(stored_blocks(j))]}
           for n, j in enumerate(jobs)]
     _write_json(os.path.join(run_dir, "s1", "manifest.json"), s1)
     waves = 10
@@ -560,7 +563,7 @@ def replay(project_dir: str, db_path: str, run_id: str | None = None, seconds: f
             fail = job["stage_reached"] == 1
             _write_json(os.path.join(run_dir, "s1", f"{entry['n']}.out.json"),
                         {"verdict": "fail" if fail else "pass", "reason": job["reasoning"] if fail else "",
-                         "evidence_sids": [b["s_id"] for b in entry["blocks"]],
+                         "evidence_sids": [b["s_id"] for b in entry["blocks"] if b["matched"]],
                          "blocks": [{"sid": b["s_id"], "why": b["why"]} for b in entry["blocks"]]})
         pause(0.25, waves)
 
