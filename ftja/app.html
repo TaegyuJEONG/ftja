@@ -239,8 +239,8 @@ h1.serif { font-size: 38px; font-weight: 400; line-height: 1; margin-bottom: 8px
 .job-card.arriving .fold, .job-card.arriving .jnotes li {
   animation: arrive .4s ease-out both; animation-delay: var(--d, 0ms);
 }
-.job-card.arriving .jrow .jresult { animation: settle .45s ease-out both; animation-delay: calc(var(--d, 0ms) + 380ms); }
-.job-card.arriving .jrow .jline { animation: arrive .4s ease-out both; animation-delay: calc(var(--d, 0ms) + 380ms); }
+.job-card.arriving .jrow .jresult { animation: settle .35s ease-out both; animation-delay: calc(var(--d, 0ms) + 180ms); }
+.job-card.arriving .jrow .jline { animation: arrive .35s ease-out both; animation-delay: calc(var(--d, 0ms) + 180ms); }
 .job-card.entering { animation: arrive .4s ease-out both; animation-delay: var(--d, 0ms); }
 @keyframes arrive { from { opacity: 0; transform: translateY(5px); } }
 @keyframes settle { from { opacity: 0; } 40% { opacity: .35; color: var(--text3); } }
@@ -273,6 +273,7 @@ dialog.s1-dialog::backdrop { background: rgba(29, 27, 25, .38); }
 .s1-keywords { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; margin-top: 8px; }
 .s1-keywords > span:first-child { font-family: 'IBM Plex Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text3); margin-right: 4px; }
 .s1-block { margin-top: 8px; }
+.s1-block .jquote b { font-weight: 700; font-style: normal; color: var(--text); }
 .s1-why { font-size: 12px; color: var(--text2); padding: 4px 0 0 13px; }
 .s1-why b { font-weight: 600; color: var(--text); }
 .page-gap { color: var(--text3); padding: 5px 2px; font-size: 11px; }
@@ -1457,9 +1458,9 @@ function renderLive() {
         card.querySelectorAll('.company-line, .jgroup-head, .judgment > .jgroup > .jrow, .judgment > .jgroup > .fold, .jnotes li')
           .forEach(el => {
             el.style.setProperty('--d', Math.round(at) + 'ms');
-            at += el.classList.contains('jgroup-head') ? 260
-              : el.classList.contains('jrow') ? (el.querySelector('.jquote') ? 520 : 340) + Math.random() * 260
-              : 300;
+            at += el.classList.contains('jgroup-head') ? 110
+              : el.classList.contains('jrow') ? (el.querySelector('.jquote') ? 230 : 150) + Math.random() * 110
+              : 130;
           });
         const badge = card.querySelector('.badge');
         const verdict = [badge.className, badge.textContent];
@@ -1467,7 +1468,7 @@ function renderLive() {
         badge.textContent = 'Judging';
         card.classList.remove('entering');
         card.classList.add('arriving');
-        setTimeout(() => { [badge.className, badge.textContent] = verdict; }, at + 500);
+        setTimeout(() => { [badge.className, badge.textContent] = verdict; }, at + 350);
         setTimeout(() => card.classList.remove('arriving'), at + 1500);
       }
     }
@@ -1509,7 +1510,7 @@ async function openStage1Fails(runId) {
         ${(j.keywords || []).length ? `<div class="s1-keywords"><span>Matched</span>${j.keywords.map(k => `<span class="chip">${esc(k)}</span>`).join('')}</div>` : ''}
         ${(j.blocks || []).map(b => `
           <div class="s1-block">
-            <div class="jquote">${quoteText(b.sentence)}</div>
+            <div class="jquote">${quoteWithKeywords(b.sentence, (b.keywords || []).length ? b.keywords : j.keywords)}</div>
             ${b.why ? `<div class="s1-why">${(b.keywords || []).length ? `<b>${b.keywords.map(esc).join(', ')}</b> — ` : ''}${esc(b.why)}</div>` : ''}
           </div>`).join('')}
       </div>`).join('') || '<div class="empty">Nothing has been turned down at Stage 1.</div>';
@@ -1575,6 +1576,15 @@ const FLAG_ICON = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" s
 // Quotes are stored as scraped (markdown: `**bold**`, `\-`); show them as text.
 function quoteText(q) {
   return esc(String(q || '').replace(/\\([\\`*_{}\[\]()#+\-.!&|~<>])/g, '$1').replace(/\*\*|__/g, ''));
+}
+
+// A sentence Stage 1 read, with the keywords that pulled it in set in bold.
+function quoteWithKeywords(sentence, keywords) {
+  const text = quoteText(sentence);
+  const words = [...new Set((keywords || []).map(k => esc(k).trim()).filter(Boolean))].sort((a, b) => b.length - a.length);
+  if (!words.length) return text;
+  const pattern = new RegExp('(' + words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')', 'gi');
+  return text.replace(pattern, '<b>$1</b>');
 }
 
 function resultCell(result) {
