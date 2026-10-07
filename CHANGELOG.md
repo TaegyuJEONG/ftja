@@ -5,6 +5,20 @@ What changed in each version, newest first. If you cloned FTJA earlier, run
 these. Your own files — `criteria.json`, `rubric.md`, `profile/`, `seen.db`,
 digests — are never touched by an update.
 
+## 0.2.4 — 2026-10-07
+
+### What changes for you after updating
+
+- `/ftja-run` opens the viewer every time you start a run, and tells you in
+  the chat what it is doing at each step: what it is about to scrape and
+  roughly how long that takes, each search term as it finishes, and each
+  stage's numbers.
+
+### Fixed
+
+- When the viewer was already running, `/ftja-run` did not bring it up, so
+  a run could be under way with nothing on screen.
+
 ## 0.2.3 — 2026-10-07
 
 ### What changes for you after updating

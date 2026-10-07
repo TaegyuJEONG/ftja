@@ -36,15 +36,43 @@ FTJA repository before running anything:
      -tiTCP:8765 -sTCP:LISTEN | xargs kill`), start this folder's as above,
      and tell the user in your report that you switched the viewer from
      that folder to this one.
-   After starting it, call `mcp__Claude_Browser__preview_start` followed by
-   `mcp__Claude_Browser__get_page_text`. On macOS also run
-   `open http://127.0.0.1:8765` so the viewer is visible without an extra
-   `Open` click.
+4. On an interactive run, put the viewer in front of the user every time,
+   whether you started it or it was already running: on macOS run
+   `open http://127.0.0.1:8765`, and if `mcp__Claude_Browser__preview_start`
+   is available call it with that URL too. The run is watched there; a
+   viewer that is running but not on screen shows the user nothing. (On an
+   unattended run, open nothing.)
 
 Do not claim the Claude header is connected unless it visibly shows the folder.
 If the directory tool confirms access but the header remains `No folder`, report
 that client UI limitation separately and continue only with the confirmed repo
 path.
+
+## Keep the user informed (interactive runs)
+
+A run takes minutes, sometimes an hour. The user must never be left
+looking at a silent chat wondering whether anything is happening. Say one
+short, plain line in the chat at each of these moments, in the user's
+language, with the numbers you have:
+
+- **Before scraping**: that the run has started, how many search terms and
+  up to how many results each, roughly how long that will take (LinkedIn
+  yields about 70 postings a minute, so 4 terms × 1000 is up to an hour;
+  4 × 100 is about 6 minutes), and that they can watch it at
+  `http://127.0.0.1:8765` (Results tab). If the estimate is over 15
+  minutes, add that lowering "Max results per search term" in the Pipeline
+  tab makes it shorter.
+- **After each search term**: how many it found and how many terms remain.
+  Run the scrape one search term per command so you can say this; do not
+  chain all the terms into one long command that stays silent until the
+  end.
+- **After Stage 0**: scraped, passed, and the biggest drop reasons.
+- **When Stage 1 starts and ends**: how many jobs in how many batches, then
+  how many passed.
+- **When Stage 2 starts and ends**: how many jobs, then pass / review / fail.
+
+Keep each to one line. This is on top of the final report in step 6, not
+instead of it.
 
 ## 0. Preflight
 
@@ -165,7 +193,8 @@ Results tab, and it advances there by itself as the files below appear —
 you never report progress, and you never write these files by hand.
 
 Then scrape each search term in `criteria.json`'s `search_terms`, by its
-index (0, 1, 2, ...), one after another:
+index (0, 1, 2, ...), one after another — a separate command per term,
+with a line to the user between them (see "Keep the user informed"):
 
 ```
 venv/bin/python -m ftja.live scrape --dir <run_dir> --term <index>
