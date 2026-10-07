@@ -5,6 +5,23 @@ What changed in each version, newest first. If you cloned FTJA earlier, run
 these. Your own files — `criteria.json`, `rubric.md`, `profile/`, `seen.db`,
 digests — are never touched by an update.
 
+## 0.2.1 — 2026-10-07
+
+### What changes for you after updating
+
+- Nothing to do. If you keep more than one FTJA folder on the same
+  computer, `/ftja-run` now makes sure the viewer is showing the folder it
+  is running in.
+
+### Fixed
+
+- Two FTJA folders share the viewer's address. A run started in one folder
+  used whatever viewer was already open, even if it belonged to the other
+  folder, so the run never appeared. `/ftja-run` now checks which folder
+  the viewer is showing and switches it, and tells you when it did.
+- The viewer shows its version and the folder it is reading under the
+  title.
+
 ## 0.2.0 — 2026-10-07
 
 ### What changes for you after updating

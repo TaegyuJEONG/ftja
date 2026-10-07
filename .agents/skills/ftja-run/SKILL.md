@@ -24,9 +24,19 @@ FTJA repository before running anything:
    path and require the `Folder access granted` result. A shell `cd` alone is
    not enough. If the repo is not the active workspace, stop and tell the user
    to open/connect the existing FTJA folder; never run against a scratch folder.
-3. Check `http://127.0.0.1:8765/`. If the server is not responding, start it
-   from the connected repo, verify it with `curl`, then call
-   `mcp__Claude_Browser__preview_start` followed by
+3. Make sure the viewer on port 8765 is THIS folder's. Every FTJA clone
+   uses the same port, so a viewer that answers may be showing another
+   folder's data, and this run would never appear in it.
+   `curl -s http://127.0.0.1:8765/api/version` returns `project_dir`.
+   - It matches `pwd`: the viewer is fine, go on.
+   - No answer: start it from this folder (`venv/bin/python -m ftja.server`,
+     in the background) and verify with `curl`.
+   - It names another folder, or has no `project_dir` (an older viewer):
+     that viewer belongs to a different clone. Stop it (`lsof
+     -tiTCP:8765 -sTCP:LISTEN | xargs kill`), start this folder's as above,
+     and tell the user in your report that you switched the viewer from
+     that folder to this one.
+   After starting it, call `mcp__Claude_Browser__preview_start` followed by
    `mcp__Claude_Browser__get_page_text`. On macOS also run
    `open http://127.0.0.1:8765` so the viewer is visible without an extra
    `Open` click.

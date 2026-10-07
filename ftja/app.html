@@ -2313,6 +2313,8 @@ function renderKeywordSection() {
 (async () => { const onboarding = await maybeStartOnboarding(); if (!onboarding) { document.querySelector('.main-tab[data-view=\"results\"]').classList.add('active'); document.getElementById('view-results').classList.add('active'); loadRuns(); } setInterval(pollLive, 1500); pollLive(); })();
 // A clone only changes when its owner pulls; say so when there is something to pull.
 fetch('/api/version').then(r => r.json()).then(v => {
+  // two clones share the port: say which folder's data this is
+  document.querySelectorAll('.subtitle').forEach(el => { el.textContent = `Fine Tune Job Agent · ${v.current} · ${v.project_dir}`; });
   if (!v.update_available) return;
   const banner = document.getElementById('update-banner');
   banner.innerHTML = `FTJA ${esc(v.latest)} is available (you have ${esc(v.current)}). Run <code>/ftja-update</code> in your coding agent to get it.`;
