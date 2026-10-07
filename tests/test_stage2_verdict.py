@@ -290,3 +290,8 @@ def test_fetch_jobs_returns_structured_judgment_and_old_rows(project):
     assert "description" not in jobs["Co"] and jobs["Co"]["criteria_feedback"] == {}
     assert jobs["Co"]["employer"] == [] and jobs["Row"]["notes"] == []
     assert jobs["Row"]["criteria"] is None and jobs["Row"]["reasoning"] == "Prose only."
+    with connect(db) as conn:
+        mark_seen(conn, job_url="https://x/p", status="passed", stage_reached=2, title="P", company="Pass", run_id=summary["run_id"])
+        mark_seen(conn, job_url="https://x/s1", status="stage1_fail", stage_reached=1, title="S", company="S1", run_id=summary["run_id"])
+    everything = _fetch_jobs(db, summary["run_id"], "all", 1)["jobs"]
+    assert [j["status"] for j in everything] == ["passed", "review", "review"]  # passes first; Stage 1 fails never

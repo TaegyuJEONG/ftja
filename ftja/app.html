@@ -1226,10 +1226,10 @@ function renderRunList() {
   });
 }
 
-function selectRun(runId) {
+function selectRun(runId, filter = "passed") {
   liveSelected = false;
   selectedRunId = runId;
-  statusFilter = "passed";
+  statusFilter = filter;
   currentJobPage = 1;
   renderRunList();
   renderRunDetail();
@@ -1357,11 +1357,11 @@ async function pollLive() {
   try { run = (await (await fetch('/api/live', {cache: 'no-store'})).json()).run; } catch (e) { return; }
   if (!run && !liveRun) return;
   if (!run) {  // it just finished: show the finished run in its place
-    const finished = liveRun, wasSelected = liveSelected;
+    const finished = liveRun, wasSelected = liveSelected, filter = liveFilter;  // stay on the tab being watched
     liveRun = null; liveSelected = false; liveCards = new Map(); liveFunnelKey = '';
     runs = (await (await fetch('/api/runs')).json()).filter(r => r.run_id);
     const landed = finished.replay_of || finished.run_id;
-    if (wasSelected && runs.some(r => r.run_id === landed)) selectRun(landed);
+    if (wasSelected && runs.some(r => r.run_id === landed)) selectRun(landed, filter);
     else if (wasSelected && runs.length) selectRun(runs[0].run_id);
     else renderRunList();
     return;
@@ -1531,13 +1531,14 @@ async function openStage1Fails(runId) {
   dialog.showModal();
 }
 
+// The same four tabs, with counts, as a run in progress shows.
 function renderStatusTabs() {
   const el = document.getElementById('status-tabs');
-  el.innerHTML = `
-    <div class="status-tab mono ${statusFilter === 'passed' ? 'active' : ''}" data-status="passed">Passed</div>
-    <div class="status-tab mono ${statusFilter === 'review' ? 'active' : ''}" data-status="review">Review</div>
-    <div class="status-tab mono ${statusFilter === 'stage2_fail' ? 'active' : ''}" data-status="stage2_fail">Failed</div>
-  `;
+  const run = runs.find(r => r.run_id === selectedRunId) || {};
+  const n = {passed: run.stage2_pass || 0, review: run.stage2_review || 0, stage2_fail: run.stage2_fail || 0};
+  const tabs = [['all', 'All', n.passed + n.review + n.stage2_fail], ['passed', 'Passed', n.passed], ['review', 'Review', n.review], ['stage2_fail', 'Failed', n.stage2_fail]];
+  el.innerHTML = tabs.map(([value, label, count]) =>
+    `<div class="status-tab mono ${statusFilter === value ? 'active' : ''}" data-status="${value}">${label} ${fmtN(count)}</div>`).join('');
   el.querySelectorAll('.status-tab').forEach(t => {
     t.addEventListener('click', () => {
       statusFilter = t.dataset.status;

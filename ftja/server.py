@@ -79,7 +79,8 @@ def _rubric_criteria(project_dir: str) -> dict:
 
 
 def _fetch_jobs(db_path: str, run_id: str, status: str, page: int) -> dict:
-    """Jobs from ONE run, filtered by status, 10 per page. Only Stage2-
+    """Jobs from ONE run, filtered by status ('all': passed, then review,
+    then failed), 10 per page. Only Stage2-
     reached jobs are ever returned (stage_reached=2) — Stage0/1 fails have
     no reasoning worth reviewing here. `criteria` is null for a job judged
     before Stage 2 returned per-criterion results; the viewer falls back to
@@ -98,9 +99,9 @@ def _fetch_jobs(db_path: str, run_id: str, status: str, page: int) -> dict:
                       user_action, user_reason, last_seen_at,
                       criteria, criteria_feedback, company_line, employer, notes
                FROM seen_jobs
-               WHERE stage_reached = 2 AND run_id = ? AND status = ?
-               ORDER BY last_seen_at DESC""",
-            (run_id, status),
+               WHERE stage_reached = 2 AND run_id = ? AND (status = ? OR ? = 'all')
+               ORDER BY CASE status WHEN 'passed' THEN 0 WHEN 'review' THEN 1 ELSE 2 END, last_seen_at DESC""",
+            (run_id, status, status),
         ).fetchall()
     cols = ["job_url", "title", "company", "location", "status", "verdict",
             "reasoning", "evidence_sentences", "t1_matched_keywords",
