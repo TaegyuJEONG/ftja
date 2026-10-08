@@ -44,3 +44,11 @@ already been considered and deliberately deferred.
 If you find a security problem, do not open a public issue or pull request
 with the details. Report it privately through the repository's **Security**
 tab using **Report a vulnerability**.
+
+## Releasing a version
+
+Bump `VERSION`, add a section to `CHANGELOG.md` that starts with "What
+changes for you after updating", merge to `main`, then tag it
+(`git tag v0.2.0 && git push --tags`) and publish a GitHub release with the
+same notes. Existing installs learn about the update from `VERSION` on
+`main`.
