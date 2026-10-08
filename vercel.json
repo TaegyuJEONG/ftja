@@ -1,0 +1,8 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "true",
+  "buildCommand": "python3 scripts/verify_landing.py && mkdir -p _site && cp landing.html _site/index.html && cp -R assets _site/assets",
+  "outputDirectory": "_site",
+  "cleanUrls": true
+}

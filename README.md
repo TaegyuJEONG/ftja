@@ -28,7 +28,7 @@ is a folder on your computer and a set of skills your agent follows.
 
 You need a Mac and [Claude Code](https://claude.com/claude-code).
 
-1. Open **https://taegyujeong.github.io/ftja/** and copy the setup prompt, or
+1. Open **https://ftja.vercel.app** and copy the setup prompt, or
    copy it from here:
 
    ```text
@@ -94,6 +94,10 @@ What does leave your computer:
   `FTJA_NO_UPDATE_CHECK=1` to turn it off.
 
 The web view runs on `127.0.0.1` only and refuses requests from other sites.
+
+The landing page at ftja.vercel.app is separate from the tool. It uses Vercel
+Web Analytics, which counts page visits without cookies. The tool itself has
+no analytics.
 
 ## Roadmap
 
@@ -214,7 +218,7 @@ run.log, runs.jsonl        # run history — gitignored
 ftja/                      # the pipeline code and the web view
 .claude/skills/ftja-*/     # the skills for Claude Code
 .agents/skills/ftja-*/     # the same skills for Codex — not yet tested
-landing.html               # the public landing page (deployed to GitHub Pages)
+landing.html               # the public landing page (deployed to ftja.vercel.app)
 ```
 
 [SPEC.md](SPEC.md) is the original design note. [CONTRIBUTING.md](CONTRIBUTING.md)

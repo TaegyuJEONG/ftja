@@ -20,6 +20,9 @@ digests — are never touched by an update.
   where it is going.
 - Dependency versions are pinned, so a new install gets the versions FTJA was
   tested with.
+- The landing page moved to https://ftja.vercel.app and shows a recording of
+  a real run. It counts visits with Vercel Web Analytics (no cookies); the
+  tool itself still has no analytics.
 
 ## 0.2.5 — 2026-10-08
 
