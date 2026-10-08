@@ -215,7 +215,8 @@ configuration.
 
 The only onboarding order is:
 
-1. **Profile** — wait for resume and portfolio files, write a concise
+1. **Profile** — wait for the resume file (portfolio and folder sources are
+   switched off in the viewer during the beta), write a concise
    `profile/summary.md`, get an explicit profile-summary confirmation, then
    propose editable job titles. Propose location from
    the user's country as a starting point, but use **Europe** in the public
@@ -404,8 +405,8 @@ my search settings, continue the setup`) and do not claim that the chat resumed.
 - Preferences that matter but aren't dealbreakers (comp range, remote policy,
   company stage, etc.)
 - The web source picker is the only way to provide profile sources. It accepts
-  one or more files or folders and records local paths without uploading
-  contents. Read those paths from `onboarding-state.json`; do not ask for them
+  one or more files (folders are switched off during the beta) and records
+  local paths without uploading contents. Read those paths from `onboarding-state.json`; do not ask for them
   in chat and do not require a resume/portfolio label.
 
 ## Write the files

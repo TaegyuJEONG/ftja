@@ -1,79 +1,163 @@
 # FTJA — Fine Tune Job Agent
 
-Local-first job-search skill for Claude Code or Codex. Full design in [SPEC.md](SPEC.md).
+**Stop reading every job description yourself.** FTJA is a job-search agent
+that runs inside your own Claude Code. You give it your resume and your
+standards; it reads public LinkedIn postings for you and shows only the roles
+worth your attention, with the reason for each one.
 
-Scrapes LinkedIn (no login, via `jobspy`), filters deterministically, then
-runs a 2-stage LLM judgment (cheap model on keyword-sentence blocks, mid
-model on full JD + your resume/portfolio/rubric), and drops a daily digest
-of only the jobs worth reading. Your files stay in your FTJA folder — no hosted
-database and no FTJA account. The judgment itself is done by your own Claude Code
-or Codex session (see [Data and privacy](#data-and-privacy)).
+> **Beta.** Built and tested with **Claude Code on macOS**. Codex and other
+> agents come next. Until then, fork it and make it yours.
 
-## Landing page and first-time setup
+## What it does
 
-The public landing page is `landing.html`. It explains the value first and
-provides a copyable setup prompt with the exact GitHub URL — no `<owner>`
-placeholder and no path that a non-developer has to fill in.
+1. **Finds postings.** Searches public LinkedIn job listings for the titles
+   you choose. No LinkedIn login.
+2. **Drops the obvious mismatches with plain code.** Keywords, languages and
+   excluded words. No AI involved, so it is free and predictable.
+3. **Judges the rest against your rubric.** Your agent reads each remaining
+   job description against the criteria you wrote and your profile.
+4. **Shows its work.** For every job you see which criteria it met or missed,
+   each with a sentence quoted from the job description.
 
-`landing.html` is the only tracked public landing source. GitHub Pages creates
-its required `index.html` from it during deployment. `scripts/verify_landing.py`
-checks that the inline setup CTA is complete before deployment.
+It is free and open source. There is no FTJA account and no FTJA server: it
+is a folder on your computer and a set of skills your agent follows.
 
-The local server previews it at:
+## Get started
 
-```text
-http://127.0.0.1:8765/landing.html
-```
+You need a Mac and [Claude Code](https://claude.com/claude-code).
 
-The landing page hands off to Claude Code or Codex. After the agent creates the
-workspace and starts the local server, the product onboarding runs at the local
-FTJA app URL. The landing page is static and can be deployed independently from
-the local data experience.
+1. Open **https://taegyujeong.github.io/ftja/** and copy the setup prompt, or
+   copy it from here:
 
-## Install and first-time setup
+   ```text
+   Set up FTJA: clone https://github.com/TaegyuJEONG/ftja.git into a new local FTJA folder, connect this session to it, then follow .claude/skills/ftja-setup/SKILL.md. Do not guess my preferences.
+   ```
 
-FTJA is installed as a normal workspace. Clone it, open the folder in Claude
-Code or Codex, and start a new session there:
+2. Paste it into a new Claude Code session.
 
-```bash
-git clone https://github.com/TaegyuJEONG/ftja.git ~/FTJA
-cd ~/FTJA
-```
+That is all. Your agent downloads FTJA, opens a web view next to the chat and
+walks you through four steps: add your resume, confirm the profile it drafts,
+confirm your search settings, and answer three short questions that become
+your judgment rubric.
 
-Ask the agent to set up FTJA. The project-local `ftja-setup` skill creates the
-Python environment when needed, opens the local web experience, and guides you
-through creating your own `criteria.json`, `rubric.md`, and profile. You do not
-need to choose an AI client or install a global skill.
+## Using it day to day
 
-If you prefer explicit commands, the setup prerequisites are:
+- **Run a search:** type `/ftja-run`. The web view shows the run as it
+  happens and then the results.
+- **Decide on each job:** mark it *Applied*, *Not a fit*, *Later* or
+  *Expired*, and add a short reason if you like.
+- **Your reasons improve the next run:** at the start of the next
+  `/ftja-run`, your agent reads those reasons and proposes changes to your
+  rubric. Nothing changes until you approve it.
+- **Change your mind in plain words:** say "I'm not interested in pure sales
+  roles" in the chat and the agent offers to add it to your rubric.
 
-```bash
-python3 -m venv venv
-venv/bin/pip install -r requirements.txt
-```
+**How much of your Claude plan a run uses.** A run is real work for your
+agent, and it scales with how many postings it reads. Our largest run so far
+(4 titles, up to 1,000 postings each, 1,991 scraped) ran for well over an hour,
+used roughly 12 million tokens by the agent's own estimate, and hit the
+session usage limit partway through.
+Start with one or two titles and 100 results per title, then widen.
 
-Then in a new Claude Code or Codex session opened in the FTJA folder, run the
-project's FTJA setup skill.
+## Why you can trust what it tells you
 
-This interviews you and writes local `rubric.md` + `criteria.json` (gitignored —
-edit them in the web experience or use `/ftja-tune` to update them
-conversationally).
+- **Every step is visible.** How many postings were scraped, how many each
+  filter removed and why, and which ones reached the final judgment.
+- **Every judgment quotes the job description.** The code checks that each
+  quote really appears in the posting before it is shown.
+- **The criteria are yours.** You can read and edit every rule, in the web
+  view or as a text file.
+- **It asks before it learns.** FTJA never changes your rubric on its own.
+- **The code is open.** You, or your agent, can read and change the pipeline.
 
-## Running it (manual — do this first)
+## Privacy and security
 
-```
-/ftja-run
-```
+Your resume, profile, criteria, run history and results are files in your
+FTJA folder. They are excluded from git, so updating FTJA never uploads them.
+FTJA has no server of its own and collects nothing.
 
-Do this by hand for a few days. Check `digest-YYYY-MM-DD.md` each time —
-if Stage 1/Stage 2 verdicts don't match your own judgment, edit `rubric.md`
-/ `criteria.json` (or run `/ftja-tune`) and re-run. Don't automate it until
-you trust it.
+What does leave your computer:
 
-## Automating it (macOS, once you trust the manual runs)
+- **Your AI agent's provider.** The judgment runs inside your own Claude Code
+  session, so the job descriptions, your rubric, your profile summary and
+  (during setup) the resume you select are sent to that provider under your
+  account with them, as with any other work you do there.
+- **LinkedIn.** Your search titles and location are sent as public,
+  logged-out searches.
+- **OpenStreetMap (Nominatim).** What you type in the web view's location
+  field is sent to look up place names.
+- **Google Fonts.** The web view loads its fonts from Google.
+- **GitHub.** One request for the `VERSION` file, at most twice a day, to
+  tell you when an update exists. It sends nothing about you. Set
+  `FTJA_NO_UPDATE_CHECK=1` to turn it off.
 
-Copy the example LaunchAgent, replace every `/path/to/FTJA` in it with your
-FTJA folder, then load it:
+The web view runs on `127.0.0.1` only and refuses requests from other sites.
+
+## Roadmap
+
+**Next**
+
+- More agents: Codex and others beyond Claude Code.
+- More sources: other job boards such as Indeed, and company career pages
+  hosted on applicant tracking systems (Greenhouse, Lever, Ashby and others).
+- Richer profiles: portfolio and project folders, and a more structured view
+  of both your background and each job description.
+
+**Then**
+
+- When you click Apply, a draft of each application-form answer written from
+  your profile. You review and send it yourself.
+
+**Vision**
+
+- A hiring-side agent that states what a team really needs, so that a
+  candidate's agent and a recruiter's agent can match on evidence, not
+  keywords.
+
+The roadmap is a direction, not a schedule. [BACKLOG.md](BACKLOG.md) records
+what was deliberately deferred and why.
+
+## Feedback
+
+This is a beta, and your reaction decides what comes next. Open an
+[issue](https://github.com/TaegyuJEONG/ftja/issues) for anything that broke,
+confused you, or judged a job wrongly.
+
+---
+
+<details>
+<summary><b>The skills</b></summary>
+
+Skills are the instructions your agent follows. You only need the first two.
+
+| Skill | What it does | When |
+|---|---|---|
+| `/ftja-setup` | Onboarding: profile, search settings, rubric | Once, or to start over |
+| `/ftja-run` | Scrape, filter, judge, show results | Whenever you want a search |
+| `/ftja-tune` | Adds a preference you state in chat to your rubric | When you say one |
+| `/ftja-review` | Turns your apply/skip reasons into proposed rubric changes | Automatically at the start of a run |
+| `/ftja-update` | Updates FTJA and tells you what changed | When a run tells you an update exists |
+| `/ftja-profile-update` | Rewrites your profile summary from your source files | After you change your resume |
+
+</details>
+
+<details>
+<summary><b>Updating</b></summary>
+
+FTJA stays at the version you downloaded until you update. The web view shows
+a banner when a newer version exists, and `/ftja-run` asks at the start of a
+run whether to update first. You can also run `/ftja-update` at any time. It
+pulls the new version, reinstalls dependencies, restarts the web view and
+summarizes what changed ([CHANGELOG.md](CHANGELOG.md)). Your own files are
+never touched.
+
+</details>
+
+<details>
+<summary><b>Running it on a schedule (macOS)</b></summary>
+
+Do this only after you trust the manual runs. Copy the example LaunchAgent,
+replace every `/path/to/FTJA` in it with your FTJA folder, then load it:
 
 ```bash
 cp com.ftja.run.example.plist ~/Library/LaunchAgents/com.ftja.run.plist
@@ -83,84 +167,59 @@ cp com.ftja.run.example.plist ~/Library/LaunchAgents/com.ftja.run.plist
 launchctl load ~/Library/LaunchAgents/com.ftja.run.plist
 ```
 
-**Before you do this**, `claude --print "/ftja-run"` runs headlessly — no
-one is there to click "allow" on a permission prompt at 9am. You need to
-either:
-- configure a permission allowlist for this project (`.claude/settings.json`)
-  covering the Bash/Read/Write calls `/ftja-run` makes, or
-- accept the risk of `--dangerously-skip-permissions` in the plist's
-  `ProgramArguments` (only do this if you understand what it disables).
+A scheduled run has no one to click "allow" on a permission prompt. Either
+configure a permission allowlist for this project in `.claude/settings.json`
+covering the commands `/ftja-run` makes, or accept the risk of
+`--dangerously-skip-permissions` in the plist (only if you understand what it
+disables). This is a real safety tradeoff, so it is left to you. After the
+first scheduled run, check `launchd.err.log` to confirm it ran.
 
-This wasn't decided for you on purpose — it's a real safety tradeoff, pick
-it deliberately. Whichever you choose, check `launchd.err.log` after the
-first scheduled run to confirm it actually executed instead of silently
-failing on a permission prompt.
+To stop it:
 
-To stop the automation:
 ```bash
 launchctl unload ~/Library/LaunchAgents/com.ftja.run.plist
 ```
 
-## Updating
+</details>
 
-FTJA is a clone of this repository, so it stays at the version you cloned
-until you pull. It tells you when a newer version is published: the viewer
-shows a banner, and `/ftja-run` asks at the start of a run whether to update
-first (a scheduled run never updates; it only notes it in `run.log`). You
-can also run `/ftja-update` yourself at any time. It pulls, reinstalls dependencies,
-restarts the viewer and summarizes what changed ([CHANGELOG.md](CHANGELOG.md)).
-Your own files (`criteria.json`, `rubric.md`, `profile/`, `seen.db`,
-digests) are ignored by git and are never touched.
+<details>
+<summary><b>Manual install</b></summary>
 
-The check is one request for the `VERSION` file on GitHub, at most twice a
-day, and sends nothing about you. Set `FTJA_NO_UPDATE_CHECK=1` to turn it
-off.
+```bash
+git clone https://github.com/TaegyuJEONG/ftja.git ~/FTJA
+```
 
-Releasing a version (maintainers): bump `VERSION`, add a section to
-`CHANGELOG.md` that starts with "What changes for you after updating",
-merge to `main`, then tag it (`git tag v0.2.0 && git push --tags`) and
-publish a GitHub release with the same notes.
+```bash
+cd ~/FTJA && python3 -m venv venv && venv/bin/pip install -r requirements.txt
+```
 
-## Layout
+Then open the folder in Claude Code and run `/ftja-setup`.
+
+</details>
+
+<details>
+<summary><b>What is in the folder</b></summary>
 
 ```
 criteria.example.json, rubric.example.md  # public templates
-criteria.json, rubric.md       # personal configuration — gitignored
-profile/                   # your resume/portfolio — gitignored
-seen.db                    # dedup state (SQLite) — gitignored
-digest-*.md                # daily results — gitignored
-rubric-criteria.json       # the rubric as a list of single criteria (Pass / Fail / Preferences), edited in the viewer's Pipeline tab — gitignored
-run.log                    # append-only run history — gitignored
-.ftja-run/                 # each run's working files (last 5 runs); the viewer's live view reads them — gitignored
-ftja/                      # the pipeline code
-.claude/skills/ftja-*/     # the skills for Claude Code: setup, run, review, tune, profile-update, update
-.agents/skills/ftja-*/     # the same skills for Codex
+criteria.json, rubric.md   # your search settings and rubric — gitignored
+rubric-criteria.json       # the rubric as a list of single criteria, edited in the Pipeline tab — gitignored
+profile/                   # your resume and profile summary — gitignored
+seen.db                    # which jobs were already judged (SQLite) — gitignored
+digest-*.md, rejected-*.md # results of each run — gitignored
+run.log, runs.jsonl        # run history — gitignored
+.ftja-run/                 # each run's working files (last 5 runs) — gitignored
+ftja/                      # the pipeline code and the web view
+.claude/skills/ftja-*/     # the skills for Claude Code
+.agents/skills/ftja-*/     # the same skills for Codex — not yet tested
+landing.html               # the public landing page (deployed to GitHub Pages)
 ```
 
-## Data and privacy
+[SPEC.md](SPEC.md) is the original design note. [CONTRIBUTING.md](CONTRIBUTING.md)
+covers development and releasing.
 
-The public repository contains the FTJA code, prompts, and project-local skills.
-Your criteria, rubric, resume/portfolio, run history, digests, and SQLite state
-are local files and are gitignored, so updating FTJA never uploads them. FTJA
-has no server of its own and collects nothing.
+</details>
 
-What does leave your computer:
+## License
 
-- **Your AI agent's provider.** The judgment runs inside your own Claude Code
-  or Codex session, so the job descriptions, your rubric, your profile summary
-  and (during setup) the resume/portfolio files you select are sent to that
-  provider under your account with them, as with any other work you do there.
-- **LinkedIn.** Your search titles and location are sent as public, logged-out
-  searches.
-- **OpenStreetMap (Nominatim).** What you type in the viewer's location field
-  is sent to look up place names.
-- **Google Fonts.** The viewer loads its fonts from Google.
-- **GitHub.** The update check described above.
-
-The viewer runs on `127.0.0.1` only and refuses requests from other sites.
-
-## Out of scope (see SPEC.md for why)
-
-Public job board, LinkedIn login-based scraping, non-LinkedIn sources,
-agents other than Claude Code and Codex, mobile use, automatic (non-confirmed)
-rubric inference, multi-rubric pivoting.
+[MIT](LICENSE)

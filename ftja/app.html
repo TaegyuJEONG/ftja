@@ -575,6 +575,9 @@ select.sort-select {
 .onboarding-source-actions .onboarding-source-confirm { margin-left: auto; }
 .onboarding-source-actions button:disabled { opacity: .5; cursor: wait; }
 .onboarding-source-note { color: var(--text3); font-size: 11px; line-height: 1.55; margin: 12px 0 0; }
+.onboarding-beta-later { display: inline-flex; align-items: center; gap: 6px; cursor: help; }
+.onboarding-beta-later button { pointer-events: none; opacity: .5; }
+.onboarding-beta-hint { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border: 1px solid var(--text3); border-radius: 50%; color: var(--text3); font-size: 10px; }
 .onboarding-pills { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
 .onboarding-pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border: 1px solid var(--accent-border); background: var(--accent-dim); color: var(--accent-text); border-radius: 999px; font-size: 11px; }
 .onboarding-pill button { border: 0; background: none; color: inherit; cursor: pointer; font-size: 14px; line-height: 1; padding: 0 1px; }
@@ -908,9 +911,9 @@ function profileCard(state) {
   if (!ready) {
     return onboardingPendingCard('Your source materials', 'Getting ready for your background files…', 'confirm_profile_sources');
   }
-  const sourceIntro = '<p class="onboarding-source-note source-intro">Add any files or folders that help FTJA understand your background.</p>';
+  const sourceIntro = '<p class="onboarding-source-note source-intro">Add the resume FTJA should read to understand your background.</p>';
   const sources = profile.sources || [];
-  const sourceActions = `<div class="onboarding-source-actions"><button class="primary" type="button" data-add-onboarding-source="file">+ Add files</button><button class="secondary" type="button" data-add-onboarding-source="folder">+ Add a folder</button><button class="primary onboarding-source-confirm" type="button" data-confirm-profile-sources ${sources.length ? '' : 'disabled'}>Confirm sources</button></div><p class="onboarding-source-note">Selected items stay on your computer. Your coding agent reads them locally.</p>`;
+  const sourceActions = `<div class="onboarding-source-actions"><button class="primary" type="button" data-add-onboarding-source="file">+ Add resume</button><span class="onboarding-beta-later" title="Portfolio and folder sources come after the beta. For now FTJA drafts your profile from your resume."><button class="secondary" type="button" disabled>+ Add a portfolio folder</button><span class="onboarding-beta-hint" aria-hidden="true">?</span></span><button class="primary onboarding-source-confirm" type="button" data-confirm-profile-sources ${sources.length ? '' : 'disabled'}>Confirm sources</button></div><p class="onboarding-source-note">Selected items stay on your computer. Your coding agent reads them locally. Portfolio and folder sources come after the beta.</p>`;
   return `<div class="onboarding-card"><h3>Your source materials</h3>${sourceIntro}<div class="onboarding-source-list">${sourceRows(state)}</div>${sourceActions}</div>`;
 }
 function rubricCard(state) {

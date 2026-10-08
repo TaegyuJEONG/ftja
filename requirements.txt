@@ -1,2 +1,2 @@
-python-jobspy
-langdetect
+python-jobspy==1.1.82
+langdetect==1.0.9
