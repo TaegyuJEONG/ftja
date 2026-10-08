@@ -23,46 +23,17 @@
 .section{padding:90px 0 0}.section-kicker{color:var(--accent);font:10px "IBM Plex Mono",monospace;letter-spacing:.12em;text-transform:uppercase;margin-bottom:12px}.section h2{font:400 clamp(38px,5vw,62px)/.98 "Instrument Serif",Georgia,serif;letter-spacing:-.03em;margin:0 0 16px;max-width:620px}.section-intro{color:var(--muted);font-size:14px;line-height:1.7;max-width:510px;margin:0 0 30px}.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border)}.step{background:var(--surface);padding:22px 20px 28px;min-height:185px}.step-number{color:var(--faint);font:11px "IBM Plex Mono",monospace;margin-bottom:35px}.step h3{font-size:14px;margin:0 0 8px}.step p{color:var(--muted);font-size:12px;line-height:1.6;margin:0}
 .install{background:var(--surface);border:1px solid var(--border);padding:28px clamp(20px,4vw,40px);margin-top:30px}.install-head{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:22px}.install h3{font-size:15px;margin:0 0 7px}.install-note{color:var(--muted);font-size:12px;line-height:1.6;margin:0;max-width:560px}.agent-note{color:var(--accent);font:10px "IBM Plex Mono",monospace;white-space:nowrap}.prompt{position:relative;background:var(--surface2);border:1px solid var(--border);padding:18px 52px 18px 18px;color:var(--ink);font:12px/1.7 "IBM Plex Mono",monospace}.copy-button{position:absolute;right:10px;top:10px;border:1px solid var(--border2);background:var(--surface);color:var(--accent);width:32px;height:32px;cursor:pointer;border-radius:2px;font-size:15px}.copy-button:hover{background:var(--accent2);border-color:var(--accent-border)}.copy-status{min-height:17px;color:var(--accent);font:10px "IBM Plex Mono",monospace;margin-top:8px}.install-foot{display:flex;gap:15px;align-items:center;margin-top:20px;color:var(--faint);font-size:11px}.install-foot span:first-child{color:var(--accent)}
 .run-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;margin:0 0 26px}.run-stats>div{border-top:1px solid var(--ink);padding-top:14px}.run-stats b{display:block;color:var(--accent);font:400 clamp(40px,6vw,68px)/1 "Instrument Serif",Georgia,serif;letter-spacing:-.03em}.run-stats span{display:block;color:var(--muted);font:11px "IBM Plex Mono",monospace;letter-spacing:.04em;margin-top:8px}@media(max-width:720px){.run-stats{gap:14px}.run-stats span{font-size:10px}}
-.future{background:var(--accent);color:var(--on-accent);margin-top:62px;padding:clamp(34px,5vw,62px) clamp(20px,4vw,54px)}
-.future .section-kicker{color:#b9d1c4}
-.future h2{font:400 clamp(32px,4.4vw,54px)/1.02 "Instrument Serif",Georgia,serif;letter-spacing:-.03em;margin:0 0 16px;max-width:860px}
-.future h2 em{font-style:italic;color:#cfe3d7}
-.future-intro{color:#cfe3d7;font-size:14px;line-height:1.7;margin:0 0 34px}
-.future-stage{display:grid;grid-template-columns:minmax(0,1fr) minmax(70px,.5fr) minmax(0,1fr) minmax(70px,.5fr) minmax(0,1fr);align-items:start;gap:0;min-height:250px}
-.f-node{border:1px solid rgba(243,240,233,.45);padding:14px 16px;background:rgba(243,240,233,.06)}
-.f-node b{display:block;font:400 26px/1.1 "Instrument Serif",Georgia,serif}
-.f-node small{display:block;font:11px "IBM Plex Mono",monospace;color:#cfe3d7;margin-top:6px;min-height:14px}
-.f-node-kicker{display:block;font:10px "IBM Plex Mono",monospace;letter-spacing:.12em;text-transform:uppercase;color:#b9d1c4;margin-bottom:6px}
-.f-node-agent{background:var(--on-accent);color:var(--accent);border-color:var(--on-accent)}
-.f-node-agent .f-node-kicker,.f-node-agent small{color:var(--accent)}
-.f-chips{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:7px}
-.f-chips li{font:11px/1.45 "IBM Plex Mono",monospace;border-left:2px solid #b9d1c4;padding:3px 0 3px 10px;color:var(--on-accent)}
-.f-chips li.f-private{border-left-color:#f0c987;color:#f6dfb4}
-.f-link{position:relative;height:74px;display:flex;align-items:flex-end;justify-content:center}
-.f-link i{position:absolute;left:0;right:0;top:36px;height:2px;background:repeating-linear-gradient(90deg,#cfe3d7 0 8px,transparent 8px 16px);background-size:16px 2px;animation:f-flow 1s linear infinite}
-.f-link-b i{animation-direction:reverse}
-.f-link span{font:10px "IBM Plex Mono",monospace;color:#b9d1c4;text-align:center;padding:0 6px;position:absolute;top:46px;left:0;right:0}
-.future[data-step="3"] .f-link i{height:6px;top:34px;background:repeating-linear-gradient(90deg,#f0c987 0 8px,transparent 8px 16px) 0 0/16px 2px repeat-x,repeating-linear-gradient(270deg,#cfe3d7 0 8px,transparent 8px 16px) 0 4px/16px 2px repeat-x;animation:f-talk 1s linear infinite}
-@keyframes f-flow{to{background-position:16px 0}}
-@keyframes f-talk{to{background-position:16px 0,-16px 4px}}
-.f-world{display:grid}.f-panel{grid-area:1/1}
-.f-draft{border:1px dashed rgba(243,240,233,.6);padding:12px 14px;margin-top:12px}
-.f-draft i{display:block;height:6px;background:#cfe3d7;margin:7px 0;width:0}
-.future[data-step="2"] .f-draft i{animation:f-fill 1.6s ease-out forwards}.future[data-step="2"] .f-draft i:nth-of-type(2){animation-delay:.35s;--w:72%}.future[data-step="2"] .f-draft i:nth-of-type(3){animation-delay:.7s;--w:88%}
-@keyframes f-fill{to{width:var(--w,100%)}}
-.f-draft em{display:inline-block;font:normal 10px "IBM Plex Mono",monospace;border:1px solid var(--on-accent);padding:4px 8px;margin-top:6px}
-.f-from1,.f-from3,.f-only2,.f-only3,.f-only012{transition:opacity .6s ease,transform .6s ease}
-.future[data-step="0"] .f-from1,.future:not([data-step="3"]) .f-from3,.future:not([data-step="2"]) .f-only2,.future:not([data-step="3"]) .f-only3,.future[data-step="3"] .f-only012{opacity:0;transform:translateY(6px);pointer-events:none}
-.future-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:34px;border-top:1px solid rgba(243,240,233,.3)}
-.future-steps button{all:unset;display:block;align-self:start;cursor:pointer;padding:14px 12px 12px 0;border-top:2px solid transparent;margin-top:-1px;opacity:.55;transition:opacity .3s}
-.future-steps button span{display:block;font:10px "IBM Plex Mono",monospace;letter-spacing:.12em;text-transform:uppercase;color:#b9d1c4;margin-bottom:6px}
-.future-steps button b{font:400 19px/1.15 "Instrument Serif",Georgia,serif}
-.future-steps button[aria-selected="true"]{opacity:1;border-top-color:var(--on-accent)}
-.future-steps button:hover{opacity:1}.future-steps button:focus-visible{outline:2px solid #f0c987;outline-offset:2px}
-.future-copy{min-height:96px;margin-top:18px}.future-copy p{font-size:15px;line-height:1.7;margin:0;max-width:760px;color:var(--on-accent)}
-.future-note{font:10px "IBM Plex Mono",monospace;color:#b9d1c4;margin:14px 0 0}
-@media(max-width:720px){.future-stage{grid-template-columns:1fr;min-height:0}.f-link{height:46px}.f-link i{left:22px;right:auto;top:0;bottom:0;width:2px;height:auto;background:repeating-linear-gradient(180deg,#cfe3d7 0 8px,transparent 8px 16px);animation:none}.future[data-step="3"] .f-link i{height:auto;top:0;width:2px;background:repeating-linear-gradient(180deg,#f0c987 0 8px,transparent 8px 16px);animation:none}.f-link span{position:static;margin:0 0 0 38px;align-self:center;text-align:left}.f-link{justify-content:flex-start;align-items:center}.future[data-step="0"] .f-chips .f-from1,.future:not([data-step="3"]) .f-chips .f-from3,.future:not([data-step="2"]) .f-draft{display:none}.future-steps{grid-template-columns:repeat(2,1fr)}.future-steps button b{font-size:16px}.future-copy{min-height:150px}}
-@media(prefers-reduced-motion:reduce){.f-link i,.future[data-step="2"] .f-draft i{animation:none}.future[data-step="2"] .f-draft i{width:var(--w,100%)}}
+.future-row{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:clamp(28px,6vw,84px);align-items:center;padding:clamp(34px,5vw,58px) 0;border-top:1px solid var(--border)}
+.future-row.flip .future-text{order:2}
+.future-row.dark{background:var(--accent);color:var(--on-accent);border-top:0;padding:clamp(30px,5vw,58px) clamp(20px,4vw,54px);margin-top:8px}
+.future-tag{color:var(--accent);font:10px "IBM Plex Mono",monospace;letter-spacing:.12em;text-transform:uppercase;margin-bottom:14px}
+.future-text h3{font:400 clamp(28px,3.4vw,42px)/1.04 "Instrument Serif",Georgia,serif;letter-spacing:-.025em;margin:0 0 16px}
+.future-text p{color:var(--muted);font-size:14px;line-height:1.7;margin:0 0 12px;max-width:460px}
+.future-text p b{color:var(--ink);font-weight:600}
+.future-art{display:block;width:100%;height:auto}
+.future-row.dark .future-tag{color:#f0c987}.future-row.dark .future-text p{color:#d6e5dc}.future-row.dark .future-text p b{color:var(--on-accent)}
+.future-row.dark .future-note{font:10px "IBM Plex Mono",monospace;color:#b9d1c4;margin-top:18px}
+@media(max-width:720px){.future-row{grid-template-columns:1fr;gap:22px}.future-row.flip .future-text{order:0}}
 .trust-section{padding:62px 0 0}.trust-section>h2{font:400 clamp(32px,4vw,48px)/1 "Instrument Serif",Georgia,serif;letter-spacing:-.03em;margin:0 0 24px}.callout{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;padding:0}.callout-card{border-top:2px solid var(--accent);padding-top:14px}.callout-card h3{font-size:14px;margin:0 0 8px}.callout-card p{color:var(--muted);font-size:12px;line-height:1.65;margin:0}.footer{display:flex;justify-content:space-between;gap:20px;border-top:1px solid var(--border);margin-top:100px;padding-top:20px;color:var(--faint);font:10px "IBM Plex Mono",monospace}.footer a{color:var(--accent);text-decoration:none}
 @media(max-width:720px){.nav{padding-bottom:45px}.hero{padding-top:10px;padding-bottom:70px}.proof{grid-template-columns:1fr}.proof-item,.proof-item:not(:first-child){padding:20px;border-right:0;border-bottom:1px solid var(--border)}.proof-item:last-child{border-bottom:0}.proof-art{margin-top:14px;max-width:560px}.steps{grid-template-columns:1fr}.step{min-height:auto}.install-head{display:block}.agent-note{display:block;margin-top:12px}.callout{grid-template-columns:1fr}.footer{display:block}.footer span{display:block;margin-bottom:8px}}
 
@@ -118,57 +89,22 @@
     </div>
   </section>
   <section class="trust-section"><div class="section-kicker">A real run</div><h2>Twenty seconds of an actual search.</h2><p class="section-intro" style="margin-bottom:18px">Sped up. One run over four job titles.</p><div class="run-stats"><div><b>1,991</b><span>postings scraped</span></div><div><b>396</b><span>past the code-based filter</span></div><div><b>45</b><span>passed, each with quoted evidence</span></div></div><video controls muted playsinline preload="metadata" poster="assets/demo/ftja-run-poster.jpg" style="display:block;width:100%;height:auto;border:1px solid var(--border)" aria-label="Screen recording of /ftja-run: scraping, the code-based filter, two judgment stages, and the results with quoted evidence"><source src="assets/demo/ftja-run.mp4" type="video/mp4"></video></section>
-  <section class="future" id="where-this-is-going" data-step="0">
+  <section class="section future" id="where-this-is-going">
     <div class="section-kicker">Where this is going</div>
-    <h2>No one applies. No one posts a job. <em>The right people still meet.</em></h2>
-    <p class="future-intro">FTJA starts with search. This is where it leads.</p>
-    <div class="future-stage" aria-hidden="true">
-      <div class="f-col f-you">
-        <div class="f-node"><span class="f-node-kicker">Person</span><b>You</b></div>
-        <ul class="f-chips">
-          <li>Resume</li>
-          <li class="f-from1">Portfolio and projects</li>
-          <li class="f-from3 f-private">Your private judgment, taught run after run</li>
-        </ul>
-      </div>
-      <div class="f-link f-link-a"><i></i><span class="f-only012">your criteria</span><span class="f-only3">almost no effort from you</span></div>
-      <div class="f-col f-agent">
-        <div class="f-node f-node-agent"><span class="f-node-kicker">Agent</span><b>Your agent</b><small><span>Claude Code</span><span class="f-from1"> + Codex and more</span></small></div>
-        <div class="f-draft f-only2"><span class="f-node-kicker">Application draft</span><i></i><i></i><i></i><em>You review and send</em></div>
-      </div>
-      <div class="f-link f-link-b"><i></i><span class="f-only012">reads and judges</span><span class="f-only3">agents talk, continuously</span></div>
-      <div class="f-col f-world">
-        <div class="f-panel f-only012">
-          <div class="f-node"><span class="f-node-kicker">Public</span><b>Job postings</b></div>
-          <ul class="f-chips">
-            <li>LinkedIn</li>
-            <li class="f-from1">Other job boards</li>
-            <li class="f-from1">Company career pages</li>
-          </ul>
-        </div>
-        <div class="f-panel f-only3">
-          <div class="f-node f-node-agent"><span class="f-node-kicker">Agent</span><b>A team's agent</b></div>
-          <ul class="f-chips">
-            <li class="f-private">What the team needs this week</li>
-            <li class="f-private">Preferences no job post states</li>
-            <li class="f-private">Updated as the company changes</li>
-          </ul>
-        </div>
-      </div>
+    <h2>Search is the first step.</h2>
+    <p class="section-intro">Three things FTJA is heading toward, in order.</p>
+    <div class="future-row">
+      <div class="future-text"><div class="future-tag">01 · Next</div><h3>Your agent, more places to look.</h3><p>FTJA runs in Claude Code and reads LinkedIn today. Next it comes to more agents, including Codex and Hermes Agent, and to more sources: Indeed, and the career pages companies run on Greenhouse, Lever and Ashby.</p></div>
+      <img class="future-art" src="assets/future/more-agents-sources.svg" alt="Agents on the left (Claude Code now; Codex and Hermes Agent next) and sources on the right (LinkedIn now; Indeed and company career pages next), all connected to FTJA" width="960" height="640" loading="lazy">
     </div>
-    <div class="future-steps" role="tablist" aria-label="Where FTJA is going">
-      <button type="button" role="tab" data-future-step="0" aria-selected="true"><span>Today</span><b>Search you can inspect</b></button>
-      <button type="button" role="tab" data-future-step="1" aria-selected="false"><span>Next</span><b>More agents, more sources</b></button>
-      <button type="button" role="tab" data-future-step="2" aria-selected="false"><span>Then</span><b>Drafted applications</b></button>
-      <button type="button" role="tab" data-future-step="3" aria-selected="false"><span>Vision</span><b>Agents that match continuously</b></button>
+    <div class="future-row flip">
+      <div class="future-text"><div class="future-tag">02 · Then</div><h3>Applications, drafted for you.</h3><p>When a role is worth applying to, your agent prepares the application: your resume attached, the motivation written, each question answered. It draws on your profile, on what it has learned from your conversations, and on the job posting itself.</p><p><b>You review it and confirm.</b> Nothing is sent without you.</p></div>
+      <img class="future-art" src="assets/future/drafted-applications.svg" alt="Your profile, what you have told your agent, and the job posting flow into an application form that ends with a Review and confirm button" width="960" height="640" loading="lazy">
     </div>
-    <div class="future-copy" aria-live="polite">
-      <p data-future-copy="0">Your agent reads public LinkedIn postings against criteria you wrote, and shows the evidence for every decision.</p>
-      <p data-future-copy="1" hidden>More agents beyond Claude Code. More sources: other job boards and company career pages. Your portfolio and projects become part of your profile.</p>
-      <p data-future-copy="2" hidden>When you decide to apply, your agent drafts each answer from your profile. You review it and send it yourself.</p>
-      <p data-future-copy="3" hidden>Your agent holds more than a resume: the private judgment you teach it, run after run. A team's agent holds what a job post never can: what the team needs this week and the preferences nobody writes down. The two agents talk continuously and match as things change. No applications. No job posts. FTJA is the first step.</p>
+    <div class="future-row dark">
+      <div class="future-text"><div class="future-tag">03 · Vision</div><h3>No one applies. No one posts a job.</h3><p>Companies get an agent too. It holds what a job post cannot: what the team needs right now, and the preferences nobody publishes. Your agent holds your judgment, taught run after run.</p><p>The two agents talk, and each side gets a short, curated list. <b>The right people still meet.</b></p><p class="future-note">A direction, not a schedule.</p></div>
+      <img class="future-art" src="assets/future/agent-to-agent.svg" alt="Your agent, holding your private judgment, talks with a company's agent, holding what the team needs now and its unpublished preferences; both sides receive a short list" width="960" height="640" loading="lazy">
     </div>
-    <p class="future-note">A direction, not a schedule.</p>
   </section>
   <section class="trust-section"><div class="section-kicker">Not a black box</div><h2>See how your agent reaches a decision.</h2><div class="callout"><div class="callout-card"><h3>Public sources</h3><p>FTJA scrapes public LinkedIn listings without a login. LinkedIn controls coverage, so FTJA states that limit plainly.</p></div><div class="callout-card"><h3>Each judgment step</h3><p>See what was scraped, what the filters removed, which evidence matched, and why a role made it through.</p></div><div class="callout-card"><h3>Local files. Open code.</h3><p>Your profile, criteria, run history, and results stay in local files. FTJA is open source, so you can inspect and change the pipeline itself.</p></div></div></section>
   <footer class="footer"><span>FTJA · Fine Tune Job Agent</span><span>Built for builders who want their attention back · <a href="https://github.com/TaegyuJEONG/ftja" target="_blank" rel="noreferrer">GitHub</a></span></footer>
@@ -506,17 +442,6 @@ function bindDemoActions() {
   document.querySelectorAll('.roadmap-tab').forEach((tab,index) => tab.addEventListener('click', () => { demo.auto = demo.playing && demo.auto; play(index); }));
 }
 bindDemoActions(); byId('setup-toggle').addEventListener('click', toggleSetupCard); byId('setup-copy').addEventListener('click', copySetupPrompt); setTab(0); resetChat(); setUi(profileUi('empty')); byId('walkthrough-panel').classList.add('demo-idle'); updateDemoControl();
-
-(function(){
-  const root=document.getElementById('where-this-is-going'); if(!root) return;
-  const tabs=[...root.querySelectorAll('[data-future-step]')], copies=[...root.querySelectorAll('[data-future-copy]')];
-  let timer=null, manual=false;
-  function go(n){ root.dataset.step=String(n); tabs.forEach((t,i)=>t.setAttribute('aria-selected', String(i===n))); copies.forEach((c,i)=>{c.hidden=i!==n;}); }
-  function stop(){ clearInterval(timer); timer=null; }
-  function play(){ if(manual||timer||matchMedia('(prefers-reduced-motion: reduce)').matches) return; timer=setInterval(()=>go((Number(root.dataset.step)+1)%4), 4500); }
-  tabs.forEach((t,i)=>t.addEventListener('click',()=>{ manual=true; stop(); go(i); }));
-  if('IntersectionObserver' in window){ new IntersectionObserver(es=>es.forEach(e=>e.isIntersecting?play():stop()),{threshold:.35}).observe(root); } else { play(); }
-})();
 </script>
 </body>
 </html>

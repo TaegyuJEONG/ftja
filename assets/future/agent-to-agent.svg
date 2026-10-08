@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="640" viewBox="0 0 480 320" role="img" aria-labelledby="aa-title aa-desc">
+  <title id="aa-title">Agent to agent</title>
+  <desc id="aa-desc">Your agent, holding your private judgment, talks with a company's agent, holding what the team needs right now and its unpublished preferences. Both sides receive a short curated list.</desc>
+  <style>
+    .ink{fill:none;stroke:#e9f1ec;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+    .node{fill:#f3f0e9}.nodeink{fill:none;stroke:#2e5142;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+    .ghost{fill:rgba(243,240,233,.07);stroke:rgba(243,240,233,.5);stroke-width:1.2}
+    .priv{fill:rgba(240,201,135,.12);stroke:#f0c987;stroke-width:1.1}
+    .privt{fill:#f6dfb4;font:500 10.5px ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;text-anchor:middle}
+    .lbl{fill:#f3f0e9;font:500 12px ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;text-anchor:middle}
+    .sub{fill:#b9d1c4;font:500 9px ui-monospace,"IBM Plex Mono",Menlo,monospace;letter-spacing:.12em;text-anchor:middle}
+    .talk{fill:none;stroke-width:1.4;stroke-dasharray:2 7;stroke-linecap:round;animation:route 3s linear infinite}
+    .talk.a{stroke:#f0c987}.talk.b{stroke:#cfe3d7;animation-direction:reverse}
+    .feed{fill:none;stroke:rgba(243,240,233,.55);stroke-width:1.2;stroke-dasharray:2 6;stroke-linecap:round}
+    .dot{fill:#f0c987}.dot2{fill:#cfe3d7}
+    .pick{fill:#f3f0e9}.pickoff{fill:none;stroke:rgba(243,240,233,.4);stroke-width:1.1}
+    @keyframes route{to{stroke-dashoffset:-36}}
+    @media(prefers-reduced-motion:reduce){.talk{animation:none}.dot,.dot2{display:none}}
+  </style>
+
+  <!-- private layers -->
+  <rect class="priv" x="62" y="26" width="138" height="24" rx="12"/><text class="privt" x="131" y="42">your private judgment</text>
+  <rect class="priv" x="280" y="14" width="150" height="24" rx="12"/><text class="privt" x="355" y="30">what the team needs now</text>
+  <rect class="priv" x="280" y="44" width="150" height="24" rx="12"/><text class="privt" x="355" y="60">unpublished preferences</text>
+  <path class="feed" d="M150 52V92"/><path class="feed" d="M330 70V92"/>
+
+  <!-- people -->
+  <circle class="ghost" cx="42" cy="124" r="22"/>
+  <g class="ink"><circle cx="42" cy="118" r="5.500"/><path d="M32 134c2-7 18-7 20 0"/></g>
+  <text class="lbl" x="42" y="164">You</text>
+  <circle class="ghost" cx="438" cy="124" r="22"/>
+  <g class="ink"><path d="M428 135v-20h12v20M440 123h8v12M425 135h26M432 120h4M432 126h4"/></g>
+  <text class="lbl" x="438" y="164">A company</text>
+  <path class="feed" d="M66 124H118"/><path class="feed" d="M362 124H414"/>
+
+  <!-- agents -->
+  <circle class="node" cx="150" cy="124" r="30"/>
+  <g class="nodeink"><path d="M139 116l8 8-8 8M152 133h10"/></g>
+  <text class="lbl" x="150" y="174">Your agent</text>
+  <circle class="node" cx="330" cy="124" r="30"/>
+  <g class="nodeink"><path d="M319 116l8 8-8 8M332 133h10"/></g>
+  <text class="lbl" x="330" y="174">Their agent</text>
+
+  <!-- conversation -->
+  <path class="talk a" d="M184 116H296"/><path class="talk b" d="M184 132H296"/>
+  <circle class="dot" r="3"><animateMotion dur="2.6s" repeatCount="indefinite" path="M184 116H296"/></circle>
+  <circle class="dot2" r="3"><animateMotion dur="2.6s" begin="-1.3s" repeatCount="indefinite" path="M296 132H184"/></circle>
+  <text class="sub" x="240" y="104">AGENTS TALK</text>
+
+  <!-- curated result -->
+  <path class="feed" d="M240 140V214"/>
+  <rect class="ghost" x="150" y="216" width="180" height="62" rx="14"/>
+  <circle class="pickoff" cx="186" cy="240" r="7"/><circle class="pick" cx="213" cy="240" r="7"/><circle class="pickoff" cx="240" cy="240" r="7"/><circle class="pick" cx="267" cy="240" r="7"/><circle class="pickoff" cx="294" cy="240" r="7"/>
+  <text class="lbl" x="240" y="266">A short list, for both sides</text>
+  <text class="sub" x="240" y="300">NO APPLICATIONS · NO JOB POSTS</text>
+</svg>
