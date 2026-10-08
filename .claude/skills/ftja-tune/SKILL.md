@@ -15,8 +15,7 @@ the user confirming first.
 The user says something, in passing or directly, that reads as a job-search
 preference, dealbreaker, or a scope pivot (e.g. moving from one kind of role
 to another). This can happen mid-conversation about something else that
-touches on career/roles — you don't need an explicit `/ftja-tune` invocation
-if the routing rule in this project's CLAUDE.md covers it.
+touches on career/roles — you don't need an explicit `/ftja-tune` invocation.
 
 ## What to do
 
@@ -51,11 +50,8 @@ if the routing rule in this project's CLAUDE.md covers it.
    user's next save in the Pipeline tab would overwrite your edit. Only
    when `rubric-criteria.json` doesn't exist yet (no run since setup) edit
    `rubric.md` directly.
-5. Commit:
-   ```
-   git add rubric.md criteria.json
-   git commit -m "tune: <one-line description of the change>"
-   ```
+5. Do not commit: `rubric.md` and `criteria.json` are personal files that
+   git ignores on purpose, so they never enter the repository's history.
    Nothing to regenerate — the review server's Pipeline tab reads
    `criteria.json`/`rubric.md` live on every request.
 6. Confirm the change back to the user in one line.
@@ -65,6 +61,6 @@ if the routing rule in this project's CLAUDE.md covers it.
 - Don't infer preferences from behavior (which digest jobs they clicked,
   applied to, etc.) — there's no tracking of that in this version. Only act
   on things the user actually said.
-- Don't batch up multiple unrelated changes into one commit — one
-  conversational update, one commit, so rollback (`git checkout <sha> --
-  rubric.md`) stays precise.
+- Don't batch up multiple unrelated changes into one edit — one
+  conversational update, one change, confirmed back to the user, so each
+  one can be undone on its own.

@@ -52,17 +52,17 @@ Representative sources were inspected without modifying them:
 
 - a two-page CV;
 - a portfolio repository exposing eight projects;
-- a nine-page Adevinta AI House EiR case study; and
+- a nine-page case study; and
 - a supporting workbook with 10,492 non-empty cells.
 
 Observed findings:
 
-- `portfolio_interview.md` listed six projects while the current public index
-  listed eight, so a single portfolio summary can be stale.
-- Trachemy reported 35 projects in the portfolio and 40+ pilot projects in the
-  CV; the source material did not establish whether these were the same metric
-  at different dates.
-- TSF and PLACES appeared more complete in the CV than in the portfolio, so
+- An older portfolio summary listed six projects while the current public
+  index listed eight, so a single portfolio summary can be stale.
+- One project's count was reported differently in the portfolio and in the
+  CV; the source material did not establish whether these were the same
+  metric at different dates.
+- Two projects appeared more complete in the CV than in the portfolio, so
   project-stage normalization would require user review.
 - The case-study workbook mixed candidate research, third-party facts,
   proposals, and assumptions; these cannot safely be treated as equivalent

@@ -6,6 +6,12 @@ status: approved-draft
 
 # FTJA — personal job-search Skill: 3-stage judgment funnel + local rubric, local schedule automation
 
+> This is the original design note from September 2026, kept for the reasoning
+> behind the funnel. Where it differs from the current product, [README.md](README.md)
+> and [CHANGELOG.md](CHANGELOG.md) are right: `rubric.md` and `criteria.json` are
+> gitignored and never committed, Codex is supported alongside Claude Code, and
+> the viewer's Pipeline and Results tabs exist.
+
 ## Context
 
 JobSpyProject today is a centralized pipeline for a public job board — a
@@ -89,9 +95,9 @@ digest-*.md         # daily results — .gitignore
 run.log             # run log — .gitignore
 .ftja.lock          # PID lock file to prevent concurrent runs
 ```
-`.gitignore` excludes `seen.db`, `digest-*.md`, `run.log`, `profile/` —
-only `rubric.md`/`criteria.json` are kept in git history (so personal
-info/JD text never gets committed).
+`.gitignore` excludes `seen.db`, `digest-*.md`, `run.log`, `profile/`, and
+`rubric.md`/`criteria.json` themselves (so personal info/JD text never gets
+committed).
 
 **Stage1/2 subagent contract**: both return only structured JSON,
 `{verdict: pass|fail, evidence_sids: [...], reasoning: str}`. Stage2
@@ -132,7 +138,7 @@ results (`osascript -e 'display notification'`) — no silent failures.
    evidence sentences + reasoning.
 5. The same job_url is not re-evaluated/re-surfaced on the next run
    (dedup via seen.db works).
-6. Editing rubric.md via `/ftja-tune` produces a new git commit, and
+6. Editing rubric.md via `/ftja-tune` changes the local file only, and
    adding a conflicting criterion surfaces a confirmation question first.
 7. **[M2]** launchd runs `/ftja-run` unattended at 09:00 for at least 2
    consecutive days, leaving a run.log entry + macOS notification every
@@ -160,7 +166,7 @@ results (`osascript -e 'display notification'`) — no silent failures.
 
 ## Rollback Plan
 
-- rubric.md edited incorrectly → `git log rubric.md` → `git checkout <previous-commit> -- rubric.md`
+- rubric.md edited incorrectly → fix it in the viewer's Pipeline tab (the first hand-written version is kept as `rubric.md.bak`)
 - launchd misbehaving → `launchctl unload ~/Library/LaunchAgents/com.ftja.run.plist` then delete the plist,
   fall back to M1 (manual runs)
 - seen.db state gets tangled → delete the file (it regenerates; rubric/criteria are unaffected — only dedup resets)

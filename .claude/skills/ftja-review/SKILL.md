@@ -113,12 +113,8 @@ A decision marked either way stays resolved permanently — it only becomes
 pending again if the user edits that job's action/reason through the
 review server (record_decision resets the status).
 
-After the user approves any edits:
-
-```
-git add rubric.md criteria.json
-git commit -m "tune: <short summary of what changed and why>"
-```
+Do not commit the edits: `rubric.md` and `criteria.json` are personal files
+that git ignores on purpose, so they never enter the repository's history.
 
 `rubric.md` and `rubric-criteria.json` are the same rubric in two forms.
 When a change is to one criterion's wording, or adds or removes a
