@@ -113,6 +113,10 @@ h1.serif { font-size: 38px; font-weight: 400; line-height: 1; margin-bottom: 8px
   border-left: 3px solid var(--border2); padding: 6px 10px; border-radius: 0 4px 4px 0; font-style: italic;
 }
 .empty { color: var(--text3); font-style: italic; }
+.no-run-banner { display: none; align-items: flex-start; gap: 12px; margin: 18px 0 26px; padding: 14px 16px; background: var(--accent-dim); border: 1px solid var(--accent-border); color: var(--accent-text); font-size: 12.5px; line-height: 1.6; }
+.no-run-banner b { display: block; margin-bottom: 2px; color: var(--accent); }
+.no-run-banner code { font: 600 11.5px 'IBM Plex Mono', monospace; padding: 1px 6px; background: var(--surface); border: 1px solid var(--accent-border); }
+.run-detail-empty { color: var(--text3); font-size: 12.5px; padding: 28px 0; }
 
 /* Stage 2 judgment: a ledger. One ruled line per criterion, scannable
    closed; a line opens to show the rule, the quote and the feedback box. */
@@ -504,8 +508,13 @@ select.sort-select {
 .onboarding-working-banner { display: flex; align-items: center; gap: 10px; margin-top: 18px; padding: 13px 14px; background: var(--accent-dim); border: 1px solid var(--accent-border); color: var(--accent-text); font-size: 11px; line-height: 1.5; }
 .onboarding-pending-card p.onboarding-pending-label { display: flex; align-items: center; gap: 9px; color: var(--text3); margin: 14px 0 0; }
 .onboarding-pending-hint { margin: 10px 0 0; color: var(--text3); font-size: 10px; }
-.onboarding-start-copy { margin: 10px 0 0; font-size: 14px; line-height: 1.6; }
-.onboarding-start-copy code { color: var(--accent-text); font: 600 13px 'IBM Plex Mono', monospace; border: 1px solid var(--accent-text); padding: 1px 7px; }
+.onboarding-start-card { padding: 26px; }
+.onboarding-start-steps { display: flex; align-items: center; gap: 14px; margin-top: 16px; flex-wrap: wrap; }
+.onboarding-start-bubble { display: inline-flex; align-items: center; gap: 10px; padding: 11px 18px; background: var(--accent); color: var(--on-accent); border-radius: 16px 16px 4px 16px; font: 600 13px 'IBM Plex Mono', monospace; box-shadow: 0 6px 18px rgba(46,81,66,.18); }
+.onboarding-start-bubble::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #9FD0B5; animation: onboarding-start-pulse 1.6s ease-in-out infinite; }
+@keyframes onboarding-start-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .35; transform: scale(.7); } }
+.onboarding-start-copy { margin: 0; font-size: 13px; line-height: 1.6; color: var(--text2); }
+.onboarding-start-copy b { color: var(--text); }
 .onboarding-pending-hint code { color: var(--accent-text); font: 10px 'IBM Plex Mono', monospace; }
 .onboarding-skeleton-line { height: 10px; border-radius: 3px; background: var(--border); margin: 8px 0; position: relative; overflow: hidden; }
 .onboarding-skeleton-line::after { content: ''; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255,255,255,.14), transparent); animation: onboarding-shimmer 1.3s infinite; }
@@ -577,7 +586,9 @@ select.sort-select {
 .onboarding-source-actions .onboarding-source-confirm { margin-left: auto; }
 .onboarding-source-actions button:disabled { opacity: .5; cursor: wait; }
 .onboarding-source-note { color: var(--text3); font-size: 11px; line-height: 1.55; margin: 12px 0 0; }
-.onboarding-beta-later { display: inline-flex; align-items: center; gap: 6px; cursor: help; }
+.onboarding-beta-later { position: relative; display: inline-flex; align-items: center; gap: 6px; cursor: help; }
+.onboarding-beta-later::after { content: attr(data-tip); position: absolute; left: 0; bottom: calc(100% + 8px); width: 260px; padding: 9px 11px; background: var(--text); color: var(--bg); font-size: 11px; line-height: 1.5; border-radius: 3px; opacity: 0; transform: translateY(3px); pointer-events: none; transition: opacity .08s ease, transform .08s ease; z-index: 40; }
+.onboarding-beta-later:hover::after { opacity: 1; transform: none; }
 .onboarding-beta-later button { pointer-events: none; opacity: .5; }
 .onboarding-beta-hint { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border: 1px solid var(--text3); border-radius: 50%; color: var(--text3); font-size: 10px; }
 .onboarding-pills { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
@@ -622,6 +633,7 @@ select.sort-select {
 
 <div id="update-banner" class="update-banner" hidden></div>
 <div id="view-results" class="view">
+  <div class="no-run-banner" data-no-run-banner><span>→</span><div><b>You haven't run FTJA yet.</b>Type <code>/ftja-run</code> in the Claude Code session connected to this FTJA folder. Results appear here as the run goes.</div></div>
   <div class="results-layout">
     <aside class="run-sidebar">
       <div id="run-list" class="run-list"></div>
@@ -637,6 +649,7 @@ select.sort-select {
 </div>
 
 <div id="view-pipeline" class="view">
+  <div class="no-run-banner" data-no-run-banner><span>→</span><div><b>Setup is done — one last review, then your first run.</b>Check everything below. If it looks right, type <code>/ftja-run</code> in the Claude Code session connected to this FTJA folder to run your first search.</div></div>
   <div id="pipeline-config"></div>
   <div id="pipeline-keywords"></div>
 </div>
@@ -874,7 +887,7 @@ function onboardingPendingCard(title, fallbackLabel, recoveryActionType) {
   return `<div class="onboarding-card onboarding-pending-card"><h3>${esc(title)}</h3><div class="onboarding-skeleton-line" style="width:78%"></div><div class="onboarding-skeleton-line" style="width:94%"></div><div class="onboarding-skeleton-line" style="width:62%"></div><p class="onboarding-pending-label"><span class="onboarding-spinner"></span><span>${esc(label)}</span></p>${hint}</div>`;
 }
 function onboardingStartCard() {
-  return `<div class="onboarding-card onboarding-start-card"><h3>Start in the chat</h3><p class="onboarding-start-copy">Reply <code>yes</code> in the FTJA setup chat to start onboarding.</p><p class="onboarding-source-note">This page will then ask for your resume. Keep it open beside the chat.</p></div>`;
+  return `<div class="onboarding-card onboarding-start-card"><h3>Start in the chat</h3><p class="onboarding-start-copy">Nothing to click here yet. Reply this in the FTJA setup chat to start onboarding.</p><div class="onboarding-start-steps"><span class="onboarding-start-bubble">yes</span><span class="onboarding-source-note" style="margin:0">Then this page asks for your resume.</span></div></div>`;
 }
 // A card with decision buttons must never be shown interactively while the
 // bridge can't actually accept the click (status !== 'listening') — a
@@ -921,7 +934,7 @@ function profileCard(state) {
   }
   const sourceIntro = '<p class="onboarding-source-note source-intro">Add the resume FTJA should read to understand your background.</p>';
   const sources = profile.sources || [];
-  const sourceActions = `<div class="onboarding-source-actions"><button class="primary" type="button" data-add-onboarding-source="file">+ Add resume</button><span class="onboarding-beta-later" title="Portfolio and folder sources come after the beta. For now FTJA drafts your profile from your resume."><button class="secondary" type="button" disabled>+ Add a portfolio folder</button><span class="onboarding-beta-hint" aria-hidden="true">?</span></span><button class="primary onboarding-source-confirm" type="button" data-confirm-profile-sources ${sources.length ? '' : 'disabled'}>Confirm sources</button></div><p class="onboarding-source-note">Selected items stay on your computer. Your coding agent reads them locally. Portfolio and folder sources come after the beta.</p>`;
+  const sourceActions = `<div class="onboarding-source-actions"><button class="primary" type="button" data-add-onboarding-source="file">+ Add resume</button><span class="onboarding-beta-later" data-tip="Portfolio and folder sources come after the beta. For now FTJA drafts your profile from your resume."><button class="secondary" type="button" disabled>+ Add a portfolio folder</button><span class="onboarding-beta-hint" aria-hidden="true">?</span></span><button class="primary onboarding-source-confirm" type="button" data-confirm-profile-sources ${sources.length ? '' : 'disabled'}>Confirm sources</button></div><p class="onboarding-source-note">Selected items stay on your computer. Your coding agent reads them locally. Portfolio and folder sources come after the beta.</p>`;
   return `<div class="onboarding-card"><h3>Your source materials</h3>${sourceIntro}<div class="onboarding-source-list">${sourceRows(state)}</div>${sourceActions}</div>`;
 }
 function rubricCard(state) {
@@ -946,8 +959,15 @@ function rubricCard(state) {
   }
   if (phase === 'rubric_review') {
     if (!ready) return onboardingPendingCard('Your judgment rubric', 'Drafting your judgment rubric…', 'confirm_rubric');
-    const generatedRubric = state.rubric_draft || `# Judgment rubric\n\n## Clear yes\n${questions[0]?.answer || ''}\n\n## Dealbreakers\n${questions[1]?.answer || ''}\n\n## Preferences\n${questions[2]?.answer || ''}\n\n## Pass\nPass roles that are a clear match for the confirmed profile and answers above.\n\n## Fail\nFail roles that conflict with the dealbreakers above or do not show enough evidence of fit.`;
-    return `<div class="onboarding-card"><h3>Confirm your judgment rubric</h3><p>Review the generated pass/fail rubric once before FTJA saves it and opens Pipeline.</p><div class="onboarding-field"><label for="rubric-draft">Judgment rubric</label><textarea id="rubric-draft">${esc(generatedRubric)}</textarea></div><div class="onboarding-actions onboarding-confirm-actions"><button class="primary" type="button" data-confirm-rubric>Confirm rubric and open Pipeline</button></div></div>`;
+    const draft = state.rubric_criteria_draft || {criteria: [], notes: {}};
+    const sections = RUBRIC_KINDS.map(([kind, title, intro]) => `
+      <div class="rc-kind" data-kind="${kind}">
+        <div class="rc-kind-head">${title}</div>
+        <div class="rc-kind-intro">${intro}</div>
+        <div class="rc-list">${draft.criteria.filter(c => c.kind === kind).map(c => rubricItemHtml(c, draft.criteria)).join('')}</div>
+        <button class="text-btn rc-add" type="button" data-rc-add="${kind}">Add a criterion</button>
+      </div>`).join('');
+    return `<div class="onboarding-card"><h3>Confirm your judgment rubric</h3><p>One line per criterion, built from your three answers. Open a line to edit its name or rule, remove it, or add your own. FTJA saves this list and opens Pipeline.</p><div id="onboarding-rubric">${sections}</div><div class="onboarding-actions onboarding-confirm-actions"><button class="primary" type="button" data-confirm-rubric>Confirm rubric and open Pipeline</button></div></div>`;
   }
   return onboardingPendingCard('Judgment rubric', 'Getting the next step ready…');
 }
@@ -1009,12 +1029,26 @@ function renderOnboarding() {
   }
   if (preserveScroll) requestAnimationFrame(() => window.scrollTo(0, scrollY));
 }
+let staleBridgeStamp = null;
 async function postOnboardingAction(type, payload = {}) {
   const res = await fetch('/api/onboarding-action', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({type, expected_revision: onboardingState?.revision ?? 0, ...payload})});
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(body.error || 'Could not send this decision to the setup chat.');
   if (body.state) {
-    onboardingState = {...body.state, bridge: body.bridge || onboardingState?.bridge || {status: 'offline'}};
+    // The bridge in this response is the one the setup chat's PREVIOUS wait
+    // left behind: that process only notices this action (and flips the
+    // bridge) on its own next poll, after we already got here. If the phase
+    // just moved on, that bridge is stale — trusting it paints the next
+    // card as live (and empty) for a moment before the grey waiting card
+    // replaces it. Hold the page in "waiting" until the bridge actually
+    // changes (see refreshOnboarding).
+    const phaseMoved = `${body.state.stage}/${body.state.phase}` !== `${onboardingState?.stage}/${onboardingState?.phase}`;
+    let bridge = body.bridge || onboardingState?.bridge || {status: 'offline'};
+    if (phaseMoved) {
+      staleBridgeStamp = bridge.status === 'listening' ? `${bridge.updated_at}|${bridge.pid}` : null;
+      bridge = {status: 'offline', action_types: [], pid: null, label: '', updated_at: null};
+    }
+    onboardingState = {...body.state, bridge};
     if (body.checklist) onboardingChecklist = body.checklist;
     onboardingVersion = body.state.updated_at || JSON.stringify(body.state);
     renderOnboarding();
@@ -1142,7 +1176,26 @@ function bindOnboarding() {
   const confirmProfile = document.querySelector('[data-confirm-profile]'); if (confirmProfile) confirmProfile.addEventListener('click', () => submitOnboardingAction(confirmProfile, 'confirm_profile', {titles: onboardingDraft.titles, location: document.getElementById('profile-location').value.trim(), is_remote: document.getElementById('profile-remote').checked, hours_old: Number(document.getElementById('profile-hours').value), results_wanted: Number(document.getElementById('profile-results-wanted').value) || 100}));
   const confirmStage0 = document.querySelector('[data-confirm-stage0]'); if (confirmStage0) confirmStage0.addEventListener('click', () => submitOnboardingAction(confirmStage0, 'confirm_stage0', {keywords: onboardingDraft.tier1, languages: onboardingDraft.languages, exclude_keywords: onboardingDraft.exclude_keywords}));
   const answerQuestion = document.querySelector('[data-answer-rubric-question]'); if (answerQuestion) answerQuestion.addEventListener('click', () => submitOnboardingAction(answerQuestion, 'answer_rubric_question', {question_id: answerQuestion.dataset.questionId, answer: document.getElementById('rubric-answer').value.trim()}));
-  const confirmRubric = document.querySelector('[data-confirm-rubric]'); if (confirmRubric) confirmRubric.addEventListener('click', () => submitOnboardingAction(confirmRubric, 'confirm_rubric', {rubric_md: document.getElementById('rubric-draft').value.trim()}));
+  const confirmRubric = document.querySelector('[data-confirm-rubric]');
+  if (confirmRubric) {
+    const root = document.getElementById('onboarding-rubric');
+    root.querySelectorAll('[data-rc-add]').forEach(btn => btn.addEventListener('click', () => {
+      const list = btn.parentElement.querySelector('.rc-list');
+      list.insertAdjacentHTML('beforeend', rubricItemHtml({kind: btn.dataset.rcAdd}, []));
+      const item = list.lastElementChild;
+      item.querySelector('[data-rc-remove]').addEventListener('click', () => item.remove());
+      item.querySelector('[data-rc="label"]').focus();
+    }));
+    root.querySelectorAll('[data-rc-remove]').forEach(btn => btn.addEventListener('click', () => btn.closest('.rc-item').remove()));
+    confirmRubric.addEventListener('click', () => {
+      const criteria = [...root.querySelectorAll('.rc-item')].map(item => ({
+        id: item.dataset.id || undefined, kind: item.dataset.kind, group: item.dataset.group || undefined,
+        label: item.querySelector('[data-rc="label"]').value.trim(),
+        text: item.querySelector('[data-rc="text"]').value.trim(),
+      })).filter(c => c.label);
+      submitOnboardingAction(confirmRubric, 'confirm_rubric', {criteria, notes: {}});
+    });
+  }
   wireLocationAutocomplete();
 }
 let onboardingRefreshTimer = null;
@@ -1162,6 +1215,14 @@ function openMainView(view) {
 async function refreshOnboarding(force = false) {
   const res = await fetch('/api/onboarding?ts=' + Date.now(), {cache:'no-store'}); const data = await res.json();
   const state = {...(data.state || {}), bridge: data.bridge || {status: 'offline'}};
+  if (staleBridgeStamp !== null) {
+    // Still the exact bridge the previous wait wrote: not ready for the new card.
+    if (state.bridge.status === 'listening' && `${state.bridge.updated_at}|${state.bridge.pid}` === staleBridgeStamp) {
+      state.bridge = {status: 'offline', action_types: [], pid: null, label: '', updated_at: null};
+    } else {
+      staleBridgeStamp = null;
+    }
+  }
   if (onboardingIsComplete(state)) { onboardingState = state; openMainView('pipeline'); return; }
   const version = [state.updated_at, state.revision, state.bridge?.status, state.bridge?.label, state.bridge?.updated_at, state.bridge?.pid].join('|');
   if (!force && version === onboardingVersion) return;
@@ -1192,9 +1253,13 @@ document.querySelectorAll('.main-tab').forEach(tab => {
 });
 
 // ---- Results: run list (left, paginated) ----
+function renderNoRunBanners() {
+  document.querySelectorAll('[data-no-run-banner]').forEach(el => { el.style.display = (runs.length || liveRun) ? 'none' : 'flex'; });
+}
 async function loadRuns() {
   const res = await fetch('/api/runs');
   runs = (await res.json()).filter(r => r.run_id);  // drop pre-migration records with no join key
+  renderNoRunBanners();
   renderRunList();
   if (liveSelected) return;  // watching a run in progress: stay on it
   if (runs.length > 0) selectRun(runs.some(r => r.run_id === selectedRunId) ? selectedRunId : runs[0].run_id, statusFilter);
@@ -1343,7 +1408,10 @@ function bindFunnel(el) {
 function renderRunDetail() {
   const run = runs.find(r => r.run_id === selectedRunId);
   const el = document.getElementById('run-detail');
-  if (!run) { el.innerHTML = ''; return; }
+  if (!run) {
+    el.innerHTML = runs.length || liveSelected ? '' : '<div class="run-detail-empty">Nothing to show yet. After your first <span class="mono">/ftja-run</span>, its numbers and jobs appear here.</div>';
+    return;
+  }
   el.innerHTML = funnelHtml({
     runId: run.run_id, live: false, scraped: run.scraped_count, terms: run.scraped_by_term || null, cs: run.criteria_snapshot,
     stage0: {passed: run.stage0_passed, dropped: run.stage0_dropped}, skip: run.already_seen_skipped,
@@ -2258,6 +2326,7 @@ function renderConfigSection() {
 }
 
 async function loadPipeline() {
+  fetch('/api/runs').then(r => r.json()).then(list => { runs = list.filter(r => r.run_id); renderNoRunBanners(); }).catch(() => {});
   if (pipelineLoaded) return;
   const res = await fetch('/api/pipeline');
   const data = await res.json();

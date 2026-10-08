@@ -225,11 +225,18 @@ The only onboarding order is:
 2. **Rubric** — propose keywords, readable languages, and exclude words for
    Stage 0. After confirmation, the web asks exactly one judgment question at a
    time (clear yes, dealbreakers, then preferences). Wait for each answer before
-   proceeding. The web then shows one generated rubric for a final confirmation;
-   do not show separate Stage 1 or Stage 2 confirmation cards.
-3. **Run** — after the rubric is confirmed, tell the user to run `/ftja-run` in
-   the agent chat. The existing Results/Pipeline surfaces remain the source of
-   truth and update from local files.
+   proceeding. The web then shows the rubric as one line per criterion, built from the
+   three answers by code (each "clear yes" line is its own pass criterion —
+   a job passes on any one), for a final confirmation; do not write or
+   rewrite that list yourself, and do not show separate Stage 1 or Stage 2
+   confirmation cards.
+3. **Run** — after the rubric is confirmed the web opens the Pipeline tab with
+   a banner asking for one last review of everything on it. Your last chat
+   message must say the same, in one or two sentences: setup is finished, and
+   once they have reviewed the Pipeline tab they should type `/ftja-run` in
+   this FTJA-connected session to start the first run. The existing
+   Results/Pipeline surfaces remain the source of truth and update from local
+   files.
 4. **Learn** — record apply/skip decisions and reasons in Results. On a later
    interactive run, propose rubric changes for approval; never silently apply
    them.
