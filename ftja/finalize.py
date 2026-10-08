@@ -333,12 +333,21 @@ def finalize(results: list[dict], db_path: str = DEFAULT_DB, out_dir: str = ".",
             "rejected_path": rejected_path, "run_id": run_id}
 
 
+def resolve_total_tokens(given: int | None, run_dir: str) -> int:
+    """A run that judged anything spent tokens, so a given 0 means "not
+    counted", not "free". Take the ledger recorded with
+    `ftja.live record-tokens` instead; 0 here means unknown, and the run
+    record then leaves the total out rather than state a number."""
+    from ftja.live import tokens_total
+    return given or tokens_total(run_dir)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--run-dir", default="",
                     help="the run directory from `ftja.live start`: reads its results.json, stats.json, "
                          "stage0 files and its copy of the criteria list, and marks the run finished")
-    ap.add_argument("--total-tokens", type=int, default=None, help="with --run-dir: tokens spent on Stage 1 and 2")
+    ap.add_argument("--total-tokens", type=int, default=None, help="with --run-dir: tokens spent on Stage 1 and 2; default is the sum recorded with `ftja.live record-tokens`")
     ap.add_argument("--results", default="", help="path to results JSON (list of per-job outcomes)")
     ap.add_argument("--db", default=DEFAULT_DB)
     ap.add_argument("--out-dir", default=".")
@@ -383,8 +392,9 @@ def main():
     if args.run_dir:
         started = datetime.fromisoformat(stats["ts_start"].replace("Z", "+00:00"))
         stats["duration_seconds"] = (datetime.now(timezone.utc) - started).total_seconds()
-        if args.total_tokens is not None:
-            stats["total_tokens"] = args.total_tokens
+        total = resolve_total_tokens(args.total_tokens, args.run_dir)
+        if total:
+            stats["total_tokens"] = total
 
     summary = finalize(results, db_path=args.db, out_dir=args.out_dir, stats=stats, stage0_dropped=stage0_dropped,
                        definitions=definitions, descriptions=descriptions,
