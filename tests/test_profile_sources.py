@@ -133,7 +133,7 @@ class ProfileSourceTests(unittest.TestCase):
             self.assertEqual(sources[0]["kind"], "folder")
             self.assertTrue(sources[0]["exists"])
 
-    def test_onboarding_ui_exposes_add_file_and_folder_actions(self):
+    def test_onboarding_ui_offers_a_resume_and_holds_folders_for_after_the_beta(self):
         html = Path(__file__).parents[1].joinpath("ftja", "app.html").read_text()
         self.assertIn("Add your background.", html)
         self.assertIn("Fine-tune your job search.", html)
@@ -141,7 +141,7 @@ class ProfileSourceTests(unittest.TestCase):
         self.assertIn("Published within", html)
         self.assertIn("Past 24 hours (recommended)", html)
         self.assertIn("Confirm search settings", html)
-        self.assertIn("Add any files or folders that help FTJA understand your background.", html)
+        self.assertIn("Add the resume FTJA should read to understand your background.", html)
         self.assertIn("Add a keyword", html)
         self.assertIn("Search or add a language", html)
         self.assertIn("Add a word to exclude", html)
@@ -149,8 +149,9 @@ class ProfileSourceTests(unittest.TestCase):
         self.assertIn("data-onboarding-input", html)
         self.assertIn("data-onboarding-add", html)
         self.assertIn("Selected items stay on your computer. Your coding agent reads them locally.", html)
-        self.assertIn("+ Add files", html)
-        self.assertIn("+ Add a folder", html)
+        self.assertIn("+ Add resume", html)
+        self.assertNotIn('data-add-onboarding-source="folder"', html)
+        self.assertIn("Portfolio and folder sources come after the beta.", html)
         self.assertIn("Confirm sources", html)
         self.assertIn("data-confirm-profile-sources", html)
         self.assertIn("applyOnboardingBridgeGate", html)

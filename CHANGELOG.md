@@ -5,6 +5,22 @@ What changed in each version, newest first. If you cloned FTJA earlier, run
 these. Your own files — `criteria.json`, `rubric.md`, `profile/`, `seen.db`,
 digests — are never touched by an update.
 
+## 0.2.6 — 2026-10-08
+
+### What changes for you after updating
+
+- Onboarding takes your resume only. Adding a portfolio or a folder is
+  switched off during the beta, because the profile drafted from large
+  folders was not reliable yet. The button stays visible and says so. Sources
+  you already added keep working.
+- FTJA is now described as a beta for Claude Code on macOS, which is what it
+  has been tested on. The Codex skills are still in the folder, untested.
+- The README is rewritten for people who are not developers: what FTJA does,
+  how to start, how to use it day to day, what leaves your computer, and
+  where it is going.
+- Dependency versions are pinned, so a new install gets the versions FTJA was
+  tested with.
+
 ## 0.2.5 — 2026-10-08
 
 ### What changes for you after updating
