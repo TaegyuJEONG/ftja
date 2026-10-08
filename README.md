@@ -5,6 +5,8 @@ that runs inside your own Claude Code. You give it your resume and your
 standards; it reads public LinkedIn postings for you and shows only the roles
 worth your attention, with the reason for each one.
 
+![A sped-up recording of one FTJA run](assets/demo/ftja-run.gif)
+
 > **Beta.** Built and tested with **Claude Code on macOS**. Codex and other
 > agents come next. Until then, fork it and make it yours.
 
