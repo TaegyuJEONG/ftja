@@ -504,6 +504,8 @@ select.sort-select {
 .onboarding-working-banner { display: flex; align-items: center; gap: 10px; margin-top: 18px; padding: 13px 14px; background: var(--accent-dim); border: 1px solid var(--accent-border); color: var(--accent-text); font-size: 11px; line-height: 1.5; }
 .onboarding-pending-card p.onboarding-pending-label { display: flex; align-items: center; gap: 9px; color: var(--text3); margin: 14px 0 0; }
 .onboarding-pending-hint { margin: 10px 0 0; color: var(--text3); font-size: 10px; }
+.onboarding-start-copy { margin: 10px 0 0; font-size: 14px; line-height: 1.6; }
+.onboarding-start-copy code { color: var(--accent-text); font: 600 13px 'IBM Plex Mono', monospace; border: 1px solid var(--accent-text); padding: 1px 7px; }
 .onboarding-pending-hint code { color: var(--accent-text); font: 10px 'IBM Plex Mono', monospace; }
 .onboarding-skeleton-line { height: 10px; border-radius: 3px; background: var(--border); margin: 8px 0; position: relative; overflow: hidden; }
 .onboarding-skeleton-line::after { content: ''; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255,255,255,.14), transparent); animation: onboarding-shimmer 1.3s infinite; }
@@ -871,6 +873,9 @@ function onboardingPendingCard(title, fallbackLabel, recoveryActionType) {
   const hint = recoveryActionType ? `<p class="onboarding-pending-hint">Stuck? Type <code>${esc(recoveryPhrase(recoveryActionType))}</code> in the FTJA setup chat.</p>` : '';
   return `<div class="onboarding-card onboarding-pending-card"><h3>${esc(title)}</h3><div class="onboarding-skeleton-line" style="width:78%"></div><div class="onboarding-skeleton-line" style="width:94%"></div><div class="onboarding-skeleton-line" style="width:62%"></div><p class="onboarding-pending-label"><span class="onboarding-spinner"></span><span>${esc(label)}</span></p>${hint}</div>`;
 }
+function onboardingStartCard() {
+  return `<div class="onboarding-card onboarding-start-card"><h3>Start in the chat</h3><p class="onboarding-start-copy">Reply <code>yes</code> in the FTJA setup chat to start onboarding.</p><p class="onboarding-source-note">This page will then ask for your resume. Keep it open beside the chat.</p></div>`;
+}
 // A card with decision buttons must never be shown interactively while the
 // bridge can't actually accept the click (status !== 'listening') — a
 // visible-but-broken button is worse than no button, so every such phase is
@@ -909,6 +914,9 @@ function profileCard(state) {
     return onboardingPendingCard('Your profile summary', 'Reading your background files and writing a profile summary…');
   }
   if (!ready) {
+    // Before the setup agent has listened even once, it is waiting for the
+    // user's "yes" in chat, so say that instead of a spinner and a recovery phrase.
+    if (!(state.bridge || {}).updated_at && !(profile.sources || []).length) return onboardingStartCard();
     return onboardingPendingCard('Your source materials', 'Getting ready for your background files…', 'confirm_profile_sources');
   }
   const sourceIntro = '<p class="onboarding-source-note source-intro">Add the resume FTJA should read to understand your background.</p>';

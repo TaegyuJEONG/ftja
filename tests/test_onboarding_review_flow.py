@@ -88,6 +88,9 @@ class OnboardingReviewFlowTests(unittest.TestCase):
         self.assertIn("if (!ready) return onboardingPendingCard('Your profile summary'", html)
         self.assertIn("if (!ready) return onboardingPendingCard('Your search settings'", html)
         self.assertIn("return onboardingPendingCard('Your source materials', 'Getting ready for your background files…', 'confirm_profile_sources');", html)
+        # before the agent has listened once, the page points at the chat's "yes", not at a recovery phrase
+        self.assertIn("if (!(state.bridge || {}).updated_at && !(profile.sources || []).length) return onboardingStartCard();", html)
+        self.assertIn("in the FTJA setup chat to start onboarding.", html)
         self.assertIn("return onboardingPendingCard('Your profile summary', 'Reading your background files and writing a profile summary…');", html)
         self.assertIn("if (!ready) return onboardingPendingCard('Code-based filter'", html)
         self.assertIn("if (!ready) return onboardingPendingCard('Your ideal role'", html)
