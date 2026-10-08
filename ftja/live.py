@@ -226,10 +226,58 @@ def prepare_stage1(run_dir: str, project_dir: str = ".") -> dict:
             "prompt_files": os.path.join(run_dir, "s1", "<n>.txt"), "output_files": os.path.join(run_dir, "s1", "<n>.out.json")}
 
 
+def stage1_problems(entry: dict, answer: dict) -> tuple[list[str], list[str]]:
+    """Check one Stage 1 answer against the sentences that job's prompt
+    actually contained. -> (problems, warnings).
+
+    problems make the answer unusable, so the job is rerun:
+      - an evidence or block S-id that is not one of the prompt's sentences
+        (the model cited something it was never shown)
+      - a pass that cites no sentence at all (nothing to show the candidate
+        for why it got through)
+    warnings are kept but reported: a keyword ([T1]) sentence the model
+    gave no reading for, or evidence that is a keyword sentence with none."""
+    shown = {b["s_id"]: b for b in entry.get("blocks") or []}
+    evidence = [str(x) for x in answer.get("evidence_sids") or []]
+    block_sids = [str(b.get("sid")) for b in answer.get("blocks") or [] if isinstance(b, dict)]
+    problems, warnings = [], []
+    unknown = sorted({x for x in evidence + block_sids if x not in shown})
+    if unknown:
+        problems.append(f"cites sentences the prompt did not contain: {', '.join(unknown)}")
+    if str(answer.get("verdict")).lower() == "pass" and not [x for x in evidence if x in shown]:
+        problems.append("a pass with no evidence sentence")
+    matched = [sid for sid, b in shown.items() if b.get("matched")]
+    unread = [sid for sid in matched if sid not in block_sids]
+    if unread:
+        warnings.append(f"no reading given for keyword sentence(s): {', '.join(unread)}")
+    return problems, warnings
+
+
+def check_stage1(run_dir: str) -> dict:
+    """Every Stage 1 answer's problems and warnings, by job number, so the
+    run can rerun the unusable ones before moving on."""
+    manifest = _read_json(os.path.join(run_dir, "s1", "manifest.json"), []) or []
+    rerun, warn = {}, {}
+    for entry in manifest:
+        answer = _read_answer(os.path.join(run_dir, "s1", f"{entry['n']}.out.json"))
+        if answer is None:
+            rerun[entry["n"]] = ["no usable answer file"]
+            continue
+        problems, warnings = stage1_problems(entry, answer)
+        if str(answer.get("verdict") or "").lower() not in ("pass", "fail"):
+            problems.append("no pass/fail verdict")
+        if problems:
+            rerun[entry["n"]] = problems
+        if warnings:
+            warn[entry["n"]] = warnings
+    return {"jobs": len(manifest), "rerun": rerun, "warnings": warn}
+
+
 def _stage1_results(run_dir: str) -> tuple[list[dict], list[dict], list[int]]:
     """-> (passed, failed, numbers still without a usable verdict)."""
     manifest = _read_json(os.path.join(run_dir, "s1", "manifest.json"), []) or []
     passed, failed, pending = [], [], []
+    replay = bool((_read_json(os.path.join(run_dir, "run.json"), {}) or {}).get("replay"))
     for entry in manifest:
         path = os.path.join(run_dir, "s1", f"{entry['n']}.out.json")
         answer = _read_answer(path)
@@ -237,10 +285,15 @@ def _stage1_results(run_dir: str) -> tuple[list[dict], list[dict], list[int]]:
         if verdict not in ("pass", "fail"):
             pending.append(entry["n"])
             continue
+        problems, warnings = ([], []) if replay else stage1_problems(entry, answer)  # a replay's answers are the stored verdicts
+        if problems:  # an answer that points at sentences the model never saw is not usable: rerun the job
+            pending.append(entry["n"])
+            continue
         sids = {str(s) for s in answer.get("evidence_sids") or []}
         whys = {str(b.get("sid")): str(b.get("why") or "").strip()
                 for b in answer.get("blocks") or [] if isinstance(b, dict)}
         entry = {**entry, "judged_at": _mtime(path), "reason": str(answer.get("reason") or "").strip(),
+                 "stage1_warnings": warnings,
                  "evidence_sentences": [b["sentence"] for b in entry.get("blocks") or [] if b["s_id"] in sids],
                  # everything Stage 1 read, in order: each keyword sentence (matched) with what the
                  # model made of it, and the neighbouring sentences it saw as context
@@ -249,6 +302,29 @@ def _stage1_results(run_dir: str) -> tuple[list[dict], list[dict], list[int]]:
                                for b in entry.get("blocks") or []]}
         (passed if verdict == "pass" else failed).append(entry)
     return passed, failed, pending
+
+
+def record_tokens(run_dir: str, tokens: int, label: str = "") -> dict:
+    """One subagent call's `usage.subagent_tokens`, appended as it arrives so
+    the run's total is a sum of what was recorded, not a number someone
+    has to add up and remember at the end."""
+    with open(os.path.join(run_dir, "tokens.jsonl"), "a") as f:
+        f.write(json.dumps({"tokens": int(tokens), "label": label, "at": time.time()}) + "\n")
+    return {"recorded": int(tokens), "total": tokens_total(run_dir)}
+
+
+def tokens_total(run_dir: str) -> int:
+    total = 0
+    try:
+        with open(os.path.join(run_dir, "tokens.jsonl")) as f:
+            for line in f:
+                try:
+                    total += int(json.loads(line).get("tokens") or 0)
+                except (ValueError, TypeError):
+                    continue
+    except OSError:
+        pass
+    return total
 
 
 def prepare_stage2(run_dir: str, project_dir: str = ".", partial: bool = False) -> dict:
@@ -370,8 +446,12 @@ def current_run_dir(project_dir: str = ".") -> str | None:
 _judged_cache: dict[tuple, dict] = {}
 
 
-def _live_card(run_dir: str, entry: dict, definitions: list[dict], descriptions: dict) -> dict:
+def _live_card(run_dir: str, entry: dict, definitions: list[dict], descriptions: dict, stage1: dict | None = None) -> dict:
     card = {k: entry.get(k) for k in ("n", "job_url", "title", "company", "location")}
+    # why Stage 1 let it through, so the card says so while the run is live too
+    s1 = (stage1 or {}).get(entry.get("job_url")) or {}
+    if s1:
+        card.update(stage1_reason=s1.get("reason") or "", t1_blocks=s1.get("t1_blocks") or [])
     path = os.path.join(run_dir, "s2", f"{entry['n']}.out.json")
     answer = _read_answer(path)
     if not isinstance((answer or {}).get("criteria"), list):
@@ -413,7 +493,8 @@ def state(project_dir: str = ".") -> dict | None:
     if manifest is not None:
         definitions = (_read_json(os.path.join(run_dir, DEFAULT_CRITERIA_PATH), {}) or {}).get("criteria") or []
         descriptions = {j["job_url"]: j.get("description") or "" for j in _read_json(os.path.join(run_dir, "stage0.json"), [])}
-        jobs = [_live_card(run_dir, e, definitions, descriptions) for e in manifest]
+        s1_by_url = {e["job_url"]: e for e in _stage1_results(run_dir)[0]}
+        jobs = [_live_card(run_dir, e, definitions, descriptions, s1_by_url) for e in manifest]
         tally = {s: sum(j["status"] == s for j in jobs) for s in ("judging", "passed", "review", "stage2_fail")}
         out["stage2"] = {"total": len(jobs), "pending": tally["judging"], "passed": tally["passed"],
                          "review": tally["review"], "fail": tally["stage2_fail"]}
@@ -613,6 +694,12 @@ def main():
                            help="add prompts for the Stage 1 passes so far, without waiting for all of Stage 1")
         if name == "scrape":
             p.add_argument("--term", type=int, required=True, help="index into criteria.json's search_terms")
+    cp = sub.add_parser("check-stage1", help="list Stage 1 answers that cite sentences the prompt never had, or pass with no evidence")
+    cp.add_argument("--dir", required=True)
+    tp = sub.add_parser("record-tokens", help="add one subagent call's usage.subagent_tokens to the run's total")
+    tp.add_argument("--dir", required=True)
+    tp.add_argument("--tokens", type=int, required=True)
+    tp.add_argument("--label", default="")
     rp = sub.add_parser("replay", help="play a finished run back through the live view (demo)")
     rp.add_argument("--run-id", default=None, help="default: the latest run")
     rp.add_argument("--seconds", type=float, default=75)
@@ -632,6 +719,10 @@ def main():
         out = prepare_stage2(args.dir, args.project_dir, args.partial)
     elif args.cmd == "results":
         out = assemble_results(args.dir)
+    elif args.cmd == "check-stage1":
+        out = check_stage1(args.dir)
+    elif args.cmd == "record-tokens":
+        out = record_tokens(args.dir, args.tokens, args.label)
     else:
         out = {"replayed_into": replay(args.project_dir, args.db, args.run_id, args.seconds, args.per_term)}
     print(json.dumps(out, ensure_ascii=False))

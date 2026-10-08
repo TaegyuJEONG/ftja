@@ -70,7 +70,12 @@ def test_a_run_from_start_to_finish_as_the_viewer_sees_it(project, capsys):
         live.prepare_stage2(run_dir, project)
 
     sid = next(b["s_id"] for b in live._read_json(os.path.join(run_dir, "s1", "manifest.json"))[1]["blocks"] if b["matched"])
-    open(os.path.join(run_dir, "s1", "0.out.json"), "w").write('```json\n{"verdict": "pass", "evidence_sids": []}\n```')
+    sid0 = next(b["s_id"] for b in live._read_json(os.path.join(run_dir, "s1", "manifest.json"))[0]["blocks"] if b["matched"])
+    # a pass that cites nothing is not usable: the job is rerun, not counted as passed
+    open(os.path.join(run_dir, "s1", "0.out.json"), "w").write('{"verdict": "pass", "evidence_sids": []}')
+    assert live.check_stage1(run_dir)["rerun"][0] == ["a pass with no evidence sentence"]
+    open(os.path.join(run_dir, "s1", "0.out.json"), "w").write(
+        '```json\n{"verdict": "pass", "evidence_sids": ["%s"], "reason": "Builds it.", "blocks": [{"sid": "%s", "why": "Builds"}]}\n```' % (sid0, sid0))
     live._write_json(os.path.join(run_dir, "s1", "1.out.json"),
                      {"verdict": "fail", "evidence_sids": [sid], "reason": "Engineers do the prototyping.",
                       "blocks": [{"sid": sid, "why": "The engineers prototype, not this role."}]})
@@ -132,7 +137,7 @@ def test_a_run_from_start_to_finish_as_the_viewer_sees_it(project, capsys):
         rows = {r[0]: r[1:] for r in conn.execute("SELECT company, status, reasoning, criteria FROM seen_jobs")}
     with connect(db) as conn:  # what Stage 1 read is kept for a job that went on to Stage 2 as well
         kept = conn.execute("SELECT t1_blocks, stage1_reason FROM seen_jobs WHERE company='Alpha'").fetchone()
-    assert any(b["matched"] for b in json.loads(kept[0])) and kept[1] == ""
+    assert any(b["matched"] for b in json.loads(kept[0])) and kept[1] == "Builds it."
     assert rows["Alpha"][0] == "passed" and [c["id"] for c in json.loads(rows["Alpha"][2])] == ["builds", "intern"]
     assert rows["Beta"][:2] == ("stage1_fail", "Engineers do the prototyping.")
     record = json.loads(open(os.path.join(project, "runs.jsonl")).read())
@@ -207,3 +212,32 @@ def test_replay_writes_nothing_to_the_run_history(project, monkeypatch):
     sample = seen["state"]
     assert sample["replay_sample"] and sample["scrape"]["total"] == 10
     assert sample["criteria_snapshot"]["results_wanted"] == 10 and sample["stage1"]["total"] == 2
+
+
+def test_stage1_answers_are_checked_against_the_sentences_the_prompt_had(tmp_path):
+    entry = {"n": 0, "blocks": [{"s_id": "S1", "matched": True}, {"s_id": "S2", "matched": False}, {"s_id": "S3", "matched": True}]}
+    ok = {"verdict": "pass", "evidence_sids": ["S1", "S2"], "blocks": [{"sid": "S1", "why": "a"}, {"sid": "S3", "why": "b"}]}
+    assert live.stage1_problems(entry, ok) == ([], [])
+    invented = {"verdict": "fail", "evidence_sids": ["S9"], "blocks": [{"sid": "S1", "why": "a"}, {"sid": "S3", "why": "b"}]}
+    assert live.stage1_problems(entry, invented)[0] == ["cites sentences the prompt did not contain: S9"]
+    invented_block = {"verdict": "fail", "evidence_sids": ["S1"], "blocks": [{"sid": "S1", "why": "a"}, {"sid": "S7", "why": "x"}]}
+    assert "S7" in live.stage1_problems(entry, invented_block)[0][0]
+    # a keyword sentence with no reading is kept but reported
+    gap = {"verdict": "fail", "evidence_sids": ["S1"], "blocks": [{"sid": "S1", "why": "a"}]}
+    assert live.stage1_problems(entry, gap) == ([], ["no reading given for keyword sentence(s): S3"])
+
+
+def test_token_total_is_the_sum_of_what_was_recorded(tmp_path):
+    run_dir = str(tmp_path)
+    assert live.tokens_total(run_dir) == 0
+    live.record_tokens(run_dir, 51000, "s1 batch 1")
+    assert live.record_tokens(run_dir, 49000, "s1 batch 2") == {"recorded": 49000, "total": 100000}
+
+
+def test_a_zero_token_total_is_never_recorded(tmp_path):
+    run_dir = str(tmp_path)
+    assert finalize_mod.resolve_total_tokens(0, run_dir) == 0   # not counted: the run record leaves it out
+    assert finalize_mod.resolve_total_tokens(None, run_dir) == 0
+    live.record_tokens(run_dir, 30000, "s2 job 0")
+    assert finalize_mod.resolve_total_tokens(0, run_dir) == 30000  # the ledger fills in what was passed as 0
+    assert finalize_mod.resolve_total_tokens(555, run_dir) == 555  # an explicit count still wins

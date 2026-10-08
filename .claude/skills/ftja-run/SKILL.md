@@ -103,9 +103,13 @@ instead of it.
 - Acquire the lock: `venv/bin/python -m ftja.lock acquire .ftja.lock`.
 - **Always release the lock before finishing** (`venv/bin/python -m ftja.lock release .ftja.lock`),
   including on any error path. Treat this like a try/finally.
-- Start a running total of tokens spent (add each Stage1/Stage2 Agent
-  call's `usage.subagent_tokens`, visible in that call's completion
-  notification, as it arrives).
+- Count tokens as you go, not at the end: every time a Stage 1 or Stage 2
+  `Agent` call returns, run `venv/bin/python -m ftja.live record-tokens
+  --dir <run_dir> --tokens <that call's usage.subagent_tokens> --label
+  "<stage and batch>"` (the run directory exists once `ftja.live start` has
+  run). `finalize` sums what was recorded. Never keep the total in your head
+  and never pass 0 for a count you did not make: a missing total shows as
+  "-", a wrong one is believed.
 - **Check the criteria list**: `venv/bin/python -m ftja.verdict status`.
   `rubric-criteria.json` is the rubric as a list of single criteria with
   stable ids; Stage 2 answers per criterion and `finalize` computes the
@@ -274,8 +278,19 @@ and calls beyond it fail. Send the next wave after the previous one returns.
 Ask each subagent to also reply with one line per job (`N <json>`). Writes
 can fail on transient permission-check errors; when an output file is
 missing, write it yourself from the reply. If neither exists, rerun that
-job. Evidence is by S-id only, so there are no quotes to hallucinate. Add
-each call's `usage.subagent_tokens` to the running token total.
+job. Evidence is by S-id only, so there are no quotes to hallucinate. Record each call's tokens with `record-tokens`, as in the preflight.
+
+Before Stage 2, check the answers against the sentences each prompt held:
+
+```
+venv/bin/python -m ftja.live check-stage1 --dir <run_dir>
+```
+
+`rerun` lists jobs whose answer cites a sentence the prompt never had, or
+passes a job without citing any: rerun exactly those job numbers once (one
+`Agent` call can take several). `prepare-stage2` and `results` already treat
+them as missing. `warnings` (a keyword sentence with no reading) are fine to
+leave; they show as an empty reading under that sentence.
 
 ## 4. Stage 2 — mid-model resume/portfolio judgment
 
@@ -324,7 +339,7 @@ requirement or note whose quote isn't in the JD is dropped. The viewer
 shows each job's card the moment its file lands.
 
 Run these calls in parallel waves of at most 20 per message, as in Stage 1.
-Add each call's `usage.subagent_tokens` to the running token total.
+Record each call's tokens with `record-tokens`, as in the preflight.
 
 ## 5. Finalize
 
@@ -338,7 +353,7 @@ call it again. Otherwise it writes the run's `results.json` and
 `stats.json`. Then:
 
 ```
-venv/bin/python -m ftja.finalize --run-dir <run_dir> --total-tokens <running total>
+venv/bin/python -m ftja.finalize --run-dir <run_dir>
 ```
 
 This computes each Stage 2 job's verdict against the criteria list copied

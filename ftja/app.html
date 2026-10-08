@@ -113,6 +113,8 @@ h1.serif { font-size: 38px; font-weight: 400; line-height: 1; margin-bottom: 8px
   border-left: 3px solid var(--border2); padding: 6px 10px; border-radius: 0 4px 4px 0; font-style: italic;
 }
 .empty { color: var(--text3); font-style: italic; }
+.s1-reason { margin: 4px 0 14px; padding: 9px 12px; background: var(--accent-dim); border-left: 3px solid var(--accent); color: var(--text); font-size: 12.5px; line-height: 1.5; }
+.s1-reason-tag { display: block; margin-bottom: 2px; color: var(--accent-text); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; }
 .no-run-banner { display: none; align-items: flex-start; gap: 12px; margin: 18px 0 26px; padding: 14px 16px; background: var(--accent-dim); border: 1px solid var(--accent-border); color: var(--accent-text); font-size: 12.5px; line-height: 1.6; }
 .no-run-banner b { display: block; margin-bottom: 2px; color: var(--accent); }
 .no-run-banner code { font: 600 11.5px 'IBM Plex Mono', monospace; padding: 1px 6px; background: var(--surface); border: 1px solid var(--accent-border); }
@@ -1789,7 +1791,7 @@ function judgmentHtml(job) {
     html += jgroup('Notes', '', `<ul class="jnotes">${job.notes.map(n => `<li>${esc(n.text)}</li>`).join('')}</ul>`);
   }
   if ((job.t1_blocks || []).length) {  // how it got here: what Stage 1 read and why it let the job through
-    html += `<div class="jgroup">${fold(`Stage 1 let it through${job.stage1_reason ? ' — ' + esc(job.stage1_reason) : ''}`,
+    html += `<div class="jgroup">${fold('What Stage 1 read in the posting',
       `<div class="s1-in-card">${stage1BlocksHtml(job.t1_blocks, job.t1_matched_keywords)}</div>`)}</div>`;
   }
   return `<div class="judgment">${html}</div>`;
@@ -1867,6 +1869,7 @@ function jobCardInner(job) {
       <span class="badge ${badgeClass} mono">${badgeText}</span>
     </div>
     <div class="link"><a href="${esc(job.job_url)}" target="_blank">${esc(job.job_url)}</a></div>
+    ${job.stage1_reason ? `<div class="s1-reason"><span class="s1-reason-tag mono">Why Stage 1 let it through</span>${esc(job.stage1_reason)}</div>` : ''}
     ${judgment}
     <div class="decide-block">
       <div class="decide-label">Application status</div>
