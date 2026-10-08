@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import tempfile
 import time
 from datetime import datetime, timezone
@@ -129,6 +130,47 @@ DEFAULT_RUBRIC_QUESTIONS = [
     {"id": "preferences", "label": "What would make a good role even better?", "hint": "Add preferences FTJA should use to rank otherwise good roles."},
 ]
 
+
+
+_RUBRIC_KIND_BY_QUESTION = {"clear_yes": "pass", "dealbreakers": "fail", "preferences": "preference"}
+
+
+def _criterion_label(text: str) -> str:
+    """A short name for one criterion line: the part before a colon or dash
+    when that is short, else the first few words."""
+    for sep in (":", " — ", " - "):
+        head = text.split(sep, 1)[0].strip()
+        if sep in text and 2 <= len(head) <= 60:
+            return head
+    words = text.split()
+    label = " ".join(words[:6])
+    return label + ("…" if len(words) > 6 else "")
+
+
+def draft_rubric_criteria(questions: list[dict[str, Any]]) -> dict[str, Any]:
+    """The three rubric answers as the rubric list the Pipeline tab edits:
+    one criterion per line of an answer (bullets and semicolons also split).
+    Each "clear yes" line stands alone — a job passes on any one of them —
+    so nothing is silently required together; the candidate can group
+    criteria afterwards in the Pipeline tab."""
+    criteria: list[dict[str, Any]] = []
+    used: set[str] = set()
+    for question in questions:
+        kind = _RUBRIC_KIND_BY_QUESTION.get(str(question.get("id")))
+        if not kind:
+            continue
+        parts = re.split(r"[\n;]+", str(question.get("answer") or ""))
+        for part in parts:
+            text = re.sub(r"^\s*(?:[-*•]|\d+[.)])\s*", "", part).strip()
+            if not text:
+                continue
+            base = cid = re.sub(r"[^a-z0-9]+", "_", _criterion_label(text).lower()).strip("_")[:40] or "criterion"
+            n = 2
+            while cid in used:
+                cid, n = f"{base}_{n}", n + 1
+            used.add(cid)
+            criteria.append({"id": cid, "kind": kind, "label": _criterion_label(text), "text": text})
+    return {"criteria": criteria, "notes": {"pass": "", "fail": "", "preference": ""}}
 
 
 class OnboardingError(ValueError):
@@ -313,16 +355,31 @@ def apply_action(project_dir: str, action: dict[str, Any]) -> dict[str, Any]:
                 question["answer"] = answer
         complete = all(str(question.get("answer") or "").strip() for question in questions)
         state.update(phase="rubric_review" if complete else "questions", allowed_actions=["confirm_rubric"] if complete else ["answer_rubric_question"], rubric_questions=questions)
+        if complete:
+            state["rubric_criteria_draft"] = draft_rubric_criteria(questions)
     elif kind == "confirm_rubric":
         _require(state, "rubric", "rubric_review")
         questions = state.get("rubric_questions") or []
         if not questions or any(not str(question.get("answer") or "").strip() for question in questions):
             raise OnboardingError("answer every rubric question before confirmation")
-        rubric = str(action.get("rubric_md") or "").strip()
-        if not rubric:
-            raise OnboardingError("rubric draft is required before confirmation")
         from ftja.pipeline_view import write_config
-        write_config(project_dir, criteria=profile.get("criteria", {}), rubric_md=rubric, profile_md=profile.get("summary", ""), profile_sources=profile.get("sources", []))
+        listed = action.get("criteria")
+        if isinstance(listed, list):
+            # The rubric as one criterion per line, the same list the
+            # Pipeline tab edits: save_criteria writes rubric-criteria.json
+            # and rewrites rubric.md from it, so the Pipeline tab shows the
+            # list from the first visit instead of after a first run.
+            from ftja.verdict import save_criteria
+            write_config(project_dir, criteria=profile.get("criteria", {}), profile_md=profile.get("summary", ""), profile_sources=profile.get("sources", []))
+            try:
+                save_criteria(project_dir, listed, action.get("notes") or {})
+            except ValueError as e:
+                raise OnboardingError(str(e))
+        else:
+            rubric = str(action.get("rubric_md") or "").strip()
+            if not rubric:
+                raise OnboardingError("rubric draft is required before confirmation")
+            write_config(project_dir, criteria=profile.get("criteria", {}), rubric_md=rubric, profile_md=profile.get("summary", ""), profile_sources=profile.get("sources", []))
         state.update(stage="run", phase="ready", status="ready", allowed_actions=[])
 
     else:
