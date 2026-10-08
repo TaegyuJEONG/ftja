@@ -5,6 +5,14 @@ What changed in each version, newest first. If you cloned FTJA earlier, run
 these. Your own files — `criteria.json`, `rubric.md`, `profile/`, `seen.db`,
 digests — are never touched by an update.
 
+## 0.2.7 — 2026-10-08
+
+### What changes for you after updating
+
+- During setup, while the chat is asking "ready to start onboarding?", the
+  web view now says to reply `yes` in the chat. It used to show a spinner and
+  a "Stuck? Type…" recovery phrase, which did not match what the chat asked.
+
 ## 0.2.6 — 2026-10-08
 
 ### What changes for you after updating
