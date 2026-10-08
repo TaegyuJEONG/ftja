@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="640" viewBox="0 0 480 320" role="img" aria-labelledby="da-title da-desc">
+  <title id="da-title">Applications drafted for you</title>
+  <desc id="da-desc">Your profile, what you have told your agent, and the job posting flow into an application form: resume attached, motivation written, questions answered, with a Review and confirm button.</desc>
+  <style>
+    .ink{fill:none;stroke:#47675d;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+    .soft{fill:#f7f6f0;stroke:#a4b5aa;stroke-width:1.2}
+    .card{fill:#fbfaf6;stroke:#a4b5aa;stroke-width:1.2}
+    .route{fill:none;stroke:#47675d;stroke-width:1.3;stroke-dasharray:2 7;stroke-linecap:round;animation:route 4.2s linear infinite}
+    .lbl{fill:#3f4a44;font:500 12px ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    .head{fill:#6d756e;font:500 9px ui-monospace,"IBM Plex Mono",Menlo,monospace;letter-spacing:.14em}
+    .line{stroke:#a4b5aa;stroke-width:5;stroke-linecap:round;stroke-dasharray:200;stroke-dashoffset:200;animation:write 7s ease-out infinite}
+    .l2{animation-delay:.5s}.l3{animation-delay:1s}.l4{animation-delay:1.8s}.l5{animation-delay:2.3s}
+    .btn{fill:#2e5142}.btnt{fill:#f3f0e9;font:600 11px ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;text-anchor:middle}
+    .ok{fill:#2e5142;font:600 10px ui-monospace,"IBM Plex Mono",Menlo,monospace}
+    @keyframes route{to{stroke-dashoffset:-36}}
+    @keyframes write{0%{stroke-dashoffset:200}22%,100%{stroke-dashoffset:0}}
+    @media(prefers-reduced-motion:reduce){.route{animation:none}.line{animation:none;stroke-dashoffset:0}}
+  </style>
+  <defs><filter id="da-shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#34463f" flood-opacity=".08"/></filter></defs>
+
+  <path class="route" d="M168 76C200 76 200 150 232 156"/>
+  <path class="route" d="M168 160H230"/>
+  <path class="route" d="M168 244C200 244 200 170 232 164"/>
+
+  <g filter="url(#da-shadow)">
+    <rect class="soft" x="14" y="54" width="154" height="44" rx="13"/>
+    <rect class="soft" x="14" y="138" width="154" height="44" rx="13"/>
+    <rect class="soft" x="14" y="222" width="154" height="44" rx="13"/>
+    <rect class="card" x="236" y="18" width="230" height="284" rx="14"/>
+  </g>
+
+  <g class="ink">
+    <circle cx="36" cy="71" r="5"/><path d="M27 86c1.5-6 16.500-6 18 0"/>
+    <path d="M27 152h18v12h-10l-5 5v-5h-3z"/>
+    <path d="M28 234h16v20h-16zM32 240h8M32 245h8M32 250h5"/>
+  </g>
+  <text class="lbl" x="56" y="80">Your profile</text>
+  <text class="lbl" x="56" y="157">What you've told</text><text class="lbl" x="56" y="171">your agent</text>
+  <text class="lbl" x="56" y="248">The job posting</text>
+
+  <text class="head" x="252" y="42">APPLICATION</text>
+  <path stroke="#d8d3c8" stroke-width="1" d="M252 52h198"/>
+
+  <text class="lbl" x="252" y="76">Resume</text><text class="ok" x="450" y="76" text-anchor="end">ATTACHED ✓</text>
+
+  <text class="lbl" x="252" y="108">Why this role</text>
+  <path class="line" d="M254 124h194"/><path class="line l2" d="M254 138h170"/><path class="line l3" d="M254 152h184"/>
+
+  <text class="lbl" x="252" y="184">Their questions</text>
+  <path class="line l4" d="M254 200h188"/><path class="line l5" d="M254 214h140"/>
+
+  <rect class="btn" x="252" y="246" width="198" height="36" rx="10"/>
+  <text class="btnt" x="351" y="268">Review and confirm</text>
+</svg>

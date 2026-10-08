@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="640" viewBox="0 0 480 320" role="img" aria-labelledby="ms-title ms-desc">
+  <title id="ms-title">More agents and more sources</title>
+  <desc id="ms-desc">On the left, three agents: Claude Code today, Codex and Hermes Agent next. On the right, three sources: LinkedIn today, Indeed and company career pages next. All connect to FTJA in the middle.</desc>
+  <style>
+    .ink{fill:none;stroke:#47675d;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+    .soft{fill:#f7f6f0;stroke:#a4b5aa;stroke-width:1.2}
+    .next{fill:#f7f6f0;stroke:#a4b5aa;stroke-width:1.2;stroke-dasharray:4 4}
+    .hub{fill:#2e5142}
+    .route{fill:none;stroke:#47675d;stroke-width:1.3;stroke-dasharray:2 7;stroke-linecap:round;animation:route 4.2s linear infinite}
+    .route.later{stroke:#a4b5aa}
+    .lbl{fill:#3f4a44;font:500 12px ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;text-anchor:middle}
+    .sub{fill:#6d756e;font:500 10px ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;text-anchor:middle}
+    .head{fill:#6d756e;font:500 9px ui-monospace,"IBM Plex Mono",Menlo,monospace;letter-spacing:.14em;text-anchor:middle}
+    .tagnow{fill:#2e5142}.tagnext{fill:#f7f6f0;stroke:#a4b5aa;stroke-width:1}
+    .tagt{font:600 7.5px ui-monospace,"IBM Plex Mono",Menlo,monospace;letter-spacing:.1em;text-anchor:middle}
+    .hubt{fill:#f3f0e9;font:400 17px "Instrument Serif",Georgia,serif;text-anchor:middle}
+    @keyframes route{to{stroke-dashoffset:-36}}
+    @media(prefers-reduced-motion:reduce){.route{animation:none}}
+  </style>
+  <defs><filter id="ms-shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#34463f" flood-opacity=".08"/></filter></defs>
+
+  <text class="head" x="70" y="18">AGENTS</text>
+  <text class="head" x="410" y="18">SOURCES</text>
+
+  <path class="route" d="M96 68C150 68 170 150 208 156"/>
+  <path class="route later" d="M96 160H206"/>
+  <path class="route later" d="M96 252C150 252 170 170 208 164"/>
+  <path class="route" d="M384 68C330 68 310 150 272 156"/>
+  <path class="route later" d="M384 160H274"/>
+  <path class="route later" d="M384 252C330 252 310 170 272 164"/>
+
+  <g filter="url(#ms-shadow)">
+    <rect class="soft" x="48" y="46" width="44" height="44" rx="13"/>
+    <rect class="next" x="48" y="138" width="44" height="44" rx="13"/>
+    <rect class="next" x="48" y="230" width="44" height="44" rx="13"/>
+    <rect class="soft" x="388" y="46" width="44" height="44" rx="13"/>
+    <rect class="next" x="388" y="138" width="44" height="44" rx="13"/>
+    <rect class="next" x="388" y="230" width="44" height="44" rx="13"/>
+    <circle class="hub" cx="240" cy="160" r="34"/>
+  </g>
+  <text class="hubt" x="240" y="166">FTJA</text>
+
+  <!-- agent glyph: a prompt -->
+  <g class="ink"><path d="M61 62l7 6-7 6M72 75h8"/><path d="M61 154l7 6-7 6M72 167h8"/><path d="M61 246l7 6-7 6M72 259h8"/></g>
+  <!-- source glyph: a posting -->
+  <g class="ink">
+    <path d="M400 58h20v20h-20zM404 64h12M404 69h12M404 74h7"/>
+    <path d="M400 150h20v20h-20zM404 156h12M404 161h12M404 166h7"/>
+    <path d="M400 242h20v20h-20zM404 248h12M404 253h12M404 258h7"/>
+  </g>
+
+  <text class="lbl" x="70" y="106">Claude Code</text>
+  <text class="lbl" x="70" y="198">Codex</text>
+  <text class="lbl" x="70" y="290">Hermes Agent</text>
+  <text class="lbl" x="410" y="106">LinkedIn</text>
+  <text class="lbl" x="410" y="198">Indeed</text>
+  <text class="lbl" x="410" y="290">Company career pages</text>
+  <text class="sub" x="410" y="304">Greenhouse · Lever · Ashby</text>
+
+  <g>
+    <rect class="tagnow" x="78" y="38" width="30" height="13" rx="6.5"/><text class="tagt" x="93" y="47.5" fill="#f3f0e9">NOW</text>
+    <rect class="tagnext" x="78" y="130" width="32" height="13" rx="6.5"/><text class="tagt" x="94" y="139.5" fill="#47675d">NEXT</text>
+    <rect class="tagnext" x="78" y="222" width="32" height="13" rx="6.5"/><text class="tagt" x="94" y="231.5" fill="#47675d">NEXT</text>
+    <rect class="tagnow" x="418" y="38" width="30" height="13" rx="6.5"/><text class="tagt" x="433" y="47.5" fill="#f3f0e9">NOW</text>
+    <rect class="tagnext" x="418" y="130" width="32" height="13" rx="6.5"/><text class="tagt" x="434" y="139.5" fill="#47675d">NEXT</text>
+    <rect class="tagnext" x="418" y="222" width="32" height="13" rx="6.5"/><text class="tagt" x="434" y="231.5" fill="#47675d">NEXT</text>
+  </g>
+</svg>
