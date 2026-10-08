@@ -44,6 +44,7 @@ VALUE_ASSETS = {
     )
 }
 PAGE_SIZE = 10
+LOCAL_HOSTS = {"127.0.0.1", "localhost", "::1"}
 ONBOARDING_STATE = "onboarding-state.json"
 
 
@@ -177,7 +178,30 @@ def make_handler(db_path: str, project_dir: str):
                 "kind": kind,
             })
 
+        def _local_request(self, write: bool = False) -> bool:
+            """Refuse requests that did not come from this viewer's own page.
+            The server is bound to 127.0.0.1, but a web page the user visits
+            can still reach it from their browser: by a cross-site POST, or by
+            DNS rebinding, where another site's name resolves to 127.0.0.1.
+            Both show up as a Host or Origin that is not this machine."""
+            host = urlparse("//" + (self.headers.get("Host") or "")).hostname
+            if host not in LOCAL_HOSTS:
+                self._send_json(403, {"error": "this viewer only answers on 127.0.0.1"})
+                return False
+            if write:
+                origin = self.headers.get("Origin")
+                if origin is not None and urlparse(origin).netloc != self.headers.get("Host"):
+                    self._send_json(403, {"error": "cross-site requests are not accepted"})
+                    return False
+                content_type = (self.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+                if content_type != "application/json":
+                    self._send_json(415, {"error": "Content-Type must be application/json"})
+                    return False
+            return True
+
         def do_GET(self):
+            if not self._local_request():
+                return
             parsed = urlparse(self.path)
             path, qs = parsed.path, parse_qs(parsed.query)
 
@@ -259,6 +283,8 @@ def make_handler(db_path: str, project_dir: str):
                 self._send_json(404, {"error": "not found"})
 
         def do_POST(self):
+            if not self._local_request(write=True):
+                return
             length = int(self.headers.get("Content-Length", 0))
             try:
                 data = json.loads(self.rfile.read(length) or b"{}")

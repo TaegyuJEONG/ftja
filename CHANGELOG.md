@@ -5,6 +5,21 @@ What changed in each version, newest first. If you cloned FTJA earlier, run
 these. Your own files — `criteria.json`, `rubric.md`, `profile/`, `seen.db`,
 digests — are never touched by an update.
 
+## 0.2.5 — 2026-10-08
+
+### What changes for you after updating
+
+- The viewer only answers its own page. While it was running, another web
+  page open in your browser could have sent it requests, and so changed your
+  rubric, search settings or profile summary, or read them. It now refuses
+  any request that does not come from `127.0.0.1` itself. Restart the viewer
+  after updating (`/ftja-update` does this for you).
+- `/ftja-tune` and `/ftja-review` no longer try to `git commit` your
+  `rubric.md` and `criteria.json`. Those files are ignored by git on purpose,
+  so the step failed; your changes were saved either way.
+- The README lists what leaves your computer and where it goes (your AI
+  agent's provider, LinkedIn, OpenStreetMap, Google Fonts, GitHub).
+
 ## 0.2.4 — 2026-10-07
 
 ### What changes for you after updating

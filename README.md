@@ -5,7 +5,9 @@ Local-first job-search skill for Claude Code or Codex. Full design in [SPEC.md](
 Scrapes LinkedIn (no login, via `jobspy`), filters deterministically, then
 runs a 2-stage LLM judgment (cheap model on keyword-sentence blocks, mid
 model on full JD + your resume/portfolio/rubric), and drops a daily digest
-of only the jobs worth reading. Everything stays in your FTJA folder — no hosted database and no account required.
+of only the jobs worth reading. Your files stay in your FTJA folder — no hosted
+database and no FTJA account. The judgment itself is done by your own Claude Code
+or Codex session (see [Data and privacy](#data-and-privacy)).
 
 ## Landing page and first-time setup
 
@@ -34,7 +36,7 @@ FTJA is installed as a normal workspace. Clone it, open the folder in Claude
 Code or Codex, and start a new session there:
 
 ```bash
-git clone https://github.com/<owner>/ftja.git ~/FTJA
+git clone https://github.com/TaegyuJEONG/ftja.git ~/FTJA
 cd ~/FTJA
 ```
 
@@ -57,7 +59,7 @@ This interviews you and writes local `rubric.md` + `criteria.json` (gitignored �
 edit them in the web experience or use `/ftja-tune` to update them
 conversationally).
 
-## Running it (M1 — manual, do this first)
+## Running it (manual — do this first)
 
 ```
 /ftja-run
@@ -65,13 +67,19 @@ conversationally).
 
 Do this by hand for a few days. Check `digest-YYYY-MM-DD.md` each time —
 if Stage 1/Stage 2 verdicts don't match your own judgment, edit `rubric.md`
-/ `criteria.json` (or run `/ftja-tune`) and re-run. Don't move to M2 until
+/ `criteria.json` (or run `/ftja-tune`) and re-run. Don't automate it until
 you trust it.
 
-## Automating it (M2 — once M1 is trusted)
+## Automating it (macOS, once you trust the manual runs)
+
+Copy the example LaunchAgent, replace every `/path/to/FTJA` in it with your
+FTJA folder, then load it:
 
 ```bash
-cp com.ftja.run.plist ~/Library/LaunchAgents/com.ftja.run.plist
+cp com.ftja.run.example.plist ~/Library/LaunchAgents/com.ftja.run.plist
+```
+
+```bash
 launchctl load ~/Library/LaunchAgents/com.ftja.run.plist
 ```
 
@@ -125,18 +133,34 @@ rubric-criteria.json       # the rubric as a list of single criteria (Pass / Fai
 run.log                    # append-only run history — gitignored
 .ftja-run/                 # each run's working files (last 5 runs); the viewer's live view reads them — gitignored
 ftja/                      # the pipeline code
-.claude/skills/ftja-*/     # the three skills: setup, run, tune
+.claude/skills/ftja-*/     # the skills for Claude Code: setup, run, review, tune, profile-update, update
+.agents/skills/ftja-*/     # the same skills for Codex
 ```
 
 ## Data and privacy
 
 The public repository contains the FTJA code, prompts, and project-local skills.
 Your criteria, rubric, resume/portfolio, run history, digests, and SQLite state
-are local files and are gitignored by default. Review the files before making
-the repository public; Git history is public too.
+are local files and are gitignored, so updating FTJA never uploads them. FTJA
+has no server of its own and collects nothing.
+
+What does leave your computer:
+
+- **Your AI agent's provider.** The judgment runs inside your own Claude Code
+  or Codex session, so the job descriptions, your rubric, your profile summary
+  and (during setup) the resume/portfolio files you select are sent to that
+  provider under your account with them, as with any other work you do there.
+- **LinkedIn.** Your search titles and location are sent as public, logged-out
+  searches.
+- **OpenStreetMap (Nominatim).** What you type in the viewer's location field
+  is sent to look up place names.
+- **Google Fonts.** The viewer loads its fonts from Google.
+- **GitHub.** The update check described above.
+
+The viewer runs on `127.0.0.1` only and refuses requests from other sites.
 
 ## Out of scope (see SPEC.md for why)
 
 Public job board, LinkedIn login-based scraping, non-LinkedIn sources,
-non-Claude-Code / mobile use, automatic (non-confirmed) rubric inference,
-multi-rubric pivoting, pipeline visualization.
+agents other than Claude Code and Codex, mobile use, automatic (non-confirmed)
+rubric inference, multi-rubric pivoting.

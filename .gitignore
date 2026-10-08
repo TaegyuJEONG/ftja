@@ -23,3 +23,10 @@ rubric-criteria.json
 rubric.md.bak
 .ftja-run/
 .ftja-update-check.json
+
+# local agent/tool folders and downloads — never part of the repository
+.codex/
+.hermes/
+.pytest_cache/
+*.dmg
+.DS_Store
