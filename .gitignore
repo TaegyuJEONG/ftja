@@ -30,3 +30,5 @@ rubric.md.bak
 .pytest_cache/
 *.dmg
 .DS_Store
+_site/
+.vercel/
