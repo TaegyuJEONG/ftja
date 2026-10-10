@@ -218,7 +218,8 @@ def prepare_stage1(run_dir: str, project_dir: str = ".") -> dict:
         with open(os.path.join(run_dir, "s1", f"{n}.txt"), "w") as f:
             f.write(prompt)
         manifest.append({"n": n, "job_url": job["job_url"], "title": job.get("title"), "company": job.get("company"),
-                         "location": job.get("location"),
+                         # a repost listed for other places too names them all
+                         "location": " / ".join(filter(None, [job.get("location"), *(job.get("_duplicate_locations") or [])])),
                          "blocks": [{"s_id": b["s_id"], "sentence": b["sentence"], "matched": bool(b.get("matched")),
                                      "keywords": b.get("matched_keywords") or []} for b in blocks]})
     _write_json(os.path.join(run_dir, "s1", "manifest.json"), manifest)
@@ -356,7 +357,7 @@ def prepare_stage2(run_dir: str, project_dir: str = ".", partial: bool = False) 
         n = len(manifest)
         new.append(n)
         prompt = (template.replace("{title}", str(job.get("title") or "")).replace("{company}", str(job.get("company") or ""))
-                  .replace("{location}", str(job.get("location") or "")).replace("{full_description}", job["description"]))
+                  .replace("{location}", str(entry.get("location") or job.get("location") or "")).replace("{full_description}", job["description"]))
         with open(os.path.join(run_dir, "s2", f"{n}.txt"), "w") as f:
             f.write(prompt)
         manifest.append({"n": n, "s1_n": entry["n"], "job_url": entry["job_url"], "title": entry.get("title"),

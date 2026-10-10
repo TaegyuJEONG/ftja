@@ -306,3 +306,39 @@ of freedom matters.
   first-time users (default to a single set; reveal more only when added).
 - Cost: running Stage 1/2 once per matching search multiplies LLM calls for
   overlapping searches; measure overlap on real runs before deciding.
+
+## Stage 1 as a screen-out filter (keywords as dealbreaker signals)
+
+### Problem
+
+Stage 1 passes a job only on a sentence that shows a pass criterion. That
+fits a search where few postings qualify and the pass criteria describe the
+work ("builds prototypes"). It fits badly when the rubric is about
+conditions a posting may simply not state (remote, location, visa, contract
+type): in one remote-focused run, 106 of 244 Stage 1 fails cited no
+sentence against the job, only "remote is not stated in these sentences".
+
+### Proposed design
+
+A `stage1_mode` in `criteria.json`, chosen during onboarding from the
+rubric:
+
+- `screen_in` (today's behaviour): keywords are signs of a role worth
+  reading; a pass needs an evidence sentence.
+- `screen_out`: keywords mark where a dealbreaker would be stated; a fail
+  needs an evidence sentence, everything else goes to Stage 2, and a
+  posting with no keyword sentence skips Stage 1.
+
+A first version was built and removed before release (the Stage 0 switch,
+a per-mode verdict rule in the Stage 1 prompt, and the evidence check
+flipped per mode in `ftja.live.stage1_problems`).
+
+### Why it is parked
+
+- Cost: on that run it would have sent roughly 200 jobs to Stage 2 instead
+  of 75 (an estimate; Stage 1 was not rerun).
+- A posting that says nothing about a condition the candidate requires is
+  not one they should apply to on trust, so passing silence is the wrong
+  default for the candidate too.
+- Choosing the mode belongs in onboarding, which makes this a larger change
+  than Stage 1 alone.

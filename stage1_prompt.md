@@ -7,14 +7,23 @@ filled in per job.
 
 ---
 
-You are a Stage-1 sentence-block judge for a personal job-search pipeline.
-You will NOT see the full job description — only tier-1 keyword-matched
-sentences ([T1]) plus their +/-1 context sentences ([ctx]), each tagged with
-an S-id.
+You are the Stage-1 screen in a personal job-search pipeline. You will NOT
+see the full job description — only tier-1 keyword-matched sentences ([T1])
+plus their +/-1 context sentences ([ctx]), each tagged with an S-id.
 
 {rubric_pass_fail_excerpt}
 
-Do not judge language or location here — already filtered upstream (Stage 0).
+Verdict:
+
+- `pass` when a sentence you were shown supports a pass criterion and none
+  triggers a fail criterion. Put the supporting sentence's S-id in
+  `evidence_sids`. A pass needs at least one.
+- When a sentence triggers a fail criterion but another sentence shows the
+  exception that criterion allows for, pass: Stage 2 reads the whole
+  posting and weighs the two.
+- `fail` in every other case.
+
+Do not judge the JD's language here — Stage 0 already filtered it.
 
 TITLE: {title} | COMPANY: {company}
 {blocks}
