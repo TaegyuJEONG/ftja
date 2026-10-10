@@ -114,7 +114,6 @@ h1.serif { font-size: 38px; font-weight: 400; line-height: 1; margin-bottom: 8px
 }
 .empty { color: var(--text3); font-style: italic; }
 .s1-reason { margin: 4px 0 14px; padding: 9px 12px; background: var(--accent-dim); border-left: 3px solid var(--accent); color: var(--text); font-size: 12.5px; line-height: 1.5; }
-.s1-reason-tag { display: block; margin-bottom: 2px; color: var(--accent-text); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; }
 .no-run-banner { display: none; align-items: flex-start; gap: 12px; margin: 18px 0 26px; padding: 14px 16px; background: var(--accent-dim); border: 1px solid var(--accent-border); color: var(--accent-text); font-size: 12.5px; line-height: 1.6; }
 .no-run-banner b { display: block; margin-bottom: 2px; color: var(--accent); }
 .no-run-banner code { font: 600 11.5px 'IBM Plex Mono', monospace; padding: 1px 6px; background: var(--surface); border: 1px solid var(--accent-border); }
@@ -233,6 +232,8 @@ h1.serif { font-size: 38px; font-weight: 400; line-height: 1; margin-bottom: 8px
   font: inherit; color: var(--danger-text); font-weight: 600; background: none; border: none; padding: 0; cursor: pointer;
   text-decoration: underline; text-decoration-color: var(--border2); text-underline-offset: 3px;
 }
+.link-btn.pass { color: var(--accent-text); }
+.s1-pass-line { margin: 4px 0 14px; font-size: 12.5px; }
 .link-btn:hover { text-decoration-color: currentColor; }
 .live-note { font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: var(--text3); padding: 6px 0 18px; }
 .judging-line { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text3); margin: 14px 0 2px; }
@@ -1592,6 +1593,38 @@ function stage1BlocksHtml(blocks, keywords) {
 
 // ---- why jobs stopped at Stage 1 ----
 let stage1Dialog = null;
+const stage1Passed = new Map();  // job_url -> job, for the "Passed Stage 1" popup
+function openStage1Pass(url) {
+  const j = stage1Passed.get(url);
+  if (!j) return;
+  let dialog = document.getElementById('s1-dialog');
+  if (!dialog) {
+    dialog = document.createElement('dialog');
+    dialog.id = 's1-dialog';
+    dialog.className = 's1-dialog';
+    document.body.appendChild(dialog);
+    dialog.addEventListener('click', (e) => { if (e.target === dialog) dialog.close(); });
+  }
+  stage1Dialog = null;  // not the live fails list: no refreshes into this one
+  const keywords = j.t1_matched_keywords || [...new Set((j.t1_blocks || []).flatMap(b => b.keywords || []))];
+  dialog.innerHTML = `
+    <div class="s1-head"><h3>Passed Stage 1</h3><button class="text-btn" type="button" data-close>Close</button></div>
+    <div class="s1-body">
+      <div class="s1-explain">Stage 1 reads only the sentences around your keywords, never the whole posting. These are the sentences it read for this job, and what it made of them.</div>
+      <div class="s1-row">
+        <div class="s1-title"><a href="${esc(j.job_url)}" target="_blank">${esc(j.title)}</a> <span>— ${esc(j.company)}${j.location ? ' · ' + esc(j.location) : ''}</span></div>
+        ${j.stage1_reason ? `<div class="s1-reason">${esc(j.stage1_reason)}</div>` : ''}
+        ${keywords.length ? `<div class="s1-keywords"><span>Matched</span>${keywords.map(k => `<span class="chip">${esc(k)}</span>`).join('')}</div>` : ''}
+        ${j.pruned_at ? `<div class="pruned-note">The sentences were removed on ${esc(fmtDate(j.pruned_at))} to save space.</div>` : stage1BlocksHtml(j.t1_blocks, keywords)}
+      </div>
+    </div>`;
+  dialog.querySelector('[data-close]').addEventListener('click', () => dialog.close());
+  dialog.showModal();
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-stage1-pass]');
+  if (b) openStage1Pass(b.dataset.stage1Pass);
+});
 async function openStage1Fails(runId) {
   let dialog = document.getElementById('s1-dialog');
   if (!dialog) {
@@ -1795,10 +1828,6 @@ function judgmentHtml(job) {
   if ((job.notes || []).length) {
     html += jgroup('Notes', '', `<ul class="jnotes">${job.notes.map(n => `<li>${esc(n.text)}</li>`).join('')}</ul>`);
   }
-  if ((job.t1_blocks || []).length) {  // how it got here: what Stage 1 read and why it let the job through
-    html += `<div class="jgroup">${fold('What Stage 1 read in the posting',
-      `<div class="s1-in-card">${stage1BlocksHtml(job.t1_blocks, job.t1_matched_keywords)}</div>`)}</div>`;
-  }
   return `<div class="judgment">${html}</div>`;
 }
 
@@ -1874,7 +1903,7 @@ function jobCardInner(job) {
       <span class="badge ${badgeClass} mono">${badgeText}</span>
     </div>
     <div class="link"><a href="${esc(job.job_url)}" target="_blank">${esc(job.job_url)}</a></div>
-    ${job.stage1_reason ? `<div class="s1-reason"><span class="s1-reason-tag mono">Why Stage 1 let it through</span>${esc(job.stage1_reason)}</div>` : ''}
+    ${(job.stage1_reason || (job.t1_blocks || []).length) ? (stage1Passed.set(job.job_url, job), `<div class="s1-pass-line"><button class="link-btn pass" type="button" data-stage1-pass="${esc(job.job_url)}">Passed Stage 1 — see why</button></div>`) : ''}
     ${judgment}
     <div class="decide-block">
       <div class="decide-label">Application status</div>
