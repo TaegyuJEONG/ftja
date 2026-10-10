@@ -1046,7 +1046,12 @@ async function postOnboardingAction(type, payload = {}) {
     // changes (see refreshOnboarding).
     const phaseMoved = `${body.state.stage}/${body.state.phase}` !== `${onboardingState?.stage}/${onboardingState?.phase}`;
     let bridge = body.bridge || onboardingState?.bridge || {status: 'offline'};
-    if (phaseMoved) {
+    // Only an action the bridge was waiting for ends that wait. Adding a
+    // resume (set_profile_sources) moves the phase but the same wait keeps
+    // listening for the confirm, so its bridge never changes: treating it as
+    // stale would hold the page on "Getting ready…" forever.
+    const endsWait = (bridge.action_types || []).includes(type);
+    if (phaseMoved && endsWait) {
       staleBridgeStamp = bridge.status === 'listening' ? `${bridge.updated_at}|${bridge.pid}` : null;
       bridge = {status: 'offline', action_types: [], pid: null, label: '', updated_at: null};
     }
