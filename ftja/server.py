@@ -251,7 +251,8 @@ def make_handler(db_path: str, project_dir: str):
                 if not run_id:
                     self._send_json(400, {"error": "run_id required"})
                     return
-                self._send_json(200, live.stage1_fails(project_dir, db_path, run_id, page))
+                verdict = "pass" if (qs.get("verdict") or ["fail"])[0] == "pass" else "fail"
+                self._send_json(200, live.stage1_fails(project_dir, db_path, run_id, page, verdict))
             elif path == "/api/jobs":
                 run_id = (qs.get("run_id") or [""])[0]
                 status = (qs.get("status") or ["passed"])[0]
