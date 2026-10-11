@@ -5,7 +5,7 @@ What changed in each version, newest first. If you cloned FTJA earlier, run
 these. Your own files — `criteria.json`, `rubric.md`, `profile/`, `seen.db`,
 digests — are never touched by an update.
 
-## Unreleased
+## 0.2.8 — 2026-10-11
 
 ### What changes for you after updating
 
@@ -18,6 +18,9 @@ digests — are never touched by an update.
   another shows the exception that criterion allows for, and leaves the
   weighing to Stage 2. It no longer skips location: only the posting's
   language is treated as already filtered.
+- `/ftja-run` checks for a newer version at the start of every run. It used
+  to reuse an answer up to 12 hours old, so an update published in between
+  was not offered until later.
 - The same posting listed for several cities is judged once and shown once,
   with every location on the card.
 - Sentences in the Stage 1 popups no longer carry markdown leftovers

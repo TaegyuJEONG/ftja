@@ -51,3 +51,16 @@ def test_changes_since_returns_only_newer_sections(tmp_path):
 
 def test_repository_changelog_covers_the_repository_version():
     assert f"## {version.local_version()}" in open(version.REPO_ROOT + "/CHANGELOG.md").read()
+
+
+def test_the_command_line_check_never_answers_from_the_cache(tmp_path, monkeypatch, capsys):
+    setup(tmp_path)
+    answers = iter(["0.2.0", "0.3.0"])
+    monkeypatch.setattr(version, "_fetch_latest", lambda root: next(answers))
+    monkeypatch.setattr(version, "local_version", lambda root=None: "0.2.0")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("sys.argv", ["ftja.version", "check"])
+    version.main()
+    assert "up to date" in capsys.readouterr().out
+    version.main()  # published since the last check, seconds ago
+    assert "update available: FTJA 0.3.0" in capsys.readouterr().out
