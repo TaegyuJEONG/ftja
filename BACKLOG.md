@@ -342,3 +342,30 @@ flipped per mode in `ftja.live.stage1_problems`).
   default for the candidate too.
 - Choosing the mode belongs in onboarding, which makes this a larger change
   than Stage 1 alone.
+
+## Run the tests on every pull request
+
+### Problem
+
+Nothing runs `pytest` in CI. A pull request's only checks are the Vercel
+preview deployment; `pages.yml` deploys the landing page on a push to main
+and does not run on pull requests. The 108 tests run only when someone
+remembers to run them locally.
+
+### Proposed design
+
+1. A workflow that runs `pytest` on every pull request (one file, about 20
+   lines; the suite takes about 14 seconds).
+2. A Stage 0 regression test on a saved set of scraped jobs: keyword hit
+   counts, repost groups and drop counts compared with stored numbers. No
+   model call, so it can run in CI.
+3. Leave the full run on real postings manual. Replaying one run of 559
+   jobs cost 8.4M tokens, so it cannot run per pull request.
+
+Automatic fixing of CI failures stays off: a failing test means either the
+code or the test is wrong, and deciding which needs a person.
+
+### Why it is parked
+
+One developer, MVP stage, no other users yet. Revisit when someone else
+contributes or when a change ships broken because the tests were not run.
