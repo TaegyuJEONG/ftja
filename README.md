@@ -5,7 +5,7 @@ that runs inside your own Claude Code. You give it your resume and your
 standards; it reads public LinkedIn postings for you and shows only the roles
 worth your attention, with the reason for each one.
 
-<a href="https://ftja.vercel.app/assets/demo/ftja-run.mp4"><img src="assets/demo/ftja-run.gif" alt="A sped-up recording of one FTJA run" width="100%"></a>
+<a href="https://ftja.vercel.app/assets/demo/ftja-run.mp4"><img src="https://ftja.vercel.app/assets/demo/ftja-run.gif" alt="A sped-up recording of one FTJA run" width="100%"></a>
 
 <sub>Click the recording to watch it full size.</sub>
 
