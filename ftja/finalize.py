@@ -1,9 +1,9 @@
 """Last step of /ftja-run: takes the full per-job outcome list (every job
 touched this run, whatever stage it stopped at), and:
   1. records all of them in seen.db (so nothing gets re-judged tomorrow)
-  2. writes digest-YYYY-MM-DD.md for the ones that passed all stages, plus
+  2. writes digest-<run id>.md for the ones that passed all stages, plus
      the ones Stage 2 could not settle ("to review")
-  3. writes rejected-YYYY-MM-DD.md for the ones that failed Stage1/2, with
+  3. writes rejected-<run id>.md for the ones that failed Stage1/2, with
      their reasoning. Stage0 drops are only counts, except the
      language-requirement drops: pass filter_stage0's --dropped-out file as
      --stage0-dropped and they are listed too, each with the sentence that
@@ -65,6 +65,7 @@ import os
 import sys
 from datetime import datetime, timezone
 
+from ftja.runs_store import run_stamp
 from ftja.state import connect, mark_seen, rubric_version as get_rubric_version
 from ftja.notify import notify
 from ftja.verdict import DEFAULT_CRITERIA_PATH, STATUS_FOR_VERDICT, clean_extras, judge, load_criteria, summarize
@@ -137,9 +138,12 @@ def _job_block(job: dict) -> list[str]:
     return lines
 
 
-def write_digest(passed: list[dict], out_dir: str = ".", review: list[dict] | None = None) -> str:
+def write_digest(passed: list[dict], out_dir: str = ".", review: list[dict] | None = None, run_id: str = "") -> str:
+    """Named after the run (its start time, to the second), not the day: a
+    second run on the same day used to overwrite the first one's file, and a
+    file that names its run can be moved to the trash with it."""
     date_str = datetime.now().strftime("%Y-%m-%d")
-    path = f"{out_dir}/digest-{date_str}.md"
+    path = f"{out_dir}/digest-{run_stamp(run_id) or date_str}.md"
     review = review or []
     count = f"{len(passed)} passed" + (f", {len(review)} to review" if review else "")
     lines = [f"# FTJA digest — {date_str}", "", count, "", _REVIEW_NOTE, ""]
@@ -155,14 +159,15 @@ def write_digest(passed: list[dict], out_dir: str = ".", review: list[dict] | No
     return path
 
 
-def write_rejected(rejected: list[dict], out_dir: str = ".", stage0_dropped: list[dict] | None = None) -> str:
+def write_rejected(rejected: list[dict], out_dir: str = ".", stage0_dropped: list[dict] | None = None,
+                   run_id: str = "") -> str:
     """Stage1/2 fail reasoning has no fixed category the way Stage0's does (it's
     free-text LLM output, not a code branch) — rather than force an artificial
     taxonomy onto it, just keep the per-job reasoning readable after the run
     ends. Without this, a rejected job's reasoning existed only in the async
     Agent-call notification during the run and was gone once finalize ran."""
     date_str = datetime.now().strftime("%Y-%m-%d")
-    path = f"{out_dir}/rejected-{date_str}.md"
+    path = f"{out_dir}/rejected-{run_stamp(run_id) or date_str}.md"
     lines = [f"# FTJA rejected — {date_str}", "", f"{len(rejected)} failed", ""]
     for job in rejected:
         stage = job.get("stage_reached", "?")
@@ -313,8 +318,8 @@ def finalize(results: list[dict], db_path: str = DEFAULT_DB, out_dir: str = ".",
                     stage1_reason=r.get("stage1_reason"),
                 )
 
-    digest_path = write_digest(passed, out_dir=out_dir, review=review)  # always write, even 0 passed -> no silent gaps
-    rejected_path = write_rejected(rejected, out_dir=out_dir, stage0_dropped=stage0_dropped)
+    digest_path = write_digest(passed, out_dir=out_dir, review=review, run_id=run_id)  # always write, even 0 passed -> no silent gaps
+    rejected_path = write_rejected(rejected, out_dir=out_dir, stage0_dropped=stage0_dropped, run_id=run_id)
     summary = f"run complete: {len(results)} evaluated, {len(passed)} passed, {len(review)} to review -> {digest_path} ({len(rejected)} rejected -> {rejected_path})"
     if unchecked:
         summary += f" [{unchecked} Stage 2 job(s) without JD text: quotes unchecked]"

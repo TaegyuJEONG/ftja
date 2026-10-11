@@ -53,6 +53,23 @@ h1.serif { font-size: 38px; font-weight: 400; line-height: 1; margin-bottom: 8px
   padding: 14px 2px 15px; cursor: pointer; font-size: 12px;
 }
 .run-item:hover { background: rgba(46,81,66,.08); }
+.run-item { position: relative; }
+.run-delete {
+  position: absolute; top: 8px; right: 6px; font: inherit; font-size: 10.5px; color: var(--text3); background: none; border: none;
+  padding: 2px 4px; cursor: pointer; opacity: 0; text-decoration: underline; text-decoration-color: var(--border2); text-underline-offset: 3px;
+}
+.run-item:hover .run-delete, .run-item.selected .run-delete, .run-delete:focus-visible { opacity: 1; }
+.run-delete:hover { color: var(--danger-text); }
+.storage-btn { font: inherit; color: inherit; background: none; border: none; padding: 0; cursor: pointer; text-decoration: underline; text-decoration-color: var(--border2); text-underline-offset: 3px; }
+.storage-btn:hover { text-decoration-color: currentColor; }
+.store-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 6px 0 4px; }
+.store-table td { padding: 5px 0; border-bottom: 1px solid var(--border); }
+.store-table td:last-child { text-align: right; font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; white-space: nowrap; }
+.store-note { font-size: 12.5px; color: var(--text2); line-height: 1.55; margin: 10px 0; }
+.store-note.warn { padding: 9px 12px; border-left: 3px solid var(--danger-text); background: rgba(160, 60, 40, .06); }
+.store-actions { display: flex; gap: 14px; justify-content: flex-end; align-items: baseline; margin-top: 16px; }
+.store-actions .danger, .store-table .danger { color: var(--danger-text); }
+.store-h { font-family: 'IBM Plex Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--text3); margin: 18px 0 2px; }
 .run-item.selected { border-top-color: var(--accent-strong); background: rgba(46,81,66,.13); }
 .run-item .date { font-family: 'IBM Plex Mono', monospace; color: var(--text); font-weight: 600; display: block; margin-bottom: 4px; }
 .run-item .pass-badge { color: var(--success); font-weight: 600; }
@@ -679,6 +696,11 @@ function esc(s) {
   return d.innerHTML;
 }
 function fmtN(n) { return n === null || n === undefined ? "-" : n.toLocaleString(); }
+function fmtBytes(n) {
+  if (n === null || n === undefined) return '-';
+  if (n < 1024 * 1024) return Math.max(1, Math.round(n / 1024)) + ' KB';
+  return (n / 1024 / 1024).toFixed(n < 10 * 1024 * 1024 ? 1 : 0) + ' MB';
+}
 function fmtDate(iso) { return iso ? iso.slice(0, 10) : "no date recorded"; }
 
 
@@ -1271,6 +1293,7 @@ async function loadRuns() {
   renderRunList();
   if (liveSelected) return;  // watching a run in progress: stay on it
   if (runs.length > 0) selectRun(runs.some(r => r.run_id === selectedRunId) ? selectedRunId : runs[0].run_id, statusFilter);
+  else ['run-detail', 'status-tabs', 'job-list', 'job-pagination'].forEach(id => { document.getElementById(id).innerHTML = ''; });  // the last run was deleted
 }
 
 function renderRunList() {
@@ -1297,10 +1320,14 @@ function renderRunList() {
       <span class="date">${esc(fmtDate(r.ts_end))}</span>
       <span class="pass-badge">${fmtN(r.passed)} passed</span>
       <span class="muted">${fmtN(r.scraped_count)} scraped · ${fmtN(r.total_evaluated)} evaluated</span>
+      ${r.run_id ? `<button class="run-delete" type="button" data-delete-run="${esc(r.run_id)}" title="Move this run to the trash. Its postings are judged again on the next run.">Delete</button>` : ''}
     </div>`;
   }).join('');
   list.querySelectorAll('.run-item').forEach(el => {
     el.addEventListener('click', () => el.dataset.live ? selectLive() : selectRun(el.dataset.runId));
+  });
+  list.querySelectorAll('[data-delete-run]').forEach(b => {
+    b.addEventListener('click', (e) => { e.stopPropagation(); openDeleteRun(b.dataset.deleteRun); });
   });
 
   const pagEl = document.getElementById('run-pagination');
@@ -2428,12 +2455,126 @@ function renderKeywordSection() {
   });
 }
 
+// ---- what the folder holds: size, old details, deleting and restoring runs ----
+let storageInfo = null;
+async function refreshStorage() {
+  try { storageInfo = await (await fetch('/api/storage')).json(); } catch (e) { return; }
+  const days = storageInfo.prune_after_days;
+  document.querySelectorAll('[data-storage]').forEach(b => {
+    b.textContent = fmtBytes(storageInfo.total_bytes);
+    b.title = `FTJA's data in this folder takes ${fmtBytes(storageInfo.total_bytes)}. `
+      + `At the start of a run, FTJA asks whether to remove the details of postings judged more than ${days} days ago. `
+      + `You can also delete a single run from the list on the Results tab. Click for details.`;
+  });
+}
+function storeDialog() {
+  let dialog = document.getElementById('store-dialog');
+  if (!dialog) {
+    dialog = document.createElement('dialog');
+    dialog.id = 'store-dialog';
+    dialog.className = 's1-dialog';
+    document.body.appendChild(dialog);
+    dialog.addEventListener('click', (e) => { if (e.target === dialog) dialog.close(); });
+  }
+  return dialog;
+}
+async function postJson(path, body) {
+  const res = await fetch(path, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'That did not work.');
+  return data;
+}
+const plural = (n, word) => `${fmtN(n)} ${word}${n === 1 ? '' : 's'}`;
+
+async function openDeleteRun(runId) {
+  const dialog = storeDialog();
+  const res = await fetch(`/api/delete-run-preview?run_id=${encodeURIComponent(runId)}`);
+  const p = await res.json();
+  if (!res.ok) { alert(p.error || 'This run cannot be deleted.'); return; }
+  const marks = [p.decisions ? plural(p.decisions, 'application status') + (p.applied ? ` (${fmtN(p.applied)} applied)` : '') : '',
+                 p.reasons ? plural(p.reasons, 'note') : '', p.criterion_feedback ? `feedback on ${plural(p.criterion_feedback, 'job')}` : '']
+    .filter(Boolean).join(', ');
+  dialog.innerHTML = `
+    <div class="s1-head"><h3>Delete this run?</h3><button class="text-btn" type="button" data-close>Cancel</button></div>
+    <div class="s1-body">
+      <div class="store-note">The run of ${esc(fmtDate(p.ts_end))} covers ${plural(p.jobs, 'posting link')} (the same posting listed under several links counts once per link). Deleting it moves the run, with its files (${fmtBytes(p.bytes)}), to the trash, and you can restore it from there.</div>
+      <div class="store-note"><b>Its postings will be judged again.</b> FTJA skips a posting it has already judged; once this run is deleted, the next run that finds these postings treats them as new.</div>
+      ${marks ? `<div class="store-note warn"><b>What you recorded on this run goes with it:</b> ${marks}.
+        ${p.not_yet_reviewed ? `<br><b>${fmtN(p.not_yet_reviewed)} of your reasons or disagreements ${p.not_yet_reviewed === 1 ? 'has' : 'have'} not been used yet</b> to update your rubric or keywords. To keep what you learned, type <code>/ftja-review</code> in your agent first, then delete the run.` : ''}</div>` : ''}
+      ${p.running ? '<div class="store-note warn">This run is still in progress. Wait for it to finish.</div>' : ''}
+      <div class="store-actions">
+        <button class="text-btn" type="button" data-close>Keep the run</button>
+        ${p.running ? '' : '<button class="action-btn danger" type="button" data-confirm>Move to trash</button>'}
+      </div>
+    </div>`;
+  dialog.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => dialog.close()));
+  const confirm = dialog.querySelector('[data-confirm]');
+  if (confirm) confirm.addEventListener('click', async () => {
+    confirm.disabled = true;
+    try { await postJson('/api/delete-run', {run_id: runId}); } catch (e) { alert(e.message); confirm.disabled = false; return; }
+    dialog.close();
+    if (selectedRunId === runId) selectedRunId = null;
+    await loadRuns();
+    refreshStorage();
+  });
+  dialog.showModal();
+}
+
+async function openStorage() {
+  await refreshStorage();
+  const info = storageInfo;
+  if (!info) return;
+  const dialog = storeDialog();
+  const trash = info.trash_runs || [];
+  dialog.innerHTML = `
+    <div class="s1-head"><h3>What this folder holds · ${fmtBytes(info.total_bytes)}</h3><button class="text-btn" type="button" data-close>Close</button></div>
+    <div class="s1-body">
+      <div class="s1-explain mono">${esc(info.project_dir)}</div>
+      <table class="store-table">
+        <tr><td>Judged postings, with your decisions</td><td>${fmtBytes(info.database)}</td></tr>
+        <tr><td>Working files of each run</td><td>${fmtBytes(info.run_files)}</td></tr>
+        <tr><td>Trash</td><td>${fmtBytes(info.trash)}</td></tr>
+      </table>
+      <div class="store-note"><b>Old details.</b> At the start of a run, FTJA asks whether to remove the details of postings judged more than ${fmtN(info.prune_after_days)} days ago: the posting's text, the quotes and the per-criterion results. It keeps the verdict, the link and everything you recorded, and it never touches a job you marked as applied. Nothing is removed unless you say yes.</div>
+      <div class="store-note"><b>Single runs.</b> To remove a run, such as a test, use <i>Delete</i> on it in the list on the Results tab. It goes to the trash below, and its postings are judged again on the next run.</div>
+      <div class="store-h">Trash · ${plural(trash.length, 'deleted run')}</div>
+      ${trash.length ? `<table class="store-table">${trash.map(t => `
+        <tr><td>Run of ${esc(fmtDate(t.ts_end))} · ${plural(t.jobs, 'posting link')}${t.decisions ? ' · ' + plural(t.decisions, 'decision') : ''} <span class="muted">· deleted ${esc(fmtDate(t.deleted_at))}</span></td>
+            <td>${fmtBytes(t.bytes)} · <button class="storage-btn" type="button" data-restore="${esc(t.name)}">Restore</button> · <button class="storage-btn danger" type="button" data-purge="${esc(t.name)}">Delete for good</button></td></tr>`).join('')}</table>
+        <div class="store-actions"><button class="storage-btn danger" type="button" data-purge="">Empty the trash</button></div>`
+        : '<div class="store-note">Nothing in the trash.</div>'}
+    </div>`;
+  dialog.querySelector('[data-close]').addEventListener('click', () => dialog.close());
+  dialog.querySelectorAll('[data-restore]').forEach(b => b.addEventListener('click', async () => {
+    try {
+      const r = await postJson('/api/restore-run', {name: b.dataset.restore});
+      if (r.judged_again_since) alert(`Restored. ${plural(r.judged_again_since, 'posting')} had been judged again by a later run and stay with that run.`);
+    } catch (e) { alert(e.message); }
+    await loadRuns();
+    openStorage();
+  }));
+  dialog.querySelectorAll('[data-purge]').forEach(b => b.addEventListener('click', async () => {
+    const one = b.dataset.purge;
+    if (!window.confirm(one ? 'Delete this run for good? It cannot be restored after this.' : 'Empty the trash? The deleted runs cannot be restored after this.')) return;
+    try { await postJson('/api/empty-trash', {name: one}); } catch (e) { alert(e.message); }
+    openStorage();
+  }));
+  if (!dialog.open) dialog.showModal();
+}
+document.addEventListener('click', (e) => {
+  if (e.target.closest('[data-storage]')) openStorage();
+  else if (e.target.closest('[data-open-folder]')) postJson('/api/open-folder', {}).catch(err => alert(err.message));
+});
+
 // ---- init ----
 (async () => { const onboarding = await maybeStartOnboarding(); if (!onboarding) { document.querySelector('.main-tab[data-view=\"results\"]').classList.add('active'); document.getElementById('view-results').classList.add('active'); loadRuns(); } setInterval(pollLive, 1500); pollLive(); })();
 // A clone only changes when its owner pulls; say so when there is something to pull.
 fetch('/api/version').then(r => r.json()).then(v => {
   // two clones share the port: say which folder's data this is
-  document.querySelectorAll('.subtitle').forEach(el => { el.textContent = `Fine Tune Job Agent · ${v.current} · ${v.project_dir}`; });
+  document.querySelectorAll('.subtitle').forEach(el => {
+    el.innerHTML = `Fine Tune Job Agent · ${esc(v.current)} · <button class="storage-btn" type="button" data-open-folder title="Open this folder in Finder">${esc(v.project_dir)}</button> · <button class="storage-btn" type="button" data-storage></button>`;
+  });
+  refreshStorage();
   if (!v.update_available) return;
   const banner = document.getElementById('update-banner');
   banner.innerHTML = `FTJA ${esc(v.latest)} is available (you have ${esc(v.current)}). Your next <code>/ftja-run</code> will offer to install it, or run <code>/ftja-update</code> now.`;

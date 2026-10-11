@@ -60,5 +60,18 @@ class ServerLocalOnlyTests(unittest.TestCase):
         self.assertFalse((self.root / "rubric.md").exists())
 
 
+    def test_only_the_viewers_own_folder_is_opened_and_only_by_the_viewer(self):
+        from unittest import mock
+        import ftja.server as server
+        body = json.dumps({"path": "/etc"}).encode()  # a path in the request is ignored
+        json_post = {"Content-Type": "application/json"}
+        with mock.patch.object(server.sys, "platform", "darwin"), \
+                mock.patch.object(server.subprocess, "run", return_value=mock.Mock(returncode=0, stderr="")) as run:
+            self.assertEqual(self.request("POST", "/api/open-folder", json_post, body), 200)
+            self.assertEqual(run.call_args[0][0], ["open", str(self.root.resolve())])
+            run.reset_mock()
+            self.assertEqual(self.request("POST", "/api/open-folder", {**json_post, "Origin": "https://attacker.example"}, body), 403)
+            run.assert_not_called()
+
 if __name__ == "__main__":
     unittest.main()

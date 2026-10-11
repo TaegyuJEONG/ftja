@@ -72,7 +72,7 @@ Claude Code agent itself as the judgment engine.
      against the JD and computes pass / review / fail             [K jobs]
   4. record per-job_url_hash status in seen.db (SQLite) to prevent
      re-judging duplicates
-  5. generate digest-YYYY-MM-DD.md + macOS notification
+  5. generate digest-<run id>.md + macOS notification
      ("K new postings")
 
 /ftja-tune (skill, re-invocable anytime)
@@ -104,7 +104,7 @@ committed).
 includes the verbatim evidence sentences instead of `evidence_sids` (so
 they can be surfaced directly in the digest).
 
-**digest-YYYY-MM-DD.md format**: for each of the K postings that passed —
+**digest-<run id>.md format**: for each of the K postings that passed —
 title/company/link + Stage2's **evidence sentences (verbatim quotes) + a
 one-line reasoning**.
 

@@ -29,6 +29,7 @@ from ftja.pipeline_view import read_config, write_config, keyword_stats
 from ftja import live, version
 from ftja.verdict import DEFAULT_CRITERIA_PATH, criteria_status, load_criteria, save_criteria
 from ftja.runs_view import list_runs
+from ftja import runs_store
 from ftja.onboarding import OnboardingError, apply_action, bridge_is_ready, build_checklist, read_bridge, read_state, write_action, write_state
 
 DEFAULT_PORT = 8765
@@ -242,6 +243,13 @@ def make_handler(db_path: str, project_dir: str):
                 # project_dir: which FTJA folder this viewer is showing. /ftja-run
                 # compares it with its own folder, since two clones share the port.
                 self._send_json(200, {**version.check(project_dir), "project_dir": os.path.realpath(project_dir)})
+            elif path == "/api/storage":
+                self._send_json(200, runs_store.storage(project_dir, db_path))
+            elif path == "/api/delete-run-preview":
+                try:
+                    self._send_json(200, runs_store.delete_preview(project_dir, db_path, (qs.get("run_id") or [""])[0]))
+                except runs_store.RunStoreError as error:
+                    self._send_json(400, {"error": str(error)})
             elif path == "/api/live":
                 # the run in progress, read from its working directory; polled by the Results tab
                 self._send_json(200, {"run": live.state(project_dir)})
@@ -296,6 +304,28 @@ def make_handler(db_path: str, project_dir: str):
             if self.path == "/api/pick-profile-source":
                 kind = str(data.get("kind") or "file")
                 self._pick_profile_source(kind)
+            elif self.path == "/api/open-folder":
+                # Opens this viewer's own folder in Finder. The path is never
+                # taken from the request, so nothing else can be opened.
+                if sys.platform != "darwin":
+                    self._send_json(501, {"error": "opening the folder is supported on macOS only"})
+                    return
+                result = subprocess.run(["open", os.path.realpath(project_dir)], capture_output=True, text=True)
+                if result.returncode != 0:
+                    self._send_json(500, {"error": result.stderr.strip() or "the folder could not be opened"})
+                    return
+                self._send_json(200, {"ok": True})
+            elif self.path in ("/api/delete-run", "/api/restore-run", "/api/empty-trash"):
+                try:
+                    if self.path == "/api/delete-run":
+                        result = runs_store.delete_run(project_dir, db_path, str(data.get("run_id") or ""))
+                    elif self.path == "/api/restore-run":
+                        result = runs_store.restore_run(project_dir, db_path, str(data.get("name") or ""))
+                    else:
+                        result = runs_store.empty_trash(project_dir, str(data.get("name") or ""))
+                    self._send_json(200, {"ok": True, **result})
+                except runs_store.RunStoreError as error:
+                    self._send_json(400, {"error": str(error)})
             elif self.path == "/api/decide":
                 job_url = data.get("job_url", "")
                 user_action = data.get("user_action")
