@@ -5,6 +5,12 @@ description: Update this FTJA folder to the latest published version (git pull, 
 
 # FTJA update
 
+**This folder's viewer address.** Run `venv/bin/python -m ftja.server
+--show-url`. It prints `http://127.0.0.1:8765` unless the folder has a
+`.ftja-port` file, which gives the folder its own port so its viewer does
+not replace another FTJA folder's. Wherever this file says `8765` or
+`http://127.0.0.1:8765`, use the port and address that command printed.
+
 FTJA is installed by cloning its repository, so it only changes when the
 user pulls. This skill does that pull safely. The user's own files
 (`criteria.json`, `rubric.md`, `rubric-criteria.json`, `profile/`,

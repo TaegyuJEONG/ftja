@@ -5,6 +5,16 @@ What changed in each version, newest first. If you cloned FTJA earlier, run
 these. Your own files — `criteria.json`, `rubric.md`, `profile/`, `seen.db`,
 digests — are never touched by an update.
 
+## 0.2.13 — 2026-10-11
+
+### What changes for you after updating
+
+- An FTJA folder can have its own viewer address. Every folder used port
+  8765, so running FTJA in a second folder closed the first one's viewer.
+  Put a number in a file named `.ftja-port` in a folder (for example
+  `8770`) and that folder's viewer opens at `http://127.0.0.1:8770`
+  instead. Folders without the file keep 8765.
+
 ## 0.2.12 — 2026-10-11
 
 ### What changes for you after updating

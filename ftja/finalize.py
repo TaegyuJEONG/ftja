@@ -82,7 +82,7 @@ DEFAULT_LOCK = ".ftja.lock"
 
 _REVIEW_NOTE = (
     "Don't fill in application status/reason by hand here — run "
-    "`venv/bin/python -m ftja.server` and open http://127.0.0.1:8765 instead. "
+    "`venv/bin/python -m ftja.server` and open the address it prints instead. "
     "It writes straight into seen.db, and `/ftja-review` reads the reasons to "
     "propose criteria.json/rubric.md changes."
 )

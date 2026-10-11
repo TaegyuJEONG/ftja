@@ -13,7 +13,8 @@ rewriting the interaction model.
 
 Binds to 127.0.0.1 only — never exposed beyond the local machine.
 
-Run: venv/bin/python -m ftja.server [--port 8765] [--db seen.db] [--project-dir .]
+Run: venv/bin/python -m ftja.server [--port N] [--db seen.db] [--project-dir .]
+The port defaults to this folder's: 8765, or the number in its `.ftja-port` file.
 """
 import argparse
 import json
@@ -33,6 +34,20 @@ from ftja import runs_store, run_bridge
 from ftja.onboarding import OnboardingError, apply_action, bridge_is_ready, build_checklist, read_bridge, read_state, write_action, write_state
 
 DEFAULT_PORT = 8765
+PORT_FILE = ".ftja-port"
+
+
+def viewer_port(project_dir: str = ".") -> int:
+    """This folder's viewer port: 8765, unless the folder has a `.ftja-port`
+    file with another number. Every FTJA folder used to share 8765, so
+    opening one folder's viewer closed another's; a folder with its own
+    port keeps its viewer to itself."""
+    try:
+        with open(os.path.join(project_dir, PORT_FILE)) as f:
+            port = int(f.read().strip())
+    except (OSError, ValueError):
+        return DEFAULT_PORT
+    return port if 1024 <= port <= 65535 else DEFAULT_PORT
 APP_HTML_PATH = os.path.join(os.path.dirname(__file__), "app.html")
 REPO_ROOT = os.path.dirname(os.path.dirname(__file__))
 LANDING_HTML_PATH = os.path.join(REPO_ROOT, "landing.html")
@@ -448,10 +463,16 @@ def make_handler(db_path: str, project_dir: str):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--port", type=int, default=DEFAULT_PORT)
+    ap.add_argument("--port", type=int, default=None, help="default: this folder's port (8765, or the number in .ftja-port)")
     ap.add_argument("--db", default="seen.db")
     ap.add_argument("--project-dir", default=".")
+    ap.add_argument("--show-url", action="store_true", help="print this folder's viewer address and exit")
     args = ap.parse_args()
+    if args.port is None:
+        args.port = viewer_port(args.project_dir)
+    if args.show_url:
+        print(f"http://127.0.0.1:{args.port}")
+        return
 
     server = ThreadingHTTPServer(("127.0.0.1", args.port), make_handler(args.db, args.project_dir))
     url = f"http://127.0.0.1:{args.port}"

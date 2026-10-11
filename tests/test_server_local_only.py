@@ -73,5 +73,16 @@ class ServerLocalOnlyTests(unittest.TestCase):
             self.assertEqual(self.request("POST", "/api/open-folder", {**json_post, "Origin": "https://attacker.example"}, body), 403)
             run.assert_not_called()
 
+
+class ViewerPortTests(unittest.TestCase):
+    def test_a_folder_can_have_its_own_port(self):
+        from ftja.server import viewer_port
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(viewer_port(tmp), 8765)
+            for text, port in (("8770\n", 8770), ("not a number", 8765), ("80", 8765)):
+                Path(tmp, ".ftja-port").write_text(text)
+                self.assertEqual(viewer_port(tmp), port)
+
+
 if __name__ == "__main__":
     unittest.main()
