@@ -312,3 +312,31 @@ def test_a_run_can_stop_after_stage1_and_be_continued_later(project, capsys):
     with connect(db) as conn:
         assert dict(conn.execute("SELECT status, COUNT(*) FROM seen_jobs GROUP BY status")) == {"stage1_fail": 1, "passed": 1}
     assert not live.awaiting_stage2(run_dir)
+
+
+def test_the_continue_button_reaches_a_waiting_session_and_only_a_waiting_one(tmp_path):
+    import threading
+    import time
+    from ftja import run_bridge
+    root, run_id = str(tmp_path), "2026-10-11T07:00:00Z"
+    assert run_bridge.listening(root)["listening"] is False
+    assert run_bridge.request_continue(root, run_id) == {"listening": False}  # nobody waiting: the viewer shows the line to type
+
+    result = {}
+    waiter = threading.Thread(target=lambda: result.update(run_bridge.wait_for_continue(root, run_id, timeout_seconds=10)))
+    waiter.start()
+    for _ in range(50):
+        if run_bridge.listening(root)["listening"]:
+            break
+        time.sleep(0.05)
+    assert run_bridge.listening(root)["run_id"] == run_id
+    # the request made before the wait began was dropped: an old click is not a go-ahead
+    assert not os.path.exists(os.path.join(root, run_bridge.ACTION_FILE))
+    assert run_bridge.request_continue(root, "another-run") == {"listening": False}
+    time.sleep(0.7)
+    assert waiter.is_alive()
+    assert run_bridge.request_continue(root, run_id) == {"listening": True}
+    waiter.join(timeout=5)
+    assert result == {"status": "continue", "run_id": run_id}
+    assert run_bridge.listening(root)["listening"] is False
+    assert run_bridge.wait_for_continue(root, run_id, timeout_seconds=1)["status"] == "timeout"

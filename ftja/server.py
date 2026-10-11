@@ -29,7 +29,7 @@ from ftja.pipeline_view import read_config, write_config, keyword_stats
 from ftja import live, version
 from ftja.verdict import DEFAULT_CRITERIA_PATH, criteria_status, load_criteria, save_criteria
 from ftja.runs_view import list_runs
-from ftja import runs_store
+from ftja import runs_store, run_bridge
 from ftja.onboarding import OnboardingError, apply_action, bridge_is_ready, build_checklist, read_bridge, read_state, write_action, write_state
 
 DEFAULT_PORT = 8765
@@ -247,6 +247,9 @@ def make_handler(db_path: str, project_dir: str):
                 # project_dir: which FTJA folder this viewer is showing. /ftja-run
                 # compares it with its own folder, since two clones share the port.
                 self._send_json(200, {**version.check(project_dir), "project_dir": os.path.realpath(project_dir)})
+            elif path == "/api/run-bridge":
+                # is an agent session waiting for the Continue to Stage 2 button?
+                self._send_json(200, run_bridge.listening(project_dir))
             elif path == "/api/storage":
                 self._send_json(200, runs_store.storage(project_dir, db_path))
             elif path == "/api/delete-run-preview":
@@ -308,6 +311,12 @@ def make_handler(db_path: str, project_dir: str):
             if self.path == "/api/pick-profile-source":
                 kind = str(data.get("kind") or "file")
                 self._pick_profile_source(kind)
+            elif self.path == "/api/continue-run":
+                run_id = str(data.get("run_id") or "")
+                if not live.awaiting_stage2(live.run_dir_for(project_dir, run_id)):
+                    self._send_json(400, {"error": "this run is not waiting for Stage 2"})
+                    return
+                self._send_json(200, {"ok": True, **run_bridge.request_continue(project_dir, run_id)})
             elif self.path == "/api/open-folder":
                 # Opens this viewer's own folder in Finder. The path is never
                 # taken from the request, so nothing else can be opened.

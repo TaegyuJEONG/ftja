@@ -1323,7 +1323,8 @@ function renderRunList() {
   const totalPages = Math.max(1, Math.ceil(runs.length / RUN_PAGE_SIZE));
   runPage = Math.max(1, Math.min(runPage, totalPages));
   const start = (runPage - 1) * RUN_PAGE_SIZE;
-  const pageRuns = runs.slice(start, start + RUN_PAGE_SIZE);
+  const pageRuns = runs.slice(start, start + RUN_PAGE_SIZE)
+    .filter(r => !(liveRun && liveRun.run_id === r.run_id));  // being continued: it is the run in progress above
 
   list.innerHTML = liveItem + pageRuns.map(r => {
     const selected = !liveSelected && r.run_id === selectedRunId ? 'selected' : '';
@@ -2547,23 +2548,54 @@ async function openDeleteRun(runId) {
   dialog.showModal();
 }
 
-function openContinueRun(runId, waiting) {
+// The viewer cannot start the agent. A session that is still waiting after a
+// stopped run picks the request up from the folder; otherwise the user types it.
+let continueWatch = null;
+async function openContinueRun(runId, waiting) {
   const dialog = storeDialog();
   const command = `/ftja-run continue ${runId}`;
+  const fallback = (lead) => `
+      <div class="store-note">${lead}</div>
+      <div class="continue-cmd"><code>${esc(command)}</code><button class="storage-btn" type="button" data-copy>Copy</button></div>`;
+  const bindCopy = () => dialog.querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(command); b.textContent = 'Copied'; }
+    catch (err) { b.textContent = 'Select the text and copy it'; }
+  }));
+  const stopWatch = () => { if (continueWatch) { clearInterval(continueWatch); continueWatch = null; } };
+  let heard = false;
+  try { const b = await (await fetch('/api/run-bridge', {cache: 'no-store'})).json(); heard = b.listening && b.run_id === runId; } catch (e) {}
   dialog.innerHTML = `
     <div class="s1-head"><h3>Continue to Stage 2</h3><button class="text-btn" type="button" data-close>Close</button></div>
     <div class="s1-body">
-      <div class="store-note">Stage 2 reads each of the <b>${plural(waiting, 'posting')}</b> that passed Stage 1 in full, against your rubric and profile. It is the expensive part of a run: one model call per posting.</div>
-      <div class="store-note">Your coding agent does this work, so start it there. Type this in the agent session connected to this folder:</div>
-      <div class="continue-cmd"><code>${esc(command)}</code><button class="storage-btn" type="button" data-copy>Copy</button></div>
-      <div class="store-note">The run picks up where it stopped, with the rubric it started with. This page shows it as it goes.</div>
+      <div class="store-note">Stage 2 reads each of the <b>${plural(waiting, 'posting')}</b> that passed Stage 1 in full, against your rubric and profile. It is the expensive part of a run: one model call per posting. The run picks up where it stopped, with the rubric it started with.</div>
+      <div id="continue-body">
+        ${heard ? `<div class="store-note">Your agent session is waiting for this.</div>
+            <div class="store-actions"><button class="text-btn" type="button" data-close>Not now</button><button class="action-btn" type="button" data-go>Start Stage 2</button></div>`
+          : fallback('Your agent session is not waiting for this page right now (it waits for a few minutes after a run stops). Type this in the agent session connected to this folder:')}
+      </div>
     </div>`;
-  dialog.querySelector('[data-close]').addEventListener('click', () => dialog.close());
-  dialog.querySelector('[data-copy]').addEventListener('click', async (e) => {
-    try { await navigator.clipboard.writeText(command); e.target.textContent = 'Copied'; }
-    catch (err) { e.target.textContent = 'Select the text and copy it'; }
+  dialog.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => dialog.close()));
+  dialog.addEventListener('close', stopWatch, {once: true});
+  bindCopy();
+  const go = dialog.querySelector('[data-go]');
+  if (go) go.addEventListener('click', async () => {
+    const body = dialog.querySelector('#continue-body');
+    let sent;
+    try { sent = await postJson('/api/continue-run', {run_id: runId}); }
+    catch (e) { body.innerHTML = `<div class="store-note warn">${esc(e.message)}</div>`; return; }
+    if (!sent.listening) { body.innerHTML = fallback('Your agent session stopped waiting. Type this in the agent session connected to this folder:'); bindCopy(); return; }
+    body.innerHTML = '<div class="store-note"><span class="busy">Sent to your agent. Stage 2 is starting</span></div>';
+    const asked = Date.now();
+    stopWatch();
+    continueWatch = setInterval(() => {
+      if (liveRun && liveRun.run_id === runId) { dialog.close(); return; }  // the live view has taken over
+      if (Date.now() - asked > 25000 && !body.querySelector('.continue-cmd')) {
+        body.insertAdjacentHTML('beforeend', fallback('Stuck? Type this in the agent session connected to this folder:'));
+        bindCopy();
+      }
+    }, 1000);
   });
-  dialog.showModal();
+  if (!dialog.open) dialog.showModal();
 }
 
 let storeMessage = '';
