@@ -2561,7 +2561,10 @@ async function openStorage() {
   }));
   if (!dialog.open) dialog.showModal();
 }
-document.addEventListener('click', (e) => { if (e.target.closest('[data-storage]')) openStorage(); });
+document.addEventListener('click', (e) => {
+  if (e.target.closest('[data-storage]')) openStorage();
+  else if (e.target.closest('[data-open-folder]')) postJson('/api/open-folder', {}).catch(err => alert(err.message));
+});
 
 // ---- init ----
 (async () => { const onboarding = await maybeStartOnboarding(); if (!onboarding) { document.querySelector('.main-tab[data-view=\"results\"]').classList.add('active'); document.getElementById('view-results').classList.add('active'); loadRuns(); } setInterval(pollLive, 1500); pollLive(); })();
@@ -2569,7 +2572,7 @@ document.addEventListener('click', (e) => { if (e.target.closest('[data-storage]
 fetch('/api/version').then(r => r.json()).then(v => {
   // two clones share the port: say which folder's data this is
   document.querySelectorAll('.subtitle').forEach(el => {
-    el.innerHTML = `Fine Tune Job Agent · ${esc(v.current)} · ${esc(v.project_dir)} · <button class="storage-btn" type="button" data-storage></button>`;
+    el.innerHTML = `Fine Tune Job Agent · ${esc(v.current)} · <button class="storage-btn" type="button" data-open-folder title="Open this folder in Finder">${esc(v.project_dir)}</button> · <button class="storage-btn" type="button" data-storage></button>`;
   });
   refreshStorage();
   if (!v.update_available) return;

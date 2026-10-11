@@ -304,6 +304,17 @@ def make_handler(db_path: str, project_dir: str):
             if self.path == "/api/pick-profile-source":
                 kind = str(data.get("kind") or "file")
                 self._pick_profile_source(kind)
+            elif self.path == "/api/open-folder":
+                # Opens this viewer's own folder in Finder. The path is never
+                # taken from the request, so nothing else can be opened.
+                if sys.platform != "darwin":
+                    self._send_json(501, {"error": "opening the folder is supported on macOS only"})
+                    return
+                result = subprocess.run(["open", os.path.realpath(project_dir)], capture_output=True, text=True)
+                if result.returncode != 0:
+                    self._send_json(500, {"error": result.stderr.strip() or "the folder could not be opened"})
+                    return
+                self._send_json(200, {"ok": True})
             elif self.path in ("/api/delete-run", "/api/restore-run", "/api/empty-trash"):
                 try:
                     if self.path == "/api/delete-run":

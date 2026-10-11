@@ -20,6 +20,8 @@ digests — are never touched by an update.
   for removal (postings judged more than 60 days ago, at the start of a
   run), and the trash, where a deleted run can be restored or removed for
   good.
+- Click the folder path at the top of the viewer to open that folder in
+  Finder.
 - Each run writes its own digest and rejected file, named after the run's
   start time (`digest-2026-10-11T07-25-59Z.md`). A second run on the same
   day used to overwrite the first one's files. Files from earlier runs keep
