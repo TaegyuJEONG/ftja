@@ -42,7 +42,8 @@ from ftja.verdict import (DEFAULT_CRITERIA_PATH, STATUS_FOR_VERDICT, clean_extra
 
 RUNS_DIR = ".ftja-run"
 KEEP_RUNS = 5
-SNAPSHOT_KEYS = ("search_terms", "location", "is_remote", "hours_old", "results_wanted", "exact_phrase_search")
+SNAPSHOT_KEYS = ("search_terms", "location", "is_remote", "hours_old", "results_wanted", "exact_phrase_search",
+                 "stage1_only")
 PAGE_SIZE = 10
 # A replay has no lock to say it is alive; it counts as running while it keeps writing.
 REPLAY_STALE_SECONDS = 120
@@ -123,7 +124,8 @@ def start(project_dir: str = ".") -> dict:
         time.sleep(1)
         return start(project_dir)
     for old in _run_dirs(project_dir)[KEEP_RUNS - 1:]:
-        shutil.rmtree(old, ignore_errors=True)
+        if not awaiting_stage2(old):  # its files are what "Continue to Stage 2" reads
+            shutil.rmtree(old, ignore_errors=True)
     os.makedirs(run_dir, exist_ok=True)
     for name in (DEFAULT_CRITERIA_PATH, "rubric.md"):
         shutil.copyfile(os.path.join(project_dir, name), os.path.join(run_dir, name))
@@ -369,12 +371,43 @@ def prepare_stage2(run_dir: str, project_dir: str = ".", partial: bool = False) 
             "prompt_files": os.path.join(run_dir, "s2", "<n>.txt"), "output_files": os.path.join(run_dir, "s2", "<n>.out.json")}
 
 
+def stops_after_stage1(run_dir: str) -> bool:
+    """A run started with `stage1_only` in criteria.json stops once Stage 1
+    is done, unless it has since been continued."""
+    run = _read_json(os.path.join(run_dir, "run.json"), {}) or {}
+    return bool((run.get("criteria_snapshot") or {}).get("stage1_only")) and not run.get("continued_at")
+
+
+def awaiting_stage2(run_dir: str) -> bool:
+    """A finished run that stopped after Stage 1 and can still be continued."""
+    done = _read_json(os.path.join(run_dir, "done.json"))
+    return bool(done and done.get("stage2_pending"))
+
+
+def continue_run(project_dir: str, run_id: str) -> dict:
+    """Reopen a run that stopped after Stage 1 so Stage 2 can judge its
+    passes. The run keeps its id, its Stage 1 answers and its copy of the
+    rubric; it becomes the run in progress again (the caller holds the lock)."""
+    run_dir = run_dir_for(project_dir, run_id)
+    if not awaiting_stage2(run_dir):
+        raise SystemExit("That run is not waiting for Stage 2 (it was not stopped after Stage 1, "
+                         "it has already been continued, or its working files are gone).")
+    run = _read_json(os.path.join(run_dir, "run.json"), {}) or {}
+    run["continued_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    _write_json(os.path.join(run_dir, "run.json"), run)  # also makes it the newest run, which is the live one
+    os.remove(os.path.join(run_dir, "done.json"))
+    passed, _, _ = _stage1_results(run_dir)
+    return {"run_id": run_id, "run_dir": run_dir, "stage1_passes": len(passed)}
+
+
 def assemble_results(run_dir: str) -> dict:
     """Step 5 setup: results.json and stats.json for finalize. Refuses while
-    any Stage 2 answer is missing."""
+    any Stage 2 answer is missing. For a run that stops after Stage 1, the
+    Stage 1 passes are recorded as waiting (`stage1_pass`) instead."""
     by_url = {j["job_url"]: j for j in _read_json(os.path.join(run_dir, "stage0.json"), [])}
     passed, failed, pending = _stage1_results(run_dir)
-    s2_manifest = _read_json(os.path.join(run_dir, "s2", "manifest.json"), []) or []
+    stop = stops_after_stage1(run_dir)
+    s2_manifest = [] if stop else (_read_json(os.path.join(run_dir, "s2", "manifest.json"), []) or [])
     answers = {e["job_url"]: _read_answer(os.path.join(run_dir, "s2", f"{e['n']}.out.json")) for e in s2_manifest}
     missing = [e["n"] for e in s2_manifest if not isinstance((answers[e["job_url"]] or {}).get("criteria"), list)]
     if pending or missing:
@@ -397,7 +430,11 @@ def assemble_results(run_dir: str) -> dict:
                         "reasoning": entry["reason"], "evidence_sentences": entry["evidence_sentences"],
                         "t1_blocks": entry["t1_blocks"]})
     for entry in passed:
-        if entry["job_url"] in answers:
+        if stop:  # waiting for Stage 2: recorded, so the next run does not judge it again
+            results.append({**base(entry), "status": "stage1_pass", "stage_reached": 1, "verdict": "",
+                            "reasoning": entry["reason"], "stage1_reason": entry["reason"],
+                            "evidence_sentences": entry["evidence_sentences"], "t1_blocks": entry["t1_blocks"]})
+        elif entry["job_url"] in answers:
             results.append({**base(entry), "stage_reached": 2, "stage2": answers[entry["job_url"]],
                             "stage1_reason": entry["reason"], "t1_blocks": entry["t1_blocks"]})
         else:  # passed Stage 1 but had no JD text to judge
@@ -408,11 +445,13 @@ def assemble_results(run_dir: str) -> dict:
     run = _read_json(os.path.join(run_dir, "run.json"), {})
     counts = _read_json(os.path.join(run_dir, "stage0-counts.json"), {}) or {}
     stats = {"ts_start": run.get("ts_start"), "criteria_snapshot": run.get("criteria_snapshot"),
+             "stage2_pending": len(passed) if stop else 0, "continued_at": run.get("continued_at"),
              "scraped_count": counts.get("scraped"), "stage0_dropped": counts.get("dropped"),
              "scraped_by_term": [{"term": p["term"], "count": p["count"]} for p in _scrape_progress(run_dir)],
              "already_seen_skipped": (counts.get("dropped") or {}).get("already_seen")}
     _write_json(os.path.join(run_dir, "stats.json"), stats)
-    return {"results": len(results), "stage1_fail": len(failed), "stage2": len(s2_manifest)}
+    return {"results": len(results), "stage1_fail": len(failed), "stage2": len(s2_manifest),
+            "stopped_after_stage1": stop, "waiting_for_stage2": len(passed) if stop else 0}
 
 
 # ---- the live view -----------------------------------------------------------
@@ -481,6 +520,7 @@ def state(project_dir: str = ".") -> dict | None:
     counts = _read_json(os.path.join(run_dir, "stage0-counts.json"))
     out = {"run_id": run.get("run_id"), "ts_start": run.get("ts_start"), "replay": bool(run.get("replay")),
            "replay_of": run.get("replay_of"), "replay_sample": bool(run.get("replay_sample")), "criteria_snapshot": run.get("criteria_snapshot"),
+           "continued_at": run.get("continued_at"),
            "scrape": {"terms": terms, "total": sum(t.get("count") or 0 for t in terms),
                       "done": bool(terms) and all(t.get("done") for t in terms)},
            "stage0": counts, "stage1": None, "stage2": None, "jobs": []}
@@ -525,7 +565,7 @@ def stage1_fails(project_dir: str, db_path: str, run_id: str, page: int = 1, ver
             found = conn.execute(
                 f"""SELECT job_url, title, company, location, {'stage1_reason' if verdict == 'pass' else 'reasoning'},
                            t1_blocks, t1_matched_sentences, t1_matched_keywords, pruned_at
-                    FROM seen_jobs WHERE run_id = ? AND {'stage_reached = 2' if verdict == 'pass' else "status = 'stage1_fail'"}
+                    FROM seen_jobs WHERE run_id = ? AND {"(stage_reached = 2 OR status = 'stage1_pass')" if verdict == 'pass' else "status = 'stage1_fail'"}
                     ORDER BY title""", (run_id,)).fetchall()
         rows, shown = [], set()
         for job_url, title, company, location, reasoning, blocks, matched, keywords, pruned_at in found:
@@ -699,6 +739,8 @@ def main():
                            help="add prompts for the Stage 1 passes so far, without waiting for all of Stage 1")
         if name == "scrape":
             p.add_argument("--term", type=int, required=True, help="index into criteria.json's search_terms")
+    co = sub.add_parser("continue", help="reopen a run that stopped after Stage 1, so Stage 2 can judge its passes")
+    co.add_argument("--run-id", default="", help="default: the latest run that is waiting for Stage 2")
     cp = sub.add_parser("check-stage1", help="list Stage 1 answers that cite sentences the prompt never had, or pass with no evidence")
     cp.add_argument("--dir", required=True)
     tp = sub.add_parser("record-tokens", help="add one subagent call's usage.subagent_tokens to the run's total")
@@ -724,6 +766,12 @@ def main():
         out = prepare_stage2(args.dir, args.project_dir, args.partial)
     elif args.cmd == "results":
         out = assemble_results(args.dir)
+    elif args.cmd == "continue":
+        run_id = args.run_id or next(((_read_json(os.path.join(d, "run.json"), {}) or {}).get("run_id")
+                                      for d in _run_dirs(args.project_dir) if awaiting_stage2(d)), "")
+        if not run_id:
+            raise SystemExit("No run is waiting for Stage 2.")
+        out = continue_run(args.project_dir, run_id)
     elif args.cmd == "check-stage1":
         out = check_stage1(args.dir)
     elif args.cmd == "record-tokens":

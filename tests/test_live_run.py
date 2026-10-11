@@ -7,7 +7,8 @@ import pytest
 from ftja import finalize as finalize_mod
 from ftja import live
 from ftja.lock import acquire, release
-from ftja.state import connect
+from ftja.runs_view import list_runs
+from ftja.state import connect, is_seen
 from ftja.verdict import save_criteria
 
 REPO = os.path.dirname(os.path.dirname(__file__))
@@ -122,7 +123,8 @@ def test_a_run_from_start_to_finish_as_the_viewer_sees_it(project, capsys):
     # the rubric is edited in the viewer mid-run: this run still judges against its own copy
     save_criteria(project, [{"id": "other", "kind": "pass", "label": "Something else", "text": "x"}])
 
-    assert live.assemble_results(run_dir) == {"results": 2, "stage1_fail": 1, "stage2": 1}
+    assert live.assemble_results(run_dir) == {"results": 2, "stage1_fail": 1, "stage2": 1,
+                                             "stopped_after_stage1": False, "waiting_for_stage2": 0}
     import sys
     argv = sys.argv
     sys.argv = ["finalize", "--run-dir", run_dir, "--total-tokens", "1234", "--db", db, "--out-dir", project]
@@ -241,3 +243,100 @@ def test_a_zero_token_total_is_never_recorded(tmp_path):
     live.record_tokens(run_dir, 30000, "s2 job 0")
     assert finalize_mod.resolve_total_tokens(0, run_dir) == 30000  # the ledger fills in what was passed as 0
     assert finalize_mod.resolve_total_tokens(555, run_dir) == 555  # an explicit count still wins
+
+
+def _finalize(run_dir, db, project, capsys):
+    import sys
+    argv = sys.argv
+    sys.argv = ["finalize", "--run-dir", run_dir, "--db", db, "--out-dir", project]
+    try:
+        finalize_mod.main()
+    finally:
+        sys.argv = argv
+    capsys.readouterr()
+
+
+def test_a_run_can_stop_after_stage1_and_be_continued_later(project, capsys):
+    db = os.path.join(project, "seen.db")
+    criteria = json.load(open(os.path.join(project, "criteria.json")))
+    json.dump({**criteria, "stage1_only": True}, open(os.path.join(project, "criteria.json"), "w"))
+
+    run = live.start(project)
+    run_dir = run["run_dir"]
+    assert run["criteria_snapshot"]["stage1_only"] is True
+    live._write_json(os.path.join(run_dir, "scrape", "0.json"), JOBS[:2])
+    live.stage0(run_dir, project, db)
+    live.prepare_stage1(run_dir, project)
+    manifest = live._read_json(os.path.join(run_dir, "s1", "manifest.json"))
+    sids = [next(b["s_id"] for b in e["blocks"] if b["matched"]) for e in manifest]
+    live._write_json(os.path.join(run_dir, "s1", "0.out.json"),
+                     {"verdict": "pass", "evidence_sids": [sids[0]], "reason": "Builds it.", "blocks": [{"sid": sids[0], "why": "Builds"}]})
+    live._write_json(os.path.join(run_dir, "s1", "1.out.json"),
+                     {"verdict": "fail", "evidence_sids": [sids[1]], "reason": "Engineers prototype.", "blocks": [{"sid": sids[1], "why": "Not this role"}]})
+
+    # Stage 2 is skipped: no prompts are prepared, and the pass is recorded as waiting
+    assert live.assemble_results(run_dir) == {"results": 2, "stage1_fail": 1, "stage2": 0,
+                                             "stopped_after_stage1": True, "waiting_for_stage2": 1}
+    _finalize(run_dir, db, project, capsys)
+    assert live.state(project) is None and live.awaiting_stage2(run_dir)
+    record = list_runs(project)[0]
+    assert (record["stage1_pass"], record["stage2_pending"], record["stage2_pass"]) == (1, 1, 0)
+    with connect(db) as conn:
+        assert dict(conn.execute("SELECT status, COUNT(*) FROM seen_jobs GROUP BY status")) == {"stage1_fail": 1, "stage1_pass": 1}
+        assert all(is_seen(conn, j["job_url"]) for j in JOBS[:2])  # a later run does not judge the waiting job again
+    passes = live.stage1_fails(project, db, run["run_id"], verdict="pass")
+    assert passes["total"] == 1 and passes["jobs"][0]["reason"] == "Builds it."
+
+    live.start(project)  # other runs come and go; the waiting run's files are kept
+    for _ in range(live.KEEP_RUNS + 1):
+        live.start(project)
+    assert os.path.isdir(run_dir)
+
+    # "Continue to Stage 2": the same run is live again and goes on from where it stopped
+    again = live.continue_run(project, run["run_id"])
+    assert again == {"run_id": run["run_id"], "run_dir": run_dir, "stage1_passes": 1}
+    assert live.state(project)["run_id"] == run["run_id"]
+    with pytest.raises(SystemExit):
+        live.continue_run(project, run["run_id"])  # it is no longer waiting
+    assert live.prepare_stage2(run_dir, project)["jobs"] == 1
+    live._write_json(os.path.join(run_dir, "s2", "0.out.json"), {
+        "company_line": None, "employer_requirements": [], "notes": [],
+        "criteria": [{"id": "builds", "result": "met", "quote": BUILD, "why": "Prototypes with Cursor."},
+                     {"id": "intern", "result": "not_applicable", "quote": None, "why": ""}]})
+    assert live.assemble_results(run_dir)["stopped_after_stage1"] is False
+    _finalize(run_dir, db, project, capsys)
+
+    records = [r for r in list_runs(project) if r["run_id"] == run["run_id"]]
+    assert len(records) == 1  # the same run, not a second entry
+    assert (records[0]["stage2_pending"], records[0]["stage2_pass"], records[0]["stage1_pass"]) == (0, 1, 1)
+    with connect(db) as conn:
+        assert dict(conn.execute("SELECT status, COUNT(*) FROM seen_jobs GROUP BY status")) == {"stage1_fail": 1, "passed": 1}
+    assert not live.awaiting_stage2(run_dir)
+
+
+def test_the_continue_button_reaches_a_waiting_session_and_only_a_waiting_one(tmp_path):
+    import threading
+    import time
+    from ftja import run_bridge
+    root, run_id = str(tmp_path), "2026-10-11T07:00:00Z"
+    assert run_bridge.listening(root)["listening"] is False
+    assert run_bridge.request_continue(root, run_id) == {"listening": False}  # nobody waiting: the viewer shows the line to type
+
+    result = {}
+    waiter = threading.Thread(target=lambda: result.update(run_bridge.wait_for_continue(root, run_id, timeout_seconds=10)))
+    waiter.start()
+    for _ in range(50):
+        if run_bridge.listening(root)["listening"]:
+            break
+        time.sleep(0.05)
+    assert run_bridge.listening(root)["run_id"] == run_id
+    # the request made before the wait began was dropped: an old click is not a go-ahead
+    assert not os.path.exists(os.path.join(root, run_bridge.ACTION_FILE))
+    assert run_bridge.request_continue(root, "another-run") == {"listening": False}
+    time.sleep(0.7)
+    assert waiter.is_alive()
+    assert run_bridge.request_continue(root, run_id) == {"listening": True}
+    waiter.join(timeout=5)
+    assert result == {"status": "continue", "run_id": run_id}
+    assert run_bridge.listening(root)["listening"] is False
+    assert run_bridge.wait_for_continue(root, run_id, timeout_seconds=1)["status"] == "timeout"

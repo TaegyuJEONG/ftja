@@ -5,6 +5,24 @@ What changed in each version, newest first. If you cloned FTJA earlier, run
 these. Your own files — `criteria.json`, `rubric.md`, `profile/`, `seen.db`,
 digests — are never touched by an update.
 
+## 0.2.12 — 2026-10-11
+
+### What changes for you after updating
+
+- A run can stop after Stage 1. Tick **Stop after Stage 1** under Scraping
+  criteria on the Pipeline tab and the next `/ftja-run` scrapes, filters and
+  reads the keyword sentences, then stops before Stage 2, the step that
+  reads every remaining posting in full and costs most of a run. Use it
+  while you tune keywords and the rubric.
+- A stopped run shows what passed Stage 1 and a **Continue to Stage 2**
+  button on its Stage 2 line. After such a run your agent keeps waiting for
+  about nine minutes; press the button in that time and Stage 2 starts. If
+  the agent is no longer waiting, the button shows the line to type in the
+  chat instead (`/ftja-run continue <run id>`). The run picks up where it
+  stopped, with the rubric it started with, and keeps its place in the list.
+- Postings waiting for Stage 2 count as already judged, so a later run does
+  not read them again. To have them judged from scratch, delete the run.
+
 ## 0.2.11 — 2026-10-11
 
 ### What changes for you after updating
