@@ -5,7 +5,7 @@ What changed in each version, newest first. If you cloned FTJA earlier, run
 these. Your own files — `criteria.json`, `rubric.md`, `profile/`, `seen.db`,
 digests — are never touched by an update.
 
-## Unreleased
+## 0.2.8 — 2026-10-11
 
 ### What changes for you after updating
 
