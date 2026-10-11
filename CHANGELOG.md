@@ -5,6 +5,26 @@ What changed in each version, newest first. If you cloned FTJA earlier, run
 these. Your own files — `criteria.json`, `rubric.md`, `profile/`, `seen.db`,
 digests — are never touched by an update.
 
+## Unreleased
+
+### What changes for you after updating
+
+- Keywords now match whole words and their forms instead of any run of
+  letters. "UTC" no longer matches "outcomes", "work" no longer matches
+  "framework", and "CET" no longer matches the French "cet". A keyword that
+  was a fragment on purpose (such as "tele") stops matching: replace it with
+  the full words you meant.
+- Stage 1 passes a job when one sentence triggers a fail criterion but
+  another shows the exception that criterion allows for, and leaves the
+  weighing to Stage 2. It no longer skips location: only the posting's
+  language is treated as already filtered.
+- The same posting listed for several cities is judged once and shown once,
+  with every location on the card.
+- Sentences in the Stage 1 popups no longer carry markdown leftovers
+  (`\-`, `**`), and a line that was cut before a comma is put back together.
+- A job that got through Stage 1 has a "Passed Stage 1 — see why" link that
+  opens the sentences Stage 1 read, the keywords, and what it made of each.
+
 ## 0.2.7 — 2026-10-08
 
 ### What changes for you after updating

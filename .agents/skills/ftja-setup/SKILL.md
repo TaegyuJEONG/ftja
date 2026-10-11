@@ -390,7 +390,13 @@ my search settings, continue the setup`) and do not claim that the chat resumed.
   so a language requirement does not need an `exclude_keywords` entry — and
   a bare language name there would also drop "the German market".
 - `keywords.tier1`: the keyword phrases that must appear in a JD sentence
-  for it to even reach Stage 1. Two useful sources, both matter — ask about
+  for it to even reach Stage 1. A keyword matches whole words and their
+  forms ("remote" matches "remotely", not "premote"; "time zone" matches
+  "time zones"), so write full words, never a fragment like "tele". A
+  keyword in capitals ("UTC") matches only those capitals. Include the
+  words where a FAIL criterion would be stated as well as a pass one (for
+  a remote search: "hybrid", "on-site", country names), so Stage 1 is shown
+  those sentences. Two useful sources, both matter — ask about
   each separately, don't let one crowd out the other:
   - **Concrete AI-builder tool names**: Cursor, Replit, v0.dev, Lovable,
     Bolt.new, Windsurf, Antigravity, Base44, Supabase, Firebase, Vercel,

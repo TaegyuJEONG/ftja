@@ -218,7 +218,8 @@ def prepare_stage1(run_dir: str, project_dir: str = ".") -> dict:
         with open(os.path.join(run_dir, "s1", f"{n}.txt"), "w") as f:
             f.write(prompt)
         manifest.append({"n": n, "job_url": job["job_url"], "title": job.get("title"), "company": job.get("company"),
-                         "location": job.get("location"),
+                         # a repost listed for other places too names them all
+                         "location": " / ".join(filter(None, [job.get("location"), *(job.get("_duplicate_locations") or [])])),
                          "blocks": [{"s_id": b["s_id"], "sentence": b["sentence"], "matched": bool(b.get("matched")),
                                      "keywords": b.get("matched_keywords") or []} for b in blocks]})
     _write_json(os.path.join(run_dir, "s1", "manifest.json"), manifest)
@@ -356,7 +357,7 @@ def prepare_stage2(run_dir: str, project_dir: str = ".", partial: bool = False) 
         n = len(manifest)
         new.append(n)
         prompt = (template.replace("{title}", str(job.get("title") or "")).replace("{company}", str(job.get("company") or ""))
-                  .replace("{location}", str(job.get("location") or "")).replace("{full_description}", job["description"]))
+                  .replace("{location}", str(entry.get("location") or job.get("location") or "")).replace("{full_description}", job["description"]))
         with open(os.path.join(run_dir, "s2", f"{n}.txt"), "w") as f:
             f.write(prompt)
         manifest.append({"n": n, "s1_n": entry["n"], "job_url": entry["job_url"], "title": entry.get("title"),
@@ -502,8 +503,9 @@ def state(project_dir: str = ".") -> dict | None:
     return out
 
 
-def stage1_fails(project_dir: str, db_path: str, run_id: str, page: int = 1) -> dict:
-    """Why each job stopped at Stage 1 — from the run directory while the run
+def stage1_fails(project_dir: str, db_path: str, run_id: str, page: int = 1, verdict: str = "fail") -> dict:
+    """Why each job stopped at Stage 1 (or, with verdict="pass", why each got
+    through) — from the run directory while the run
     is live, from seen.db afterwards. Per job: the overall reason, the
     keywords that matched, and each keyword sentence with what Stage 1 made
     of it. Runs older than Stage 1 reasons have the sentences and keywords
@@ -511,7 +513,9 @@ def stage1_fails(project_dir: str, db_path: str, run_id: str, page: int = 1) -> 
     run_dir = current_run_dir(project_dir)
     live = run_dir and (_read_json(os.path.join(run_dir, "run.json"), {}) or {}).get("run_id") == run_id
     if live:
-        _, failed, _ = _stage1_results(run_dir)
+        passed, failed, _ = _stage1_results(run_dir)
+        if verdict == "pass":
+            failed = passed
         failed.sort(key=lambda e: e["judged_at"], reverse=True)  # newest verdict first, so page 1 is where they land
         rows = [{"job_url": e["job_url"], "title": e.get("title"), "company": e.get("company"), "location": e.get("location"),
                  "reason": _real_reason(e["reason"]), "blocks": e["t1_blocks"],
@@ -519,9 +523,10 @@ def stage1_fails(project_dir: str, db_path: str, run_id: str, page: int = 1) -> 
     else:
         with connect(db_path) as conn:
             found = conn.execute(
-                """SELECT job_url, title, company, location, reasoning, t1_blocks, t1_matched_sentences,
-                          t1_matched_keywords, pruned_at
-                   FROM seen_jobs WHERE run_id = ? AND status = 'stage1_fail' ORDER BY title""", (run_id,)).fetchall()
+                f"""SELECT job_url, title, company, location, {'stage1_reason' if verdict == 'pass' else 'reasoning'},
+                           t1_blocks, t1_matched_sentences, t1_matched_keywords, pruned_at
+                    FROM seen_jobs WHERE run_id = ? AND {'stage_reached = 2' if verdict == 'pass' else "status = 'stage1_fail'"}
+                    ORDER BY title""", (run_id,)).fetchall()
         rows, shown = [], set()
         for job_url, title, company, location, reasoning, blocks, matched, keywords, pruned_at in found:
             if (title, company, reasoning) in shown:  # a repost under another URL: same judgment, one row

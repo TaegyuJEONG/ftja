@@ -41,14 +41,16 @@ jobs are not written to seen.db, so changing criteria.languages takes effect
 on the next run; --dropped-out saves them with the sentence that triggered
 the drop, so the rule can be audited.
 
-After the four rules, jobs are grouped by tier1-block content hash
-(ftja.text_blocks.block_signature, ported from JobSpyProject's
-text_index.t1_block_signature) — the same JD reposted under a different
-LinkedIn URL hashes identically. Only one representative per group is kept
-in the output; the rest are attached as `_duplicate_job_urls` so Stage1/2
+After the four rules, reposts are grouped the way JobSpyProject's
+job_dedup.find_duplicate_groups does it, on two signals:
+  - same company, same normalized title, and JD word overlap (Jaccard) of
+    at least 0.85 — the same posting listed again, often for another city
+  - identical tier1 blocks (ftja.text_blocks.block_signature), whatever
+    the company — a job board reposting someone else's JD
+Only one representative per group is kept in the output; the rest are
+attached as `_duplicate_job_urls` (and `_duplicate_locations`) so Stage1/2
 judge once per group instead of once per URL, and finalize.py can still
-mark every alias URL as seen. Measured impact in JobSpyProject was small
-(~2% of jobs) — a cleanup, not a major cost lever.
+mark every alias URL as seen.
 """
 import argparse
 import json
@@ -161,21 +163,74 @@ def find_language_requirement(job: dict, languages: list[str]) -> str:
     return ""
 
 
+JACCARD_THRESHOLD = 0.85
+_TITLE_ABBREVIATIONS = ((r"\bsr\b", "senior"), (r"\bjr\b", "junior"), (r"\bmgr\b", "manager"))
+
+
+def _normalize_text(s: str) -> str:
+    s = re.sub(r"<[^>]+>", " ", s or "")
+    s = re.sub(r"[^\w\s]|_", " ", s.lower())
+    return re.sub(r"\s+", " ", s).strip()
+
+
+def _normalize_title(title: str) -> str:
+    t = _normalize_text(title)
+    for pattern, full in _TITLE_ABBREVIATIONS:
+        t = re.sub(pattern, full, t)
+    return t
+
+
 def dedupe_by_content(jobs: list[dict]) -> tuple[list[dict], int]:
-    """Group jobs whose tier1 blocks hash identically (same JD, different
-    LinkedIn URL). Keeps the first job per group as the representative and
-    attaches `_duplicate_job_urls` (other URLs sharing that content)."""
-    groups: "OrderedDict[str, list[dict]]" = OrderedDict()
-    for job in jobs:
+    """Group reposts of the same JD (see the module docstring for the two
+    signals). Keeps the first job per group as the representative and
+    attaches `_duplicate_job_urls` (the other URLs) and, when a repost names
+    another place, `_duplicate_locations`."""
+    parent = list(range(len(jobs)))
+
+    def find(x: int) -> int:
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    def union(a: int, b: int) -> None:
+        ra, rb = find(a), find(b)
+        if ra != rb:
+            parent[max(ra, rb)] = min(ra, rb)  # the earliest job stays the representative
+
+    by_hash: dict[str, int] = {}
+    by_title: dict[tuple, list[int]] = {}
+    for i, job in enumerate(jobs):
         sig = job.get("_content_hash") or ""
-        groups.setdefault(sig, []).append(job)
+        if sig:
+            union(by_hash.setdefault(sig, i), i)
+        key = (_normalize_text(job.get("company") or ""), _normalize_title(job.get("title") or ""))
+        if all(key):
+            by_title.setdefault(key, []).append(i)
+    for members in by_title.values():
+        if len(members) < 2:
+            continue
+        words = {i: set(_normalize_text(jobs[i].get("description") or "").split()) for i in members}
+        for n, i in enumerate(members):
+            for j in members[n + 1:]:
+                if find(i) != find(j) and words[i] and words[j] \
+                        and len(words[i] & words[j]) / len(words[i] | words[j]) >= JACCARD_THRESHOLD:
+                    union(i, j)
+
+    groups: "OrderedDict[int, list[dict]]" = OrderedDict()
+    for i, job in enumerate(jobs):
+        groups.setdefault(find(i), []).append(job)
 
     unique = []
     merged_count = 0
-    for sig, group in groups.items():
+    for group in groups.values():
         rep = dict(group[0])
         if len(group) > 1:
             rep["_duplicate_job_urls"] = [j["job_url"] for j in group[1:]]
+            others = list(dict.fromkeys(j.get("location") for j in group[1:]
+                                        if j.get("location") and j.get("location") != rep.get("location")))
+            if others:
+                rep["_duplicate_locations"] = others
             merged_count += len(group) - 1
         unique.append(rep)
     return unique, merged_count
