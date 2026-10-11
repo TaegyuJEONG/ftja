@@ -77,8 +77,9 @@ instead of it.
 ## 0. Preflight
 
 - **Newer version?** Run `venv/bin/python -m ftja.version check` before
-  anything else in this list. It prints something and exits 0 even when
-  offline; it never stops a run.
+  anything else in this list. It asks GitHub every time (no cached
+  answer), prints something and exits 0 even when offline; it never stops
+  a run.
   - `up to date`, or it could not check: go on.
   - `update available`, on an **interactive** run: ask the user now, before
     the lock is taken, whether to update first — name both versions, and

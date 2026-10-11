@@ -6,9 +6,12 @@ owner pulls. This module is how they find out there is something to pull.
 
 `VERSION` at the repository root is the installed version. `check()`
 compares it with the VERSION file on the default branch of the clone's own
-`origin` (a fork checks the fork), at most once every CHECK_EVERY_HOURS;
-the answer is cached in `.ftja-update-check.json`. The check is one
-unauthenticated GET of a small text file. It sends nothing about the user,
+`origin` (a fork checks the fork). The command line (`python -m
+ftja.version check`, which is what `/ftja-run` calls) asks every time, so a
+run never starts on a stale answer. The viewer, which polls, asks at most
+once every CHECK_EVERY_HOURS; the last answer is kept in
+`.ftja-update-check.json` and is also what an offline check falls back to.
+The check is one unauthenticated GET of a small text file. It sends nothing about the user,
 never raises, and is skipped entirely when FTJA_NO_UPDATE_CHECK is set.
 
 `/ftja-run` offers the update at the start of an interactive run, the
@@ -113,12 +116,12 @@ def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
     c = sub.add_parser("check", help="is a newer FTJA published? Always exits 0.")
-    c.add_argument("--force", action="store_true", help="ask now, ignoring the cached answer")
+    c.add_argument("--force", action="store_true", help="kept for older instructions; the command always asks now")
     s = sub.add_parser("changes", help="print the changelog for versions newer than --since")
     s.add_argument("--since", required=True)
     args = ap.parse_args()
     if args.cmd == "check":
-        result = check(force=args.force)
+        result = check(force=True)  # a run must not start on a cached "up to date"
         if result["update_available"]:
             print(f"update available: FTJA {result['latest']} (you have {result['current']})")
         elif result["latest"]:
