@@ -5,6 +5,20 @@ What changed in each version, newest first. If you cloned FTJA earlier, run
 these. Your own files — `criteria.json`, `rubric.md`, `profile/`, `seen.db`,
 digests — are never touched by an update.
 
+## 0.2.11 — 2026-10-11
+
+### What changes for you after updating
+
+- `/ftja-update` and `/ftja-run` see a new version as soon as it is
+  published. They read the version from a file that GitHub serves through a
+  cache, which kept answering with the previous version for several minutes
+  after a release. They now ask the repository directly.
+
+- Deleting from the trash asks a plain question in place ("Delete this run
+  for good? Yes, delete / Cancel") and shows "Deleting…" while it works.
+  The button used to turn into "Cannot be undone. Click again to delete",
+  which read like a status message.
+
 ## 0.2.10 — 2026-10-11
 
 ### What changes for you after updating

@@ -7,8 +7,9 @@ owner pulls. This module is how they find out there is something to pull.
 `VERSION` at the repository root is the installed version. `check()`
 compares it with the VERSION file on the default branch of the clone's own
 `origin` (a fork checks the fork). The command line (`python -m
-ftja.version check`, which is what `/ftja-run` calls) asks every time, so a
-run never starts on a stale answer. The viewer, which polls, asks at most
+ftja.version check`, which is what `/ftja-run` and `/ftja-update` call) asks
+every time, and asks the repository with `git fetch` rather than the cached
+file, so a run never starts on a stale answer. The viewer, which polls, asks at most
 once every CHECK_EVERY_HOURS; the last answer is kept in
 `.ftja-update-check.json` and is also what an offline check falls back to.
 The check is one unauthenticated GET of a small text file. It sends nothing about the user,
@@ -30,6 +31,7 @@ DEFAULT_REPO = "TaegyuJEONG/ftja"
 CACHE_FILE = ".ftja-update-check.json"
 CHECK_EVERY_HOURS = 12
 TIMEOUT_SECONDS = 3
+GIT_TIMEOUT_SECONDS = 20
 
 
 def local_version(root: str = REPO_ROOT) -> str:
@@ -53,6 +55,25 @@ def _origin_repo(root: str) -> str:
         return DEFAULT_REPO
     match = re.search(r"github\.com[:/]([^/]+/[^/]+?)(?:\.git)?$", url)
     return match.group(1) if match else DEFAULT_REPO
+
+
+def _fetch_latest_with_git(root: str) -> str | None:
+    """The VERSION on origin's default branch, asked of the repository
+    itself. raw.githubusercontent.com is served through a cache that kept
+    returning the previous VERSION for minutes after a release, so a check
+    made right after one said "up to date". A fetch has no such cache. It
+    downloads the new commits (which the update would need anyway) without
+    touching the working tree or the current branch."""
+    try:
+        fetched = subprocess.run(["git", "-C", root, "fetch", "--quiet", "origin", "HEAD"],
+                                 capture_output=True, text=True, timeout=GIT_TIMEOUT_SECONDS)
+        if fetched.returncode != 0:
+            return None
+        text = subprocess.run(["git", "-C", root, "show", "FETCH_HEAD:VERSION"],
+                              capture_output=True, text=True, timeout=5).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return text if re.fullmatch(r"\d+(\.\d+){0,2}", text) else None
 
 
 def _fetch_latest(root: str) -> str | None:
@@ -83,7 +104,9 @@ def check(project_dir: str = ".", root: str = REPO_ROOT, force: bool = False) ->
     fresh = time.time() - float(cached.get("checked_at") or 0) < CHECK_EVERY_HOURS * 3600
     latest = cached.get("latest") if (fresh and not force) else None
     if latest is None:
-        latest = _fetch_latest(root)
+        # the viewer polls, so it reads one small cached file; a run or an
+        # update asks the repository, which is never stale
+        latest = (_fetch_latest_with_git(root) if force else None) or _fetch_latest(root)
         if latest is not None:
             try:
                 with open(cache_path, "w") as f:

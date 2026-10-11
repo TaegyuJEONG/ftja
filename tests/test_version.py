@@ -57,6 +57,7 @@ def test_the_command_line_check_never_answers_from_the_cache(tmp_path, monkeypat
     setup(tmp_path)
     answers = iter(["0.2.0", "0.3.0"])
     monkeypatch.setattr(version, "_fetch_latest", lambda root: next(answers))
+    monkeypatch.setattr(version, "_fetch_latest_with_git", lambda root: None)  # main() checks this repository: stay offline
     monkeypatch.setattr(version, "local_version", lambda root=None: "0.2.0")
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr("sys.argv", ["ftja.version", "check"])
@@ -64,3 +65,12 @@ def test_the_command_line_check_never_answers_from_the_cache(tmp_path, monkeypat
     assert "up to date" in capsys.readouterr().out
     version.main()  # published since the last check, seconds ago
     assert "update available: FTJA 0.3.0" in capsys.readouterr().out
+
+
+def test_a_forced_check_asks_the_repository_before_the_cached_file(tmp_path, monkeypatch):
+    root = setup(tmp_path)
+    monkeypatch.setattr(version, "_fetch_latest", lambda root: "0.2.0")  # the cache still serves the old VERSION
+    monkeypatch.setattr(version, "_fetch_latest_with_git", lambda root: "0.3.0")
+    assert version.check(root, root, force=True)["update_available"] is True
+    monkeypatch.setattr(version, "_fetch_latest_with_git", lambda root: None)  # no git, or offline
+    assert version.check(root, root, force=True)["latest"] == "0.2.0"
