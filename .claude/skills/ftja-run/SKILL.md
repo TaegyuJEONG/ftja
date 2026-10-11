@@ -361,9 +361,10 @@ This computes each Stage 2 job's verdict against the criteria list copied
 at the start of the run, records everything in `seen.db` (title/company/
 location and the Stage 1 reason for every job; for jobs that reached Stage
 2 also the per-criterion results, the employer's requirements, notes and
-the full JD text), writes `digest-YYYY-MM-DD.md` (passed, then the ones to
-review) and `rejected-YYYY-MM-DD.md` (Stage1/2 fails, with their reasoning,
-so "why did X fail" stays readable after the run ends), appends `run.log`
+the full JD text), writes `digest-<run id>.md` (passed, then the ones to
+review) and `rejected-<run id>.md` (Stage1/2 fails, with their reasoning,
+so "why did X fail" stays readable after the run ends; the run id is the
+run's start time, so two runs on one day keep separate files), appends `run.log`
 and `runs.jsonl`, fires the macOS notification, and marks the run finished
 so the viewer swaps the live view for the finished run — do this even if 0
 jobs passed (silent failure is exactly what we're avoiding).

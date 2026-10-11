@@ -22,6 +22,7 @@ onboarding-bridge.json
 rubric-criteria.json
 rubric.md.bak
 .ftja-run/
+.ftja-trash/
 .ftja-update-check.json
 
 # local agent/tool folders and downloads — never part of the repository

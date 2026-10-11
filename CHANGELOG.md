@@ -5,6 +5,26 @@ What changed in each version, newest first. If you cloned FTJA earlier, run
 these. Your own files — `criteria.json`, `rubric.md`, `profile/`, `seen.db`,
 digests — are never touched by an update.
 
+## 0.2.9 — 2026-10-11
+
+### What changes for you after updating
+
+- You can delete a run from the viewer. Each run in the list on the Results
+  tab has a **Delete** link at its top right. A deleted run goes to the
+  trash, and its postings are judged again the next time a run finds them,
+  which is what you want after a test run. Before you confirm, the viewer
+  says how many application statuses, notes and disagreements you recorded
+  on that run, and how many of them `/ftja-review` has not used yet.
+- The size of FTJA's data is shown next to the folder path at the top of the
+  viewer. Click it to see what takes the space, how old details are offered
+  for removal (postings judged more than 60 days ago, at the start of a
+  run), and the trash, where a deleted run can be restored or removed for
+  good.
+- Each run writes its own digest and rejected file, named after the run's
+  start time (`digest-2026-10-11T07-25-59Z.md`). A second run on the same
+  day used to overwrite the first one's files. Files from earlier runs keep
+  their old names.
+
 ## 0.2.8 — 2026-10-11
 
 ### What changes for you after updating

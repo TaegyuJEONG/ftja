@@ -55,6 +55,10 @@ your judgment rubric.
   rubric. Nothing changes until you approve it.
 - **Change your mind in plain words:** say "I'm not interested in pure sales
   roles" in the chat and the agent offers to add it to your rubric.
+- **Remove a run you don't want to keep:** in the web view, use *Delete* at
+  the top right of a run in the list. It goes to the trash and its postings
+  are judged again next time. Click the size next to the folder path at the
+  top to restore a deleted run or empty the trash.
 
 **How much of your Claude plan a run uses.** A run is real work for your
 agent, and it scales with how many postings it reads. Our largest run so far
@@ -217,6 +221,7 @@ seen.db                    # which jobs were already judged (SQLite) — gitigno
 digest-*.md, rejected-*.md # results of each run — gitignored
 run.log, runs.jsonl        # run history — gitignored
 .ftja-run/                 # each run's working files (last 5 runs) — gitignored
+.ftja-trash/               # runs you deleted in the viewer, until you empty the trash — gitignored
 ftja/                      # the pipeline code and the web view
 .claude/skills/ftja-*/     # the skills for Claude Code
 .agents/skills/ftja-*/     # the same skills for Codex — not yet tested
