@@ -2511,7 +2511,7 @@ async function openDeleteRun(runId) {
   const confirm = dialog.querySelector('[data-confirm]');
   if (confirm) confirm.addEventListener('click', async () => {
     confirm.disabled = true;
-    try { await postJson('/api/delete-run', {run_id: runId}); } catch (e) { alert(e.message); confirm.disabled = false; return; }
+    try { await postJson('/api/delete-run', {run_id: runId}); } catch (e) { confirm.insertAdjacentHTML('beforebegin', `<span class="danger">${esc(e.message)}</span>`); confirm.disabled = false; return; }
     dialog.close();
     if (selectedRunId === runId) selectedRunId = null;
     await loadRuns();
@@ -2520,6 +2520,7 @@ async function openDeleteRun(runId) {
   dialog.showModal();
 }
 
+let storeMessage = '';
 async function openStorage() {
   await refreshStorage();
   const info = storageInfo;
@@ -2538,6 +2539,7 @@ async function openStorage() {
       <div class="store-note"><b>Old details.</b> At the start of a run, FTJA asks whether to remove the details of postings judged more than ${fmtN(info.prune_after_days)} days ago: the posting's text, the quotes and the per-criterion results. It keeps the verdict, the link and everything you recorded, and it never touches a job you marked as applied. Nothing is removed unless you say yes.</div>
       <div class="store-note"><b>Single runs.</b> To remove a run, such as a test, use <i>Delete</i> on it in the list on the Results tab. It goes to the trash below, and its postings are judged again on the next run.</div>
       <div class="store-h">Trash · ${plural(trash.length, 'deleted run')}</div>
+      ${storeMessage ? `<div class="store-note warn" role="status">${esc(storeMessage)}</div>` : ''}
       ${trash.length ? `<table class="store-table">${trash.map(t => `
         <tr><td>Run of ${esc(fmtDate(t.ts_end))} · ${plural(t.jobs, 'posting link')}${t.decisions ? ' · ' + plural(t.decisions, 'decision') : ''} <span class="muted">· deleted ${esc(fmtDate(t.deleted_at))}</span></td>
             <td>${fmtBytes(t.bytes)} · <button class="storage-btn" type="button" data-restore="${esc(t.name)}">Restore</button> · <button class="storage-btn danger" type="button" data-purge="${esc(t.name)}">Delete for good</button></td></tr>`).join('')}</table>
@@ -2545,18 +2547,31 @@ async function openStorage() {
         : '<div class="store-note">Nothing in the trash.</div>'}
     </div>`;
   dialog.querySelector('[data-close]').addEventListener('click', () => dialog.close());
+  storeMessage = '';  // shown once
+  // Messages and the "are you sure" step are shown in the page: a browser
+  // can suppress its own confirm() and alert() boxes, and then a click does nothing.
+  const say = (text) => { storeMessage = text; };
   dialog.querySelectorAll('[data-restore]').forEach(b => b.addEventListener('click', async () => {
     try {
       const r = await postJson('/api/restore-run', {name: b.dataset.restore});
-      if (r.judged_again_since) alert(`Restored. ${plural(r.judged_again_since, 'posting')} had been judged again by a later run and stay with that run.`);
-    } catch (e) { alert(e.message); }
+      say(r.judged_again_since
+        ? `Restored. ${plural(r.judged_again_since, 'posting link')} had been judged again by a later run and stay with that run.`
+        : 'Restored.');
+    } catch (e) { say(e.message); }
     await loadRuns();
     openStorage();
   }));
   dialog.querySelectorAll('[data-purge]').forEach(b => b.addEventListener('click', async () => {
-    const one = b.dataset.purge;
-    if (!window.confirm(one ? 'Delete this run for good? It cannot be restored after this.' : 'Empty the trash? The deleted runs cannot be restored after this.')) return;
-    try { await postJson('/api/empty-trash', {name: one}); } catch (e) { alert(e.message); }
+    if (!b.dataset.armed) {  // first click asks, second click does it
+      b.dataset.armed = '1';
+      b.textContent = b.dataset.purge ? 'Cannot be undone. Click again to delete' : 'Cannot be undone. Click again to empty the trash';
+      setTimeout(() => { if (b.isConnected) openStorage(); }, 6000);
+      return;
+    }
+    try {
+      const r = await postJson('/api/empty-trash', {name: b.dataset.purge});
+      say(`Removed for good: ${plural(r.removed, 'deleted run')}, ${fmtBytes(r.bytes_freed)} freed.`);
+    } catch (e) { say(e.message); }
     openStorage();
   }));
   if (!dialog.open) dialog.showModal();

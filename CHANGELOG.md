@@ -5,6 +5,14 @@ What changed in each version, newest first. If you cloned FTJA earlier, run
 these. Your own files — `criteria.json`, `rubric.md`, `profile/`, `seen.db`,
 digests — are never touched by an update.
 
+## 0.2.10 — 2026-10-11
+
+### What changes for you after updating
+
+- "Delete for good" and "Empty the trash" work. They asked for confirmation
+  with a browser pop-up that some browsers suppress, and then nothing
+  happened. The button now asks you to click it a second time instead.
+
 ## 0.2.9 — 2026-10-11
 
 ### What changes for you after updating
