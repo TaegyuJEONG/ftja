@@ -5,6 +5,15 @@ What changed in each version, newest first. If you cloned FTJA earlier, run
 these. Your own files — `criteria.json`, `rubric.md`, `profile/`, `seen.db`,
 digests — are never touched by an update.
 
+## 0.2.11 — 2026-10-11
+
+### What changes for you after updating
+
+- `/ftja-update` and `/ftja-run` see a new version as soon as it is
+  published. They read the version from a file that GitHub serves through a
+  cache, which kept answering with the previous version for several minutes
+  after a release. They now ask the repository directly.
+
 ## 0.2.10 — 2026-10-11
 
 ### What changes for you after updating
