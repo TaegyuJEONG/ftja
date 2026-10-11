@@ -1293,6 +1293,7 @@ async function loadRuns() {
   renderRunList();
   if (liveSelected) return;  // watching a run in progress: stay on it
   if (runs.length > 0) selectRun(runs.some(r => r.run_id === selectedRunId) ? selectedRunId : runs[0].run_id, statusFilter);
+  else ['run-detail', 'status-tabs', 'job-list', 'job-pagination'].forEach(id => { document.getElementById(id).innerHTML = ''; });  // the last run was deleted
 }
 
 function renderRunList() {
@@ -2496,7 +2497,7 @@ async function openDeleteRun(runId) {
   dialog.innerHTML = `
     <div class="s1-head"><h3>Delete this run?</h3><button class="text-btn" type="button" data-close>Cancel</button></div>
     <div class="s1-body">
-      <div class="store-note">The run of ${esc(fmtDate(p.ts_end))} judged ${plural(p.jobs, 'posting')}. Deleting it moves the run, with its files (${fmtBytes(p.bytes)}), to the trash, and you can restore it from there.</div>
+      <div class="store-note">The run of ${esc(fmtDate(p.ts_end))} covers ${plural(p.jobs, 'posting link')} (the same posting listed under several links counts once per link). Deleting it moves the run, with its files (${fmtBytes(p.bytes)}), to the trash, and you can restore it from there.</div>
       <div class="store-note"><b>Its postings will be judged again.</b> FTJA skips a posting it has already judged; once this run is deleted, the next run that finds these postings treats them as new.</div>
       ${marks ? `<div class="store-note warn"><b>What you recorded on this run goes with it:</b> ${marks}.
         ${p.not_yet_reviewed ? `<br><b>${fmtN(p.not_yet_reviewed)} of your reasons or disagreements ${p.not_yet_reviewed === 1 ? 'has' : 'have'} not been used yet</b> to update your rubric or keywords. To keep what you learned, type <code>/ftja-review</code> in your agent first, then delete the run.` : ''}</div>` : ''}
@@ -2538,7 +2539,7 @@ async function openStorage() {
       <div class="store-note"><b>Single runs.</b> To remove a run, such as a test, use <i>Delete</i> on it in the list on the Results tab. It goes to the trash below, and its postings are judged again on the next run.</div>
       <div class="store-h">Trash · ${plural(trash.length, 'deleted run')}</div>
       ${trash.length ? `<table class="store-table">${trash.map(t => `
-        <tr><td>Run of ${esc(fmtDate(t.ts_end))} · ${plural(t.jobs, 'posting')}${t.decisions ? ' · ' + plural(t.decisions, 'decision') : ''} <span class="muted">· deleted ${esc(fmtDate(t.deleted_at))}</span></td>
+        <tr><td>Run of ${esc(fmtDate(t.ts_end))} · ${plural(t.jobs, 'posting link')}${t.decisions ? ' · ' + plural(t.decisions, 'decision') : ''} <span class="muted">· deleted ${esc(fmtDate(t.deleted_at))}</span></td>
             <td>${fmtBytes(t.bytes)} · <button class="storage-btn" type="button" data-restore="${esc(t.name)}">Restore</button> · <button class="storage-btn danger" type="button" data-purge="${esc(t.name)}">Delete for good</button></td></tr>`).join('')}</table>
         <div class="store-actions"><button class="storage-btn danger" type="button" data-purge="">Empty the trash</button></div>`
         : '<div class="store-note">Nothing in the trash.</div>'}
