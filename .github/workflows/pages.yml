@@ -30,6 +30,7 @@ jobs:
           mkdir -p _site
           cp landing.html _site/index.html
           cp -R assets _site/assets
+          python3 scripts/fetch_demo_media.py _site
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload landing artifact
