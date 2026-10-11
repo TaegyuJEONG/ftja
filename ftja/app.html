@@ -69,6 +69,11 @@ h1.serif { font-size: 38px; font-weight: 400; line-height: 1; margin-bottom: 8px
 .store-note.warn { padding: 9px 12px; border-left: 3px solid var(--danger-text); background: rgba(160, 60, 40, .06); }
 .store-actions { display: flex; gap: 14px; justify-content: flex-end; align-items: baseline; margin-top: 16px; }
 .store-actions .danger, .store-table .danger { color: var(--danger-text); }
+.busy { color: var(--text3); }
+.busy::after { content: '…'; animation: pulse 1.2s ease-in-out infinite; }
+.purge-ask { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 12px; white-space: normal; }
+.store-table button:disabled { opacity: .45; cursor: default; }
+.store-table td:first-child { padding-right: 16px; }
 .store-h { font-family: 'IBM Plex Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--text3); margin: 18px 0 2px; }
 .run-item.selected { border-top-color: var(--accent-strong); background: rgba(46,81,66,.13); }
 .run-item .date { font-family: 'IBM Plex Mono', monospace; color: var(--text); font-weight: 600; display: block; margin-bottom: 4px; }
@@ -2511,7 +2516,8 @@ async function openDeleteRun(runId) {
   const confirm = dialog.querySelector('[data-confirm]');
   if (confirm) confirm.addEventListener('click', async () => {
     confirm.disabled = true;
-    try { await postJson('/api/delete-run', {run_id: runId}); } catch (e) { confirm.insertAdjacentHTML('beforebegin', `<span class="danger">${esc(e.message)}</span>`); confirm.disabled = false; return; }
+    confirm.innerHTML = '<span class="busy">Moving to trash</span>';
+    try { await postJson('/api/delete-run', {run_id: runId}); } catch (e) { confirm.insertAdjacentHTML('beforebegin', `<span class="danger">${esc(e.message)}</span>`); confirm.disabled = false; confirm.textContent = 'Move to trash'; return; }
     dialog.close();
     if (selectedRunId === runId) selectedRunId = null;
     await loadRuns();
@@ -2552,8 +2558,11 @@ async function openStorage() {
   // can suppress its own confirm() and alert() boxes, and then a click does nothing.
   const say = (text) => { storeMessage = text; };
   dialog.querySelectorAll('[data-restore]').forEach(b => b.addEventListener('click', async () => {
+    const name = b.dataset.restore;
+    b.outerHTML = '<span class="busy">Restoring</span>';
+    dialog.querySelectorAll('button:not([data-close])').forEach(x => { x.disabled = true; });
     try {
-      const r = await postJson('/api/restore-run', {name: b.dataset.restore});
+      const r = await postJson('/api/restore-run', {name});
       say(r.judged_again_since
         ? `Restored. ${plural(r.judged_again_since, 'posting link')} had been judged again by a later run and stay with that run.`
         : 'Restored.');
@@ -2561,18 +2570,25 @@ async function openStorage() {
     await loadRuns();
     openStorage();
   }));
-  dialog.querySelectorAll('[data-purge]').forEach(b => b.addEventListener('click', async () => {
-    if (!b.dataset.armed) {  // first click asks, second click does it
-      b.dataset.armed = '1';
-      b.textContent = b.dataset.purge ? 'Cannot be undone. Click again to delete' : 'Cannot be undone. Click again to empty the trash';
-      setTimeout(() => { if (b.isConnected) openStorage(); }, 6000);
-      return;
-    }
-    try {
-      const r = await postJson('/api/empty-trash', {name: b.dataset.purge});
-      say(`Removed for good: ${plural(r.removed, 'deleted run')}, ${fmtBytes(r.bytes_freed)} freed.`);
-    } catch (e) { say(e.message); }
-    openStorage();
+  // Asking "are you sure" replaces the link with a question and two plain
+  // buttons, in the page; while the request runs the row says so.
+  dialog.querySelectorAll('[data-purge]').forEach(b => b.addEventListener('click', () => {
+    const one = b.dataset.purge;
+    const ask = document.createElement('span');
+    ask.className = 'purge-ask';
+    ask.innerHTML = `<b>${one ? 'Delete this run for good?' : 'Delete every run in the trash for good?'}</b> It cannot be restored.
+      <button class="storage-btn danger" type="button" data-yes>Yes, delete</button> · <button class="storage-btn" type="button" data-no>Cancel</button>`;
+    b.replaceWith(ask);
+    ask.querySelector('[data-no]').addEventListener('click', () => openStorage());
+    ask.querySelector('[data-yes]').addEventListener('click', async () => {
+      ask.innerHTML = '<span class="busy">Deleting</span>';
+      dialog.querySelectorAll('button:not([data-close])').forEach(x => { x.disabled = true; });
+      try {
+        const r = await postJson('/api/empty-trash', {name: one});
+        say(`Deleted for good: ${plural(r.removed, 'run')}, ${fmtBytes(r.bytes_freed)} freed.`);
+      } catch (e) { say(e.message); }
+      openStorage();
+    });
   }));
   if (!dialog.open) dialog.showModal();
 }
