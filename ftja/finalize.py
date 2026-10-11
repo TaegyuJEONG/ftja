@@ -228,6 +228,8 @@ def append_run_record(results: list[dict], stats: dict, run_id: str, out_dir: st
         # derived stage-level breakdown, so the review server doesn't recompute it
         "stage0_passed": stage0_passed,
         "stage1_pass": total_evaluated - stage1_fail,
+        # > 0: the run stopped after Stage 1 and these Stage 1 passes are waiting
+        "stage2_pending": by_status.get("stage1_pass", 0),
         "stage1_fail": stage1_fail,
         "stage2_pass": passed,
         "stage2_review": review,
@@ -236,8 +238,25 @@ def append_run_record(results: list[dict], stats: dict, run_id: str, out_dir: st
                   # already_seen_skipped, stage0_dropped, criteria_snapshot —
                   # whatever the skill measured
     }
-    with open(f"{out_dir}/runs.jsonl", "a") as f:
-        f.write(json.dumps(record, ensure_ascii=False) + "\n")
+    # A run continued to Stage 2 is the same run: its record replaces the
+    # one written when it stopped after Stage 1, in the same place.
+    path = f"{out_dir}/runs.jsonl"
+    lines, replaced = [], False
+    if os.path.exists(path):
+        with open(path) as f:
+            for line in f:
+                if not line.strip():
+                    continue
+                try:
+                    same = json.loads(line).get("run_id") == run_id
+                except json.JSONDecodeError:
+                    same = False
+                lines.append(json.dumps(record, ensure_ascii=False) if same else line.rstrip("\n"))
+                replaced = replaced or same
+    if not replaced:
+        lines.append(json.dumps(record, ensure_ascii=False))
+    with open(path, "w") as f:
+        f.write("\n".join(lines) + "\n")
 
 
 def apply_stage2_verdicts(results: list[dict], definitions: list[dict], descriptions: dict[str, str]):
@@ -328,14 +347,29 @@ def finalize(results: list[dict], db_path: str = DEFAULT_DB, out_dir: str = ".",
         summary += f", {stats['total_tokens']} tokens)" if "total_tokens" in stats else ")"
     append_log(summary, log_path=f"{out_dir}/run.log")
     append_run_record(results, stats, run_id, out_dir=out_dir)
-    if passed or review:
+    waiting = sum(1 for r in results if r.get("status") == "stage1_pass")
+    if waiting:
+        notify("FTJA", f"Stopped after Stage 1: {waiting} postings are waiting for Stage 2")
+    elif passed or review:
         notify("FTJA", f"{len(passed)} new postings" + (f", {len(review)} to review" if review else ""))
     else:
         notify("FTJA", "No postings passed today")
 
     return {"total": len(results), "passed": len(passed), "review": len(review),
-            "quotes_unchecked": unchecked, "digest_path": digest_path,
+            "stage2_pending": waiting, "quotes_unchecked": unchecked, "digest_path": digest_path,
             "rejected_path": rejected_path, "run_id": run_id}
+
+
+def previous_duration(out_dir: str, run_id: str) -> float:
+    try:
+        with open(f"{out_dir}/runs.jsonl") as f:
+            for line in f:
+                record = json.loads(line) if line.strip() else {}
+                if record.get("run_id") == run_id:
+                    return float(record.get("duration_seconds") or 0)
+    except (OSError, ValueError):
+        pass
+    return 0.0
 
 
 def resolve_total_tokens(given: int | None, run_dir: str) -> int:
@@ -395,8 +429,13 @@ def main():
             stats = json.load(f)
 
     if args.run_dir:
-        started = datetime.fromisoformat(stats["ts_start"].replace("Z", "+00:00"))
+        # A continued run sat idle between its two parts: count the first
+        # part's time (kept in its record) plus the time since it was reopened.
+        began = stats.get("continued_at") or stats["ts_start"]
+        started = datetime.fromisoformat(began.replace("Z", "+00:00"))
         stats["duration_seconds"] = (datetime.now(timezone.utc) - started).total_seconds()
+        if stats.get("continued_at"):
+            stats["duration_seconds"] += previous_duration(args.out_dir, stats["ts_start"])
         total = resolve_total_tokens(args.total_tokens, args.run_dir)
         if total:
             stats["total_tokens"] = total

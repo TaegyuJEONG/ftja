@@ -74,6 +74,12 @@ h1.serif { font-size: 38px; font-weight: 400; line-height: 1; margin-bottom: 8px
 .purge-ask { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 12px; white-space: normal; }
 .store-table button:disabled { opacity: .45; cursor: default; }
 .store-table td:first-child { padding-right: 16px; }
+.check-row { display: flex; gap: 10px; align-items: flex-start; margin: 14px 0 4px; font-size: 12.5px; color: var(--text2); line-height: 1.5; cursor: pointer; }
+.check-row input { margin-top: 3px; accent-color: var(--accent-strong); }
+.check-row b { color: var(--text); }
+.continue-cmd { display: flex; gap: 10px; align-items: center; margin: 12px 0; padding: 10px 12px; background: var(--accent-dim); border-left: 3px solid var(--accent); font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; }
+.continue-cmd code { flex: 1; user-select: all; }
+.run-item .wait-badge { color: var(--accent-text); font-weight: 600; }
 .store-h { font-family: 'IBM Plex Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--text3); margin: 18px 0 2px; }
 .run-item.selected { border-top-color: var(--accent-strong); background: rgba(46,81,66,.13); }
 .run-item .date { font-family: 'IBM Plex Mono', monospace; color: var(--text); font-weight: 600; display: block; margin-bottom: 4px; }
@@ -1323,7 +1329,7 @@ function renderRunList() {
     const selected = !liveSelected && r.run_id === selectedRunId ? 'selected' : '';
     return `<div class="run-item ${selected}" data-run-id="${esc(r.run_id)}">
       <span class="date">${esc(fmtDate(r.ts_end))}</span>
-      <span class="pass-badge">${fmtN(r.passed)} passed</span>
+      ${r.stage2_pending ? `<span class="wait-badge">${fmtN(r.stage2_pending)} waiting for Stage 2</span>` : `<span class="pass-badge">${fmtN(r.passed)} passed</span>`}
       <span class="muted">${fmtN(r.scraped_count)} scraped · ${fmtN(r.total_evaluated)} evaluated</span>
       ${r.run_id ? `<button class="run-delete" type="button" data-delete-run="${esc(r.run_id)}" title="Move this run to the trash. Its postings are judged again on the next run.">Delete</button>` : ''}
     </div>`;
@@ -1382,6 +1388,7 @@ function funnelHtml(v) {
     const parts = [`Location <b>${esc(cs.location || 'anywhere')}</b>`, `Remote only <b>${yesNo(cs.is_remote)}</b>`,
       `Posted within <b>${esc(cs.hours_old)} hours</b>`, `Up to <b>${fmtN(wanted)}</b> per search term`];
     if (cs.exact_phrase_search !== undefined) parts.push(`Exact phrase <b>${yesNo(cs.exact_phrase_search)}</b>`);
+    if (cs.stage1_only) parts.push(`<b>Stops after Stage 1</b>`);
     scrape += `<div class="conditions">${parts.join(' · ')}</div>`;
   }
 
@@ -1414,13 +1421,19 @@ function funnelHtml(v) {
     s1 = `<div class="line">${passedS1} / ${failed}${v.stage1.pending ? ` <span class="n-open">· ${count('s1o', v.stage1.pending)} in progress</span>` : ''}</div>`;
   }
   let s2 = waiting;
-  if (v.stage2) {
+  if (v.stage2Pending) {  // a finished run that stopped after Stage 1
+    s2 = `<div class="line">Not run — this run stopped after Stage 1. <b>${fmtN(v.stage2Pending)}</b> ${v.stage2Pending === 1 ? 'posting is' : 'postings are'} waiting.
+      ${v.canContinue ? `<button class="link-btn pass" type="button" data-continue-run="${esc(v.runId)}" data-waiting="${v.stage2Pending}">Continue to Stage 2</button>`
+        : '<span class="muted">Its working files are gone, so it cannot be continued; delete the run to have these postings judged again.</span>'}</div>`;
+  } else if (v.live && (v.cs || {}).stage1_only && !v.continued) {
+    s2 = '<div class="line">Will not run — this run stops after Stage 1.</div>';
+  } else if (v.stage2) {
     s2 = `<div class="line">Final passed <span class="n-pass">${count('s2p', v.stage2.passed)}</span>${(v.stage2.review || v.live) ? ` / To review <b>${count('s2r', v.stage2.review)}</b>` : ''} / Failed <span class="n-fail">${count('s2f', v.stage2.fail)}</span>${v.stage2.pending ? ` <span class="n-open">· ${count('s2o', v.stage2.pending)} in progress</span>` : ''}</div>`;
   }
   return row('Scraping', is('scrape'), scrape)
     + row('Stage0', v.stage0 ? is('stage0') : 'waiting', s0)
     + row('Stage1', v.stage1 ? is('stage1') : 'waiting', s1)
-    + row('Stage2', v.stage2 ? is('stage2') : 'waiting', s2)
+    + row('Stage2', (v.stage2 && !v.stage2Pending) ? is('stage2') : 'waiting', s2)
     + (v.meta ? `<div class="meta-line">${v.meta}</div>` : '');
 }
 
@@ -1445,6 +1458,7 @@ function tweenCounts(root, animate) {
 }
 
 function bindFunnel(el) {
+  el.querySelectorAll('[data-continue-run]').forEach(b => b.addEventListener('click', () => openContinueRun(b.dataset.continueRun, parseInt(b.dataset.waiting, 10))));
   el.querySelectorAll('[data-stage1-fails]').forEach(b => b.addEventListener('click', () => openStage1Fails(b.dataset.stage1Fails, b.dataset.verdict || 'fail')));
 }
 
@@ -1459,6 +1473,7 @@ function renderRunDetail() {
     runId: run.run_id, live: false, scraped: run.scraped_count, terms: run.scraped_by_term || null, cs: run.criteria_snapshot,
     stage0: {passed: run.stage0_passed, dropped: run.stage0_dropped}, skip: run.already_seen_skipped,
     stage1: {pass: run.stage1_pass, fail: run.stage1_fail}, stage2: {passed: run.stage2_pass, review: run.stage2_review, fail: run.stage2_fail},
+    stage2Pending: run.stage2_pending || 0, canContinue: run.can_continue,
     meta: `Duration ${run.duration_seconds ? Math.round(run.duration_seconds) + 's' : '-'} · Tokens ${fmtN(run.total_tokens)}`,
   });
   shownCounts = {};
@@ -1516,7 +1531,7 @@ function renderLive() {
   const run = liveRun;
   const view = {
     runId: run.run_id, live: true, scraped: run.stage0 ? run.stage0.scraped : run.scrape.total, terms: run.scrape.terms, cs: run.criteria_snapshot,
-    stage0: run.stage0, skip: null, stage1: run.stage1, stage2: run.stage2,
+    stage0: run.stage0, skip: null, stage1: run.stage1, stage2: run.stage2, continued: !!run.continued_at,
     meta: !run.replay ? ''
       : run.replay_sample ? `Replay of a sample of the ${esc(fmtDate(run.replay_of))} run, as if each search term were capped. Verdicts are from that run; counts are scaled down and the timing is compressed.`
       : `Replay of the ${esc(fmtDate(run.replay_of))} run. Every number and verdict is from that run; the timing is compressed.`,
@@ -1959,7 +1974,10 @@ function jobCardInner(job) {
 function renderJobs(jobs) {
   const list = document.getElementById('job-list');
   if (jobs.length === 0) {
-    list.innerHTML = '<div class="empty">No matching jobs</div>';
+    const run = runs.find(r => r.run_id === selectedRunId) || {};
+    list.innerHTML = run.stage2_pending
+      ? `<div class="empty">Stage 2 has not run for this run, so there are no final results yet. Use <b>Passed ${fmtN(run.stage2_pending)} — see why</b> on the Stage 1 line above to read what got through, or <b>Continue to Stage 2</b>.</div>`
+      : '<div class="empty">No matching jobs</div>';
     return;
   }
   list.innerHTML = jobs.map((job, i) =>
@@ -2316,6 +2334,8 @@ function renderConfigSection() {
       <div class="field"><label>Exact phrase — Yes matches each search term as a whole phrase</label>
         <select id="cfg-exact-phrase" class="sort-select mono"><option value="yes" ${c.exact_phrase_search ? 'selected' : ''}>Yes</option><option value="no" ${c.exact_phrase_search ? '' : 'selected'}>No</option></select></div>
     </div>
+    <label class="check-row"><input type="checkbox" id="cfg-stage1-only" ${c.stage1_only ? 'checked' : ''}>
+      <span><b>Stop after Stage 1</b> — a run scrapes, filters and reads the keyword sentences, then stops before Stage 2, the expensive step that reads every remaining posting in full. Use it while you tune keywords and the rubric. You can continue a stopped run to Stage 2 from the Results tab.</span></label>
     <div class="save-row"><button class="save-btn" id="save-scrape">Save</button><span class="saved-note mono">Saved</span></div>
   </div>
 </div>
@@ -2378,6 +2398,7 @@ function renderConfigSection() {
       results_wanted: parseInt(document.getElementById('cfg-results-wanted').value, 10) || 0,
       is_remote: document.getElementById('cfg-is-remote').value === 'yes',
       exact_phrase_search: document.getElementById('cfg-exact-phrase').value === 'yes',
+      stage1_only: document.getElementById('cfg-stage1-only').checked,
     };
     pipelineConfig.criteria = criteria;
     saveConfig({criteria}, e.target);
@@ -2522,6 +2543,25 @@ async function openDeleteRun(runId) {
     if (selectedRunId === runId) selectedRunId = null;
     await loadRuns();
     refreshStorage();
+  });
+  dialog.showModal();
+}
+
+function openContinueRun(runId, waiting) {
+  const dialog = storeDialog();
+  const command = `/ftja-run continue ${runId}`;
+  dialog.innerHTML = `
+    <div class="s1-head"><h3>Continue to Stage 2</h3><button class="text-btn" type="button" data-close>Close</button></div>
+    <div class="s1-body">
+      <div class="store-note">Stage 2 reads each of the <b>${plural(waiting, 'posting')}</b> that passed Stage 1 in full, against your rubric and profile. It is the expensive part of a run: one model call per posting.</div>
+      <div class="store-note">Your coding agent does this work, so start it there. Type this in the agent session connected to this folder:</div>
+      <div class="continue-cmd"><code>${esc(command)}</code><button class="storage-btn" type="button" data-copy>Copy</button></div>
+      <div class="store-note">The run picks up where it stopped, with the rubric it started with. This page shows it as it goes.</div>
+    </div>`;
+  dialog.querySelector('[data-close]').addEventListener('click', () => dialog.close());
+  dialog.querySelector('[data-copy]').addEventListener('click', async (e) => {
+    try { await navigator.clipboard.writeText(command); e.target.textContent = 'Copied'; }
+    catch (err) { e.target.textContent = 'Select the text and copy it'; }
   });
   dialog.showModal();
 }

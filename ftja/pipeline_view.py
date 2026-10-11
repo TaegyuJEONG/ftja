@@ -28,7 +28,7 @@ def _read_json(path, default=None):
 
 _DEFAULT_CRITERIA = {
     "search_terms": [], "location": "", "is_remote": True, "hours_old": 72,
-    "results_wanted": 100, "exact_phrase_search": True, "languages": [],
+    "results_wanted": 100, "exact_phrase_search": True, "stage1_only": False, "languages": [],
     "exclude_keywords": [], "keywords": {"tier1": []},
 }
 
@@ -124,7 +124,7 @@ def keyword_stats(db_path: str = "seen.db") -> list[dict]:
         except json.JSONDecodeError:
             keywords = []
         for kw in keywords:
-            # status is always stage1_fail/stage2_fail/review/passed here — a row only
+            # status is stage1_fail/stage2_fail/review/passed (or stage1_pass, waiting for Stage 2) here — a row only
             # gets t1_matched_keywords once it clears Stage0's tier1 check, so
             # stage0_fail never appears (those jobs never reach mark_seen at all).
             c = counts.setdefault(kw, {"matched": 0, "passed": 0, "review": 0, "stage2_fail": 0, "stage1_fail": 0})

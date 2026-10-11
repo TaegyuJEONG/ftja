@@ -238,7 +238,11 @@ def make_handler(db_path: str, project_dir: str):
                 self.end_headers()
                 self.wfile.write(body)
             elif path == "/api/runs":
-                self._send_json(200, list_runs(project_dir))
+                records = list_runs(project_dir)
+                for record in records:  # stopped after Stage 1, and its working files are still there to go on from
+                    record["can_continue"] = bool(record.get("stage2_pending")) and live.awaiting_stage2(
+                        live.run_dir_for(project_dir, record.get("run_id") or ""))
+                self._send_json(200, records)
             elif path == "/api/version":
                 # project_dir: which FTJA folder this viewer is showing. /ftja-run
                 # compares it with its own folder, since two clones share the port.

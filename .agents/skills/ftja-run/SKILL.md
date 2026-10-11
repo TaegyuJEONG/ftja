@@ -1,6 +1,6 @@
 ---
 name: ftja-run
-description: Run the daily FTJA job-search pipeline (scrape LinkedIn -> deterministic filter -> cheap-model sentence-block judgment -> mid-model resume/portfolio judgment -> digest + notification). Invoke when the user says "run job search", "run FTJA", "check today's postings", or on the scheduled launchd trigger.
+description: Run the daily FTJA job-search pipeline (scrape LinkedIn -> deterministic filter -> cheap-model sentence-block judgment -> mid-model resume/portfolio judgment -> digest + notification). Invoke when the user says "run job search", "run FTJA", "check today's postings", or on the scheduled launchd trigger. Also invoke for "/ftja-run continue" or "continue to Stage 2", which finishes a run that was stopped after Stage 1.
 ---
 
 # FTJA run
@@ -8,6 +8,11 @@ description: Run the daily FTJA job-search pipeline (scrape LinkedIn -> determin
 You are executing one pass of the FTJA pipeline defined in `SPEC.md`. Follow
 these steps in order. Every python call below uses `venv/bin/python` — if
 `venv/` doesn't exist yet, run `python3 -m venv venv && venv/bin/pip install -r requirements.txt` first.
+
+**If the user asked to continue a run** ("/ftja-run continue", with or
+without a run id, or "continue to Stage 2"): do step 0a, then go straight
+to "Continuing a run that stopped after Stage 1" at the end of this file.
+Do not start a new run.
 
 ## 0a. Reattach the existing workspace and viewer
 
@@ -295,6 +300,15 @@ leave; they show as an empty reading under that sentence.
 
 ## 4. Stage 2 — mid-model resume/portfolio judgment
 
+**Stop here when the run is set to stop after Stage 1.** `start` printed
+the run's `criteria_snapshot`; if it has `"stage1_only": true` (the
+"Stop after Stage 1" box on the Pipeline tab), skip this whole step: do
+NOT run `prepare-stage2` and do NOT call any Stage 2 subagent. Go to step
+5. `results` records the Stage 1 passes as waiting, and the run can be
+continued later. In your report, say that the run stopped after Stage 1
+on purpose, how many postings are waiting, and that "Continue to Stage 2"
+in the Results tab (or `/ftja-run continue`) picks it up.
+
 If `profile/summary.md` doesn't exist, STOP and tell the user to run
 `/ftja-setup` — don't fall back to reading the raw CV/portfolio, that
 reintroduces the token cost the summary exists to avoid.
@@ -379,3 +393,33 @@ If this was invoked interactively (not from launchd), tell the user the
 digest path, the pass and review counts (`finalize` prints both; "review"
 means the posting was ambiguous on a deciding point and the user should
 read it), and that the run is in the viewer's Results tab.
+
+## Continuing a run that stopped after Stage 1
+
+For "/ftja-run continue [run id]" or "continue to Stage 2". Stage 2 is the
+expensive step (one `sonnet` subagent per posting), so the user stopped the
+run before it on purpose and is now asking for it.
+
+1. Check `profile/summary.md` exists, as in step 4.
+2. Take the lock exactly as in the preflight (`ftja.lock check`, then
+   `acquire`). If it is locked, a run is in progress: say so and stop.
+3. Reopen the run:
+
+   ```
+   venv/bin/python -m ftja.live continue --run-id <run id>
+   ```
+
+   Leave `--run-id` out to take the latest run that is waiting. It prints
+   the `run_dir` and how many Stage 1 passes there are. If it refuses (the
+   run is not waiting, or its working files are gone), release the lock,
+   tell the user what it said, and stop. Before going on, tell the user
+   how many postings Stage 2 will read.
+4. Do step 4 (Stage 2) for that `run_dir`, from `prepare-stage2` on. The
+   run judges against the rubric and criteria list it was started with,
+   not today's.
+5. Do step 5 (Finalize) and step 6 (release the lock and report). The run
+   keeps its place and its id in the Results tab; its Stage 1 passes now
+   carry their final verdict.
+
+Do not scrape, do not run Stage 0 or Stage 1 again, and do not run the
+version check or the pending-review preflight for a continue.
