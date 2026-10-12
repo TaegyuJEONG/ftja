@@ -412,19 +412,29 @@ def test_the_continue_button_names_the_next_stage_and_generate_reaches_a_waiting
     assert wait_and(lambda: run_bridge.request_remote(root)) == {"status": "remote", "run_id": run_id}
 
 
-def test_generate_keeps_the_four_answers_for_the_agent(tmp_path):
+def test_the_page_asks_for_a_draft_and_the_draft_becomes_the_setup_only_when_confirmed(tmp_path):
     root = str(tmp_path)
     assert remote.read_request(root) == {"status": "none", "answers": {}}
-    with pytest.raises(ValueError):
-        remote.write_request(root, {"time_zone": "CET"})  # where you live is what the setup is written for
-    remote.write_request(root, {"residence": "Paris, France", "work_countries": "France, EU", "time_zone": "CET",
-                                "work_permit": "France only", "something_else": "ignored"})
-    request = remote.read_request(root)
-    assert request["status"] == "requested" and request["answers"] == {
-        "residence": "Paris, France", "work_countries": "France, EU", "time_zone": "CET", "work_permit": "France only"}
+    remote.write_request(root, {})  # "Set up": no answers yet, the agent works them out
+    assert remote.read_request(root)["status"] == "requested" and not any(remote.read_request(root)["answers"].values())
     assert remote.set_request_status(root, "generating")["status"] == "generating"
-    assert remote.read_request(root)["status"] == "generating"
+    with pytest.raises(ValueError):
+        remote.save_draft(root, {"categories": []})
+    draft = remote.save_draft(root, {**config(), "profile": {"residence": "Paris, France", "time_zone": "CET"}})
+    assert remote.read_request(root)["status"] == "drafted" and remote.load_draft(root) == draft
+    assert remote.load_config(os.path.join(root, remote.CONFIG_FILE)) is None  # nothing is in force until the user confirms
+
+    # the user corrects an answer on the page: the request carries what they typed
+    remote.write_request(root, {"residence": "Lyon, France", "work_countries": "France, EU", "time_zone": "CET",
+                                "work_permit": "France only", "something_else": "ignored"})
+    assert remote.read_request(root)["answers"] == {
+        "residence": "Lyon, France", "work_countries": "France, EU", "time_zone": "CET", "work_permit": "France only"}
+
+    remote.set_request_status(root, "generating")
     stale = json.load(open(os.path.join(root, remote.REQUEST_FILE)))
     stale["began_at"] -= remote.GENERATING_STALE_SECONDS + 1
     json.dump(stale, open(os.path.join(root, remote.REQUEST_FILE), "w"))
     assert remote.read_request(root)["status"] == "failed"  # the session died: the spinner does not turn forever
+
+    remote.discard_draft(root)
+    assert remote.load_draft(root) is None and remote.read_request(root)["status"] == "none"

@@ -24,10 +24,13 @@ criteria.json):
 
 A posting passes when no category's answer carries the rule "fail".
 
-`/ftja-remote` writes this file for the user from four answers (where they
-live, where they want to work, their time zone, their work permit); the
-Pipeline tab edits it. `remote-request.json` is how the tab's Generate
-button hands those answers to the agent.
+`/ftja-remote` drafts this file for the user: it works out where they
+live, where they want to work, their time zone and their work permit (from
+their profile, or from what they typed on the page), and writes the
+categories for that. The draft (`remote-check.draft.json`) becomes the
+setup only when the user has gone through it on the Pipeline tab and
+confirmed. `remote-request.json` is how the tab asks the agent for a draft
+and follows it: requested -> generating -> drafted.
 
 Usage:
     python -m ftja.remote show | request | begin | fail | save --file F | coverage
@@ -43,6 +46,7 @@ from ftja.text_blocks import find_matched_with_context, keyword_matcher, split_s
 
 CONFIG_FILE = "remote-check.json"
 REQUEST_FILE = "remote-request.json"
+DRAFT_FILE = "remote-check.draft.json"
 UNKNOWN = "?"
 TITLE_SID = "T"
 RULES = ("pass", "fail")
@@ -289,7 +293,7 @@ def judge(config: dict, answer: dict | None, shown_sids: set | None = None) -> d
 # ---- the Generate button's request ---------------------------------------------
 
 def read_request(project_dir: str = ".") -> dict:
-    """-> {"status": "none" | "requested" | "generating" | "done" | "failed", "answers": {...}, ...}"""
+    """-> {"status": "none" | "requested" | "generating" | "drafted" | "failed", "answers": {...}, ...}"""
     request = _read(os.path.join(project_dir, REQUEST_FILE))
     if not isinstance(request, dict) or not request.get("status"):
         return {"status": "none", "answers": {}}
@@ -299,14 +303,33 @@ def read_request(project_dir: str = ".") -> dict:
 
 
 def write_request(project_dir: str, answers: dict) -> dict:
-    """The Generate button was pressed with these four answers."""
+    """The page asks the agent for a draft. `answers` are the four answers
+    as the user confirmed them; all empty means "work them out yourself"."""
     clean = {k: str((answers or {}).get(k) or "").strip() for k in PROFILE_KEYS}
-    if not clean["residence"]:
-        raise ValueError("say where you live: the check is written for that place")
     request = {"status": "requested", "answers": clean, "requested_at": time.time(),
                "at": datetime.now(timezone.utc).isoformat()}
     _write(os.path.join(project_dir, REQUEST_FILE), request)
     return request
+
+
+def load_draft(project_dir: str = ".") -> dict | None:
+    return load_config(os.path.join(project_dir, DRAFT_FILE))
+
+
+def save_draft(project_dir: str, data) -> dict:
+    """The agent's draft: checked like a setup, shown to the user to confirm."""
+    config = validate_config(data)
+    _write(os.path.join(project_dir, DRAFT_FILE), config)
+    set_request_status(project_dir, "drafted")
+    return config
+
+
+def discard_draft(project_dir: str):
+    for name in (DRAFT_FILE, REQUEST_FILE):
+        try:
+            os.remove(os.path.join(project_dir, name))
+        except OSError:
+            pass
 
 
 def set_request_status(project_dir: str, status: str, error: str = "") -> dict:
@@ -363,7 +386,7 @@ def main():
     sub.add_parser("begin", help="tell the viewer the setup is being written (it shows a spinner)")
     fail = sub.add_parser("fail", help="tell the viewer the setup could not be written")
     fail.add_argument("--error", default="")
-    save = sub.add_parser("save", help="check a setup and save it as remote-check.json")
+    save = sub.add_parser("save", help="check a setup and hand it to the user as a draft to confirm on the Pipeline tab")
     save.add_argument("--file", required=True, help="a JSON file with the setup")
     cov = sub.add_parser("coverage", help="how many postings the keywords catch, with no model call")
     cov.add_argument("--jobs", default="", help="a JSON list of scraped jobs; default: the newest run's scrape")
@@ -383,13 +406,12 @@ def main():
         with open(args.file) as f:
             data = json.load(f)
         try:
-            config = save_config(args.project_dir, data)
+            config = save_draft(args.project_dir, data)
         except ValueError as error:
             raise SystemExit(f"Not saved: {error}")
-        if read_request(args.project_dir)["status"] in ("requested", "generating"):
-            set_request_status(args.project_dir, "done")
-        out = {"saved": os.path.join(args.project_dir, CONFIG_FILE), "categories": [c["id"] for c in config["categories"]],
-               "keywords": len(all_keywords(config))}
+        out = {"draft": os.path.join(args.project_dir, DRAFT_FILE), "categories": [c["id"] for c in config["categories"]],
+               "keywords": len(all_keywords(config)),
+               "next": "the user reviews and confirms it on the Pipeline tab, under Remote check"}
     else:
         config = config_or_default(args.project_dir)
         if args.file:

@@ -149,6 +149,7 @@ def _remote_setup(project_dir: str) -> dict:
     button's request stands."""
     saved = remote_check.load_config(os.path.join(project_dir, remote_check.CONFIG_FILE))
     return {"config": saved or remote_check.default_config(), "saved": saved is not None,
+            "draft": remote_check.load_draft(project_dir),  # the agent's, until the user confirms it
             "request": remote_check.read_request(project_dir),
             "listening": run_bridge.listening(project_dir)["listening"]}
 
@@ -389,10 +390,11 @@ def make_handler(db_path: str, project_dir: str):
                 except (TypeError, ValueError, OSError) as e:
                     self._send_json(400, {"error": str(e)})
                     return
+                remote_check.discard_draft(project_dir)  # confirmed: the draft has become the setup
                 self._send_json(200, {"ok": True, **_remote_setup(project_dir)})
             elif self.path == "/api/remote-generate-cancel":
-                if remote_check.read_request(project_dir)["status"] == "requested":  # not one the agent is already writing
-                    remote_check.set_request_status(project_dir, "none")
+                if remote_check.read_request(project_dir)["status"] != "generating":  # not one the agent is writing right now
+                    remote_check.discard_draft(project_dir)
                 self._send_json(200, {"ok": True, **_remote_setup(project_dir)})
             elif self.path == "/api/remote-generate":
                 # The Generate button: keep the four answers for the agent, and

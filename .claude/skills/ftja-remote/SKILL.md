@@ -1,6 +1,6 @@
 ---
 name: ftja-remote
-description: Write (or rewrite) the Remote check's setup for the user — the remote-work keywords, the categories the model answers, and which answers pass or fail — from where they live, where they want to work, their time zone and their work permit. Invoke when the user says "/ftja-remote", "set up the remote check", "write the remote setup", or when `ftja.run_bridge wait` returns {"status": "remote"} (the Pipeline tab's button).
+description: Draft (or redraft) the Remote check's setup for the user to confirm — the remote-work keywords, the categories the model answers, and which answers pass or fail — from where they live, where they want to work, their time zone and their work permit. Invoke when the user says "/ftja-remote", "set up the remote check", "write the remote setup", or when `ftja.run_bridge wait` returns {"status": "remote"} (the Pipeline tab's button).
 ---
 
 # FTJA remote check setup
@@ -26,27 +26,38 @@ attached to it, attach it as `/ftja-run` step 0a describes. Do not start
 or restart the viewer for this; if it is running it will show your
 progress by itself.
 
-## 1. Get the four answers
+## 1. Work out the user's situation
+
+The setup is written for four facts about the user: where they live, which
+countries or regions they want to work in, their time zone, and what work
+permit they hold.
 
 ```
 venv/bin/python -m ftja.remote request
 ```
 
-- `status` is `requested`, `generating` or `failed`: the user filled the
-  form on the Pipeline tab. Use `answers` (`residence`, `work_countries`,
-  `time_zone`, `work_permit`) and do not ask again. An empty answer means
-  they left it open.
-- `status` is `none` or `done`: nobody asked from the page. Ask the user,
-  in one message and in their language: where they live (required), which
-  countries or regions they want to work in, their time zone, and what
-  work permit they hold. Wait for the reply.
-
-Then tell the viewer you have started, so the page shows that the setup is
-being written:
+First tell the viewer you have started, so the page shows that the draft
+is being written:
 
 ```
 venv/bin/python -m ftja.remote begin
 ```
+
+Then settle the four facts, in this order of trust:
+
+1. `answers` in the request that are not empty: the user typed or
+   confirmed these on the page. Use them as they are.
+2. For each one that is empty, work it out yourself, without asking:
+   `profile/summary.md` (where they live, citizenship, visa or permit, the
+   places they say they want to work), then `criteria.json`'s `locations`
+   (where their searches look is where they want to work), then the usual
+   time zone of where they live.
+3. What you still cannot tell, leave empty. Do not invent a work permit.
+
+Do not ask the user in the chat: they confirm or correct all four on the
+page before anything is used. The one exception is when you cannot tell
+where they live at all and the request did not come from the page
+(`status` was `none`): then ask that one question.
 
 From here on, if you cannot finish, run
 `venv/bin/python -m ftja.remote fail --error "<one plain sentence>"` before
@@ -164,27 +175,35 @@ matched. If there is no scrape yet (`postings` is 0), skip this step.
 - Do not chase a low number: catching most postings is acceptable, missing
   a remote one is not.
 
-## 5. Save
+## 5. Hand the draft to the user
 
 ```
 venv/bin/python -m ftja.remote save --file .ftja-run/remote-check.draft.json
 ```
 
-It checks the setup and writes `remote-check.json`. If it prints `Not
-saved: ...`, fix what it names and run it again. Then delete the draft
-file. The Pipeline tab shows the new setup by itself.
+It checks the setup and stores it as a **draft**. If it prints `Not
+saved: ...`, fix what it names and run it again. Then delete the file you
+wrote. Nothing is in use yet: the Pipeline tab now walks the user through
+the draft one step at a time (their situation first, then each category),
+and it becomes their setup when they confirm at the end. If they correct
+their situation there and ask for a rewrite, the page sends a new request
+with their answers and this skill runs again.
 
 ## 6. Report
 
 Tell the user, in their language and briefly:
 
+- that the draft is waiting on the Pipeline tab under **Remote check**
+  ("Review and confirm"), and is not in use until they confirm it there;
+- the situation you assumed for them, saying which parts you worked out
+  yourself rather than were told;
 - the categories, and for each which answers fail;
 - that "not stated" passes everywhere for now, and that a posting with no
   remote keyword at all is dropped (both are theirs to change);
 - how many keywords, in which languages, and the coverage numbers if you
   measured;
-- that everything is on the Pipeline tab under **Remote check**, where
-  they can change any name, keyword, answer or rule;
+- that they can change any name, keyword, answer or rule while they go
+  through it, and again later;
 - if `criteria.json`'s `stages.remote` is not true: that the check is
   still switched off, and the switch is on that same section. Do not
   switch it on yourself.
