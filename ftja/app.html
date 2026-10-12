@@ -198,6 +198,8 @@ select { -webkit-appearance: none; appearance: none; background-image: url("data
 .no-run-banner b { display: block; margin-bottom: 2px; color: var(--accent); }
 .no-run-banner code { font: 600 11.5px 'IBM Plex Mono', monospace; padding: 1px 6px; background: var(--surface); border: 1px solid var(--accent-border); }
 .run-detail-empty { color: var(--text3); font-size: 12.5px; padding: 28px 0; }
+/* with no run to show, neither the empty box nor the empty tab row is drawn */
+#run-detail:empty, #status-tabs:empty, #run-list:empty { display: none; }
 
 /* Stage 2 judgment: a ledger. One ruled line per criterion, scannable
    closed; a line opens to show the rule, the quote and the feedback box. */
@@ -386,6 +388,14 @@ dialog.s1-dialog::backdrop { background: rgba(29, 27, 25, .38); }
 .rc-item > summary .rc-preview { color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .rc-item[open] > summary .rc-preview { display: none; }
 .rc-item.flash { background: var(--accent-dim); }
+.rc-line { padding: 8px 0; }
+.rc-line .rc-name { font-size: 12.5px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.rc-line .rc-edit { display: flex; gap: 12px; align-items: flex-start; }
+.rc-line textarea { flex: 1; min-height: 0; resize: none; overflow: hidden; border-color: transparent; background: transparent; padding: 5px 8px; margin-left: -8px; line-height: 1.5; font: inherit; font-size: 13px; color: var(--text); }
+.rc-line textarea:hover { border-color: var(--border); }
+.rc-line textarea:focus { border-color: var(--accent); background: var(--surface); }
+.rc-line [data-rc-remove] { visibility: hidden; padding-top: 6px; }
+.rc-line:hover [data-rc-remove], .rc-line:focus-within [data-rc-remove] { visibility: visible; }
 .rc-body { padding: 2px 0 14px; }
 .rc-body textarea { width: 100%; display: block; min-height: 64px; }
 .rc-body input[type="text"] { width: 100%; }
@@ -1142,7 +1152,10 @@ async function postOnboardingAction(type, payload = {}) {
     // listening for the confirm, so its bridge never changes: treating it as
     // stale would hold the page on "Getting ready…" forever.
     const endsWait = (bridge.action_types || []).includes(type);
-    if (phaseMoved && endsWait) {
+    // Answering a rubric question keeps the phase ("questions") but ends the
+    // wait all the same: without this the next question showed for a moment
+    // before the waiting card.
+    if ((phaseMoved || type === 'answer_rubric_question') && endsWait) {
       staleBridgeStamp = bridge.status === 'listening' ? `${bridge.updated_at}|${bridge.pid}` : null;
       bridge = {status: 'offline', action_types: [], pid: null, label: '', updated_at: null};
     }
@@ -1469,7 +1482,7 @@ function renderRunList() {
       <span class="muted">${fmtN(liveRun.scrape.total)} scraped${liveRun.stage1 ? ' · ' + fmtN(liveRun.stage1.pass + liveRun.stage1.fail) + ' evaluated' : ''}</span>
     </div>` : '';
   if (runs.length === 0 && !liveRun) {
-    list.innerHTML = '<div class="empty">No runs yet — run /ftja-run once to populate this.</div>';
+    list.innerHTML = '';  // the banner above already says there is no run yet
     document.getElementById('run-pagination').innerHTML = '';
     return;
   }
@@ -1666,7 +1679,7 @@ function renderRunDetail() {
   const run = runs.find(r => r.run_id === selectedRunId);
   const el = document.getElementById('run-detail');
   if (!run) {
-    el.innerHTML = runs.length || liveSelected ? '' : '<div class="run-detail-empty">Nothing to show yet. After your first <span class="mono">/ftja-run</span>, its numbers and jobs appear here.</div>';
+    el.innerHTML = '';  // an empty box is not drawn (see the :empty rule)
     return;
   }
   el.innerHTML = funnelHtml({
@@ -1937,7 +1950,7 @@ function remoteAnswersHtml(answers, blocks) {
   const sentence = Object.fromEntries((blocks || []).map(b => [b.sid, b.sentence]));
   return `<table class="ra-table">${(answers || []).map(a => `
     <tr><td>${esc(a.label)}</td>
-      <td><span class="${a.rule === 'fail' ? 'ra-fail' : a.answer === '?' ? 'ra-unknown' : ''}">${esc(a.answer_label)}</span>${a.detail ? ` — ${esc(a.detail)}` : ''}${a.rule === 'fail' ? ' <span class="ra-fail">· one of your fail rules</span>' : ''}
+      <td><span class="${a.rule === 'fail' ? 'ra-fail' : a.answer === '?' ? 'ra-unknown' : ''}">${esc(a.answer_label)}</span>${a.detail ? ` — ${esc(a.detail)}` : ''}${a.rule === 'fail' ? ' <span class="ra-fail">· fails by your mark</span>' : ''}
         ${(a.evidence_sids || []).filter(sid => sentence[sid]).map(sid => `<div class="ra-quote">${quoteText(sentence[sid])}</div>`).join('')}
         ${a.note ? `<div class="ra-note">${esc(a.note)}</div>` : ''}</td></tr>`).join('')}</table>`;
 }
@@ -1955,7 +1968,7 @@ async function openRemoteJobs(runId, verdict = 'fail') {
   dialog.innerHTML = `
     <div class="s1-head"><h3>${heading}</h3><button class="text-btn" type="button" data-close>Close</button></div>
     <div class="s1-body">
-      <div class="s1-explain">The Remote check reads only the title and the sentences around your remote keywords. The model passes a posting only when one of those sentences says what your pass rule asks for, and reports what the posting says for each category. These are the jobs it ${passed ? 'let through' : 'turned down'}.
+      <div class="s1-explain">The Remote check reads only the title and the sentences around your remote keywords. An answer you marked ✕ fails a posting; otherwise the model's reading of the sentences against all your answers decides, and a pass shows its sentence. These are the jobs it ${passed ? 'let through' : 'turned down'}.
         <a href="/api/remote-jobs.csv?run_id=${encodeURIComponent(runId)}&verdict=${verdict}">Download as a table (CSV)</a></div>
       <div id="s1-rows"></div>
       <div class="pagination" id="s1-pages"></div>
@@ -1972,7 +1985,7 @@ async function openRemoteJobs(runId, verdict = 'fail') {
       return `
       <div class="s1-row">
         <div class="s1-title"><a href="${esc(j.job_url)}" target="_blank">${esc(j.title)}</a> <span>— ${esc(j.company)}${j.location ? ' · ' + esc(j.location) : ''}</span></div>
-        ${j.reason ? `<div class="s1-reason">${esc(j.reason)}${(j.evidence_sids || []).map(sid => (j.blocks || []).find(b => b.sid === sid)).filter(Boolean).map(b => `<div class="ra-quote">${quoteText(b.sentence)}</div>`).join('')}</div>` : ''}
+        ${j.reason ? `<div class="s1-reason">${j.decided_by === 'rule' ? '<b>Marked ✕ by you</b> — ' : ''}${esc(j.reason)}${(j.evidence_sids || []).map(sid => (j.blocks || []).find(b => b.sid === sid)).filter(Boolean).map(b => `<div class="ra-quote">${quoteText(b.sentence)}</div>`).join('')}</div>` : ''}
         ${j.pruned_at ? `<div class="pruned-note">The details were removed on ${esc(fmtDate(j.pruned_at))} to save space.</div>` : remoteAnswersHtml(j.answers, j.blocks)}
         ${(j.blocks || []).length ? fold(`Everything it read · ${plural(j.blocks.length, 'sentence')}`,
             `${keywords.length ? `<div class="s1-keywords"><span>Matched</span>${keywords.map(k => `<span class="chip">${esc(k)}</span>`).join('')}</div>` : ''}${stage1BlocksHtml(j.blocks, keywords)}`)
@@ -2497,18 +2510,27 @@ const RUBRIC_KINDS = [
   ['preference', 'Preferences', 'Shown on every job. They never decide pass or fail.'],
 ];
 
+// One criterion is one piece of text, edited in place. Its short name (what
+// shows on each job) is kept in the background: it follows the text while the
+// two are the same, and stays as it is when an agent wrote a shorter one.
 function rubricItemHtml(c, all) {
   const together = c.kind === 'pass' && c.group ? all.filter(o => o.kind === 'pass' && o.group === c.group && o !== c) : [];
+  const label = (c.label || '').trim(), text = (c.text || '').trim();
+  const same = !label || !text || label.replace(/\.$/, '').toLowerCase() === text.replace(/\.$/, '').toLowerCase();
   return `
-    <details class="rc-item" id="${c.id ? 'rc-' + esc(c.id) : ''}" data-id="${esc(c.id || '')}" data-kind="${c.kind}" data-group="${esc(c.group || '')}" ${c.id ? '' : 'open'}>
-      <summary><b>${esc(c.label || 'New criterion')}</b><span class="rc-preview">${esc(c.text || '')}</span></summary>
-      <div class="rc-body">
-        ${together.length ? `<div class="rc-together">Counts only together with: ${together.map(o => esc(o.label)).join(', ')}</div>` : ''}
-        <div class="field"><label>Name — what shows on each job</label><input type="text" data-rc="label" value="${esc(c.label || '')}"></div>
-        <div class="field"><label>Rule — what the model checks the posting against</label><textarea data-rc="text" rows="3">${esc(c.text || '')}</textarea></div>
-        <button class="text-btn rc-add" type="button" data-rc-remove>Remove this criterion</button>
-      </div>
-    </details>`;
+    <div class="rc-item rc-line" id="${c.id ? 'rc-' + esc(c.id) : ''}" data-id="${esc(c.id || '')}" data-kind="${c.kind}" data-group="${esc(c.group || '')}" data-label="${esc(same ? '' : label)}">
+      ${same ? '' : `<div class="rc-name">${esc(label)}</div>`}
+      ${together.length ? `<div class="rc-together">Counts only together with: ${together.map(o => esc(o.label)).join(', ')}</div>` : ''}
+      <div class="rc-edit"><textarea data-rc="text" rows="1" placeholder="Write the criterion">${esc(text || label)}</textarea>
+        <button class="text-btn" type="button" data-rc-remove title="Remove this criterion">Remove</button></div>
+    </div>`;
+}
+function growRubricTextareas(root) {
+  root.querySelectorAll('.rc-line textarea').forEach(t => {
+    const fit = () => { t.style.height = 'auto'; t.style.height = (t.scrollHeight + 2) + 'px'; };
+    t.addEventListener('input', fit);
+    fit();
+  });
 }
 
 function rubricEditorHtml() {
@@ -2553,22 +2575,25 @@ function bindRubricEditor() {
     }
   });
   if (!pipelineConfig.rubric_criteria) return;
+  growRubricTextareas(root);
 
   root.querySelectorAll('[data-rc-add]').forEach(btn => btn.addEventListener('click', () => {
     const list = btn.parentElement.querySelector('.rc-list');
     list.insertAdjacentHTML('beforeend', rubricItemHtml({kind: btn.dataset.rcAdd}, []));
     const item = list.lastElementChild;
     item.querySelector('[data-rc-remove]').addEventListener('click', () => item.remove());
-    item.querySelector('[data-rc="label"]').focus();
+    growRubricTextareas(item.parentElement);
+    item.querySelector('[data-rc="text"]').focus();
   }));
   root.querySelectorAll('[data-rc-remove]').forEach(btn => btn.addEventListener('click', () => btn.closest('.rc-item').remove()));
 
   document.getElementById('save-rubric-criteria').addEventListener('click', async (e) => {
-    const criteria = [...root.querySelectorAll('.rc-item')].map(item => ({
-      id: item.dataset.id || undefined, kind: item.dataset.kind, group: item.dataset.group || undefined,
-      label: item.querySelector('[data-rc="label"]').value.trim(),
-      text: item.querySelector('[data-rc="text"]').value.trim(),
-    }));
+    const criteria = [...root.querySelectorAll('.rc-item')].map(item => {
+      const text = item.querySelector('[data-rc="text"]').value.trim();
+      return {id: item.dataset.id || undefined, kind: item.dataset.kind, group: item.dataset.group || undefined,
+              label: item.dataset.label || text,  // its own short name when it has one, else the text itself
+              text};
+    }).filter(c => c.text);
     const notes = {};
     root.querySelectorAll('[data-rc-notes]').forEach(t => { notes[t.dataset.rcNotes] = t.value; });
     const res = await fetch('/api/rubric-criteria', {
@@ -2700,7 +2725,6 @@ function renderRemoteSummary() {
   } else {
     const profile = REMOTE_PROFILE_FIELDS.map(([key]) => (cfg.profile || {})[key]).filter(Boolean).join(' · ');
     html = `${profile ? `<div class="store-note"><b>Your situation</b> — ${esc(profile)}</div>` : ''}
-      <div class="store-note"><b>Passes when</b> — ${esc(cfg.pass_when || '')}</div>
       <div class="rm-sum-grid">${(cfg.categories || []).map(c => `
         <div class="rm-sum-card"><b>${esc(c.label)}</b>
           ${(c.options || []).map(o => `<div class="${o.rule === 'fail' ? 'fails' : ''}">${o.rule === 'fail' ? '✕' : '✓'} ${esc(o.label)}</div>`).join('')}
@@ -2738,7 +2762,7 @@ function remoteCategoryFields(c) {
   return `
     <div class="field"><label>Name — what shows on each job</label><input type="text" data-rm="label" value="${esc(c.label || '')}"></div>
     <div class="field"><label>Question — what the model answers about each posting</label><input type="text" data-rm="question" value="${esc(c.question || '')}"></div>
-    <div class="field"><label>What a posting can say here. Mark the ones that rule a posting out; when it says nothing, this shows as “Not stated” and decides nothing.</label>
+    <div class="field"><label>What a posting can say here. Mark what rules a posting out; the rest is fine with you. When it says nothing, this shows as “Not stated”.</label>
       <div class="rm-answers">${answers}</div>
       <button class="text-btn rc-add" type="button" data-rm-add-option>Add an answer</button>
     </div>`;
@@ -2775,8 +2799,6 @@ function readRemoteStep() {
   if (!w || !root) return;
   if (w.step === 'situation') {
     w.config.profile = Object.fromEntries([...root.querySelectorAll('[data-rm-profile]')].map(f => [f.dataset.rmProfile, f.value.trim()]));
-  } else if (w.step === 'rule') {
-    w.config.pass_when = root.querySelector('[data-rm="pass-when"]').value.trim();
   } else if (w.step === 'keywords') {
     readRemoteKeywords(w.config);
   } else if (typeof w.step === 'number') {
@@ -2821,8 +2843,8 @@ function renderRemoteDialog() {
                       origin: remoteSetup.draft ? 'draft' : remoteSetup.saved ? 'saved' : 'general'};
     }
     const w = remoteWizard, cats = w.config.categories;
-    const total = cats.length + 4;
-    const at = w.step === 'situation' ? 1 : w.step === 'keywords' ? 2 : w.step === 'rule' ? 3 : w.step === 'review' ? total : w.step + 4;
+    const total = cats.length + 3;
+    const at = w.step === 'situation' ? 1 : w.step === 'keywords' ? 2 : w.step === 'review' ? total : w.step + 3;
     const progress = `<div class="rm-progress">Step ${at} of ${total}</div>`;
     if (w.step === 'situation') {
       const p = w.config.profile || {};
@@ -2838,16 +2860,9 @@ function renderRemoteDialog() {
         ${languages.map(code => `<div class="field"><label>${esc(languageLabel(code))} · ${groups[code].length}</label>${renderChipInput('rm-kw-' + code, groups[code])}
           ${groups[code].length ? '' : ask(code)}</div>`).join('')}
         <div class="rm-nav"><button class="text-btn" type="button" data-rm-back>Back</button><button class="save-btn" type="button" data-rm-next>Confirm</button></div>`;
-    } else if (w.step === 'rule') {
-      body = `${progress}<div class="rm-step">What passes</div>
-        <div class="rm-step-intro">A posting passes the Remote check only when one of the sentences it read says this. A posting that says nothing about it does not pass. The things that rule a posting out come next, one topic at a time.</div>
-        <div class="field"><label>A posting passes when</label><textarea data-rm="pass-when" rows="3">${esc(w.config.pass_when || '')}</textarea></div>
-        <div class="rm-nav"><button class="text-btn" type="button" data-rm-back>Back</button><button class="save-btn" type="button" data-rm-next>Confirm</button></div>`;
     } else if (w.step === 'review') {
       body = `${progress}<div class="rm-step">Confirm your setup</div>
-        <div class="rm-step-intro">A posting passes when a sentence says what your pass rule asks for and none shows an answer marked ✕.</div>
-        <div class="rm-card rm-review"><div><b>Passes when</b><div class="rm-review-answers"><span>${esc(w.config.pass_when || '')}</span></div></div>
-          <button class="text-btn" type="button" data-rm-goto="rule">Change</button></div>
+        <div class="rm-step-intro">A posting that gives an answer marked ✕ fails. Otherwise the model reads the sentences against all of these and passes a posting only when one of them says the role is worked in a way that suits you; a posting that says nothing does not pass.</div>
         <div class="rm-card rm-review"><div><b>Keywords</b><div class="rm-review-answers"><span class="meta">${plural(new Set(cats.flatMap(c => c.keywords || [])).size, 'keyword')}</span></div></div>
           <button class="text-btn" type="button" data-rm-goto="keywords">Change</button></div>
         ${cats.map((c, i) => `<div class="rm-card rm-review"><div><b>${esc(c.label || 'Unnamed')}</b>
@@ -2895,8 +2910,8 @@ function bindRemoteDialog(root) {
     renderRemoteDialog();
   });
   if (!w) return;
-  on('[data-rm-back]', () => go(() => { w.step = w.step === 'review' ? (w.config.categories.length ? w.config.categories.length - 1 : 'rule') : w.step === 'keywords' ? 'situation' : w.step === 'rule' ? 'keywords' : w.step === 0 ? 'rule' : w.step - 1; }));
-  on('[data-rm-goto]', b => go(() => { w.step = ['keywords', 'rule'].includes(b.dataset.rmGoto) ? b.dataset.rmGoto : parseInt(b.dataset.rmGoto, 10); w.fromReview = true; }));
+  on('[data-rm-back]', () => go(() => { w.step = w.step === 'review' ? (w.config.categories.length ? w.config.categories.length - 1 : 'keywords') : w.step === 'keywords' ? 'situation' : w.step === 0 ? 'keywords' : w.step - 1; }));
+  on('[data-rm-goto]', b => go(() => { w.step = b.dataset.rmGoto === 'keywords' ? 'keywords' : parseInt(b.dataset.rmGoto, 10); w.fromReview = true; }));
   on('[data-rm-add-category]', () => go(() => {
     w.config.categories.push({label: '', question: '', keywords: [], options: [{label: '', rule: 'pass'}], unknown: 'pass'});
     w.step = w.config.categories.length - 1; w.fromReview = true;
@@ -2910,9 +2925,6 @@ function bindRemoteDialog(root) {
       if (!w.config.profile.residence && w.origin !== 'general') { root.querySelector('[data-rm-profile="residence"]').focus(); return; }
       w.step = 'keywords';
     } else if (w.step === 'keywords') {
-      w.step = w.fromReview ? 'review' : 'rule';
-      w.fromReview = false;
-    } else if (w.step === 'rule') {
       w.step = w.fromReview || !w.config.categories.length ? 'review' : 0;
       w.fromReview = false;
     } else {
@@ -3172,8 +3184,8 @@ function renderConfigSection() {
     ${stageOn('remote') ? '' : '<div class="stage-off-note">Off. Runs skip this stage and behave as they did before it existed.</div>'}
     <div class="explain">
       For postings that passed Stage0, shows a cheap AI model (haiku) <b>only the title and the sentences around your remote keywords</b>.
-      It passes a posting only when one of those sentences says what <b>your pass rule</b> asks for, and none shows something you marked as ruling a posting out.
-      It also reports what each posting says per category (or “Not stated”). Only what passes goes on to the next stage that is on.
+      It reports what each posting says per category below (or “Not stated”), with the sentence it rests on. An answer <b>you marked ✕</b> fails the posting.
+      Otherwise the model judges the sentences against all of your answers and passes a posting only when one of them says the role is worked in a way that suits you. Only what passes goes on to the next stage that is on.
     </div>
     <div id="remote-summary"><div class="empty">Loading</div></div>
   </div>

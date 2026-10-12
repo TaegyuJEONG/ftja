@@ -158,43 +158,48 @@ def test_the_prompt_lists_each_question_with_its_answers():
 
 # ---- the rules ----
 
-def test_the_model_gives_the_verdict_and_a_pass_has_to_point_at_a_sentence():
+def test_a_mark_that_rules_out_is_settled_in_code_and_the_rest_is_the_models_reading():
     cfg = config()
     shown = {"S1", "S2"}
-    remote_ok = {"verdict": "pass", "reason": "Fully remote.", "evidence_sids": ["S1"],
+    remote_ok = {"verdict": "pass", "reason": "Fully remote, anywhere.", "evidence_sids": ["S1"],
                  "answers": [{"id": "remote_level", "answer": "fully_remote", "detail": "Anywhere", "evidence_sids": ["S1"]}]}
     judged = remote.judge(cfg, remote_ok, shown)
-    assert (judged["verdict"], judged["reason"], judged["evidence_sids"]) == ("pass", "Fully remote.", ["S1"])
+    assert (judged["verdict"], judged["reason"], judged["evidence_sids"], judged["decided_by"]) == (
+        "pass", "Fully remote, anywhere.", ["S1"], "model")
     by_id = {a["id"]: a for a in judged["answers"]}
     assert by_id["time_zone"] == {"id": "time_zone", "label": "Time zone", "answer": "?", "answer_label": "Not stated",
                                   "detail": "", "rule": "", "evidence_sids": [], "note": ""}  # reported, decides nothing
 
-    # the keyword sat in a sentence about something else: the model says fail, everything "not stated"
-    nothing = {"verdict": "fail", "reason": "No sentence is about how this role is worked.", "evidence_sids": [], "answers": []}
-    judged = remote.judge(cfg, nothing, shown)
-    assert judged["verdict"] == "fail" and all(a["answer"] == "?" for a in judged["answers"])
+    # an answer the user marked as ruling a posting out settles it, whatever the model's overall line says
+    mixed = {"verdict": "pass", "reason": "ignored", "evidence_sids": ["S1"], "answers": [
+        {"id": "remote_level", "answer": "hybrid", "detail": "3 days", "evidence_sids": ["S1"]},
+        {"id": "work_location", "answer": "anywhere", "evidence_sids": ["S2"]}]}
+    judged = remote.judge(cfg, mixed, shown)
+    assert (judged["verdict"], judged["reason"], judged["decided_by"]) == ("fail", "Remote level: Hybrid: regular office days (3 days)", "rule")
 
-    # a pass with no sentence behind it, or one it was never shown, is a fail; it is not asked again
+    # an answer marked fine does not pass a posting by itself: "no extra on-site duties" says nothing about remote
+    side_detail = {"verdict": "fail", "reason": "No sentence is about how this role is worked.", "evidence_sids": [],
+                   "answers": [{"id": "onsite_duties", "answer": "none", "detail": "No travel", "evidence_sids": ["S2"]}]}
+    judged = remote.judge(cfg, side_detail, shown)
+    assert (judged["verdict"], judged["reason"], judged["decided_by"]) == ("fail", "No sentence is about how this role is worked.", "model")
+    assert {a["id"]: a["answer"] for a in judged["answers"]}["onsite_duties"] == "none"  # still reported
+
+    # words none of the listed answers capture: the model's reading passes it, with its sentence
+    unusual = {"verdict": "pass", "reason": "Work from wherever you like in Europe.", "evidence_sids": ["S2"], "answers": []}
+    assert (remote.judge(cfg, unusual, shown)["verdict"], remote.judge(cfg, unusual, shown)["evidence_sids"]) == ("pass", ["S2"])
+    # ... a pass has to point at a sentence it was shown, and is not asked again when it does not
     for evidence in ([], ["S9"]):
-        unbacked = {"verdict": "pass", "reason": "Probably remote.", "evidence_sids": evidence, "answers": []}
-        judged = remote.judge(cfg, unbacked, shown)
-        assert (judged["verdict"], judged["reason"]) == ("fail", remote.NO_EVIDENCE_REASON)
+        unbacked = {**unusual, "evidence_sids": evidence}
+        assert (remote.judge(cfg, unbacked, shown)["verdict"], remote.judge(cfg, unbacked, shown)["reason"]) == ("fail", remote.NO_EVIDENCE_REASON)
         assert remote.answer_problems(cfg, shown, unbacked) == []
+    assert (remote.judge(cfg, None)["verdict"], remote.judge(cfg, None)["reason"]) == ("fail", remote.NO_KEYWORD_REASON)
 
-    # a pass alongside an answer the user marked as failing: the marked answer wins
-    hybrid = {"verdict": "pass", "reason": "Remote two days.", "evidence_sids": ["S1"],
-              "answers": [{"id": "remote_level", "answer": "hybrid", "detail": "3 days", "evidence_sids": ["S1"]}]}
-    judged = remote.judge(cfg, hybrid, shown)
-    assert (judged["verdict"], judged["reason"]) == ("fail", "Remote level: Hybrid: regular office days (3 days)")
-    said_fail = {**hybrid, "verdict": "fail", "reason": "Three office days a week."}
-    assert remote.judge(cfg, said_fail, shown)["reason"] == "Three office days a week."
-    assert remote.judge(cfg, None) == {**remote.judge(cfg, None), "verdict": "fail", "reason": remote.NO_KEYWORD_REASON}
+    # the user unmarks "hybrid": it no longer settles anything; the model's reading decides
+    cfg["categories"][0]["options"][1]["rule"] = "pass"
+    assert remote.judge(cfg, {**mixed, "reason": "Remote two days a week."}, shown)["decided_by"] == "model"
 
-    prompt = remote.render_prompt(live._template(os.path.join(REPO, "remote_prompt.md")), {**cfg, "pass_when": "Remote within the EU."},
-                                  JOBS[0], remote.blocks_for(JOBS[0], cfg))
-    assert "Pass when:\n- Remote within the EU." in prompt  # the user's pass rule
-    assert "- Remote level: Hybrid: regular office days\n- Remote level: On-site" in prompt  # the answers marked as failing
-    assert remote.validate_config({**cfg, "pass_when": " "})["pass_when"] == remote.DEFAULT_PASS_WHEN
+    prompt = remote.render_prompt(live._template(os.path.join(REPO, "remote_prompt.md")), config(), JOBS[0], remote.blocks_for(JOBS[0], config()))
+    assert "- Remote level: Fully remote — is fine" in prompt and "- Remote level: On-site — rules a posting out" in prompt
 
 
 def test_an_answer_without_a_sentence_behind_it_is_read_as_not_stated():
@@ -281,7 +286,7 @@ def test_a_run_with_the_remote_check_before_stage1_and_stage2(project, capsys):
     assert state["remote"] == {"total": 2, "pass": 1, "fail": 1, "pending": 0} and state["stages"] == run["stages"]
     failed = live.remote_jobs(project, db, run["run_id"])
     assert failed["total"] == 1 and failed["jobs"][0]["company"] == "Beta"
-    assert failed["jobs"][0]["reason"] == "Three office days a week in Lyon."
+    assert failed["jobs"][0]["reason"] == "Remote level: Hybrid: regular office days (3 days a week in the Lyon office)"
 
     assert live.prepare_stage1(run_dir, project)["jobs"] == 1  # only what the Remote check let through
     manifest = live._read_json(os.path.join(run_dir, "s1", "manifest.json"))
@@ -312,7 +317,7 @@ def test_a_run_with_the_remote_check_before_stage1_and_stage2(project, capsys):
     assert "failed at the Remote check" in open(os.path.join(project, "rejected-" + live.run_dir_for(project, run["run_id"]).split("/")[-1] + ".md")).read()
 
     after = live.remote_jobs(project, db, run["run_id"])  # now from seen.db
-    assert after["total"] == 1 and after["jobs"][0]["reason"] == "Three office days a week in Lyon."
+    assert after["total"] == 1 and after["jobs"][0]["reason"].startswith("Remote level: Hybrid") and after["jobs"][0]["decided_by"] == "rule"
     passed = live.remote_jobs(project, db, run["run_id"], verdict="pass", page_size=None)
     assert [j["company"] for j in passed["jobs"]] == ["Alpha"] and passed["jobs"][0]["answers"][0]["detail"] == "Remote within the EU"
     assert passed["jobs"][0]["reason"] == "Fully remote within the EU." and passed["jobs"][0]["evidence_sids"]
@@ -392,7 +397,7 @@ def test_the_remote_check_can_feed_stage2_directly_and_keep_postings_without_key
     assert manifest[-1]["company"] == "Gamma" and manifest[-1]["auto"] and not os.path.exists(os.path.join(run_dir, "rc", "3.txt"))
     answer_remote(run_dir, {**REMOTE_ANSWERS, "Delta": DELTA})
     failed = {e["company"]: e["reason"] for e in live._remote_results(run_dir)[1]}
-    assert failed == {"Beta": "Three office days a week in Lyon.",
+    assert failed == {"Beta": "Remote level: Hybrid: regular office days (3 days a week in the Lyon office)",
                       "Gamma": remote.NO_KEYWORD_REASON}  # no keyword: nothing says it is remote, no model call
     assert live.prepare_stage2(run_dir, project)["jobs"] == 2  # the Remote check's passes, straight to Stage 2
     for n in (0, 1):

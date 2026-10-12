@@ -2,9 +2,8 @@
 
 Used by `/ftja-run` for every job that survives the code filter, when the
 Remote check is on. Placeholders `{title}`, `{company}`, `{location}`,
-`{blocks}` (the S-id sentence blocks), `{pass_when}` (the setup's pass
-rule), `{fail_when}` (the answers the user marked as failing),
-`{questions}` (the categories of `remote-check.json` with their listed
+`{blocks}` (the S-id sentence blocks), `{conditions}` (every listed answer
+with the user's mark: fine, or rules a posting out), `{questions}` (the categories of `remote-check.json` with their listed
 answers) and `{guidance}` are filled in per job.
 
 ---
@@ -18,30 +17,10 @@ that has nothing to do with how the job is worked ("hybrid retrieval",
 
 {guidance}
 
-## 1. The verdict
+## 1. What the posting says
 
-Pass when:
-- {pass_when}
-
-Fail when the sentences show any of these:
-{fail_when}
-
-- `pass` only when a sentence you were shown says what the pass rule asks
-  for, and none shows a fail rule. Put that sentence's S-id in
-  `evidence_sids`. A pass needs at least one.
-- `fail` in every other case — including when the sentences say nothing
-  about how this role is worked. Do not pass on what is usual, on the
-  company's address or on the listed location.
-
-`reason` is one sentence in English, at most 15 words, that the candidate
-will read: what in these sentences decided it ("Fully remote within the
-EU", "Three office days a week in Lyon", "No sentence is about how this
-role is worked").
-
-## 2. What the posting says
-
-Separately, report each of these from the same sentences (`id` — question,
-then the answers you may give):
+Report each of these from the sentences (`id` — question, then the answers
+you may give):
 
 {questions}
 
@@ -54,6 +33,29 @@ then the answers you may give):
 - `detail`: the specifics as the posting states them, in English, at most
   12 words ("3 days a week in the Paris office", "EU and UK only",
   "4 hours overlap with CET"). Empty for `?`.
+
+## 2. Your overall reading
+
+These are the candidate's conditions, all of them:
+
+{conditions}
+
+Reading the sentences as a whole against those conditions: do they say
+this role is worked in a way that suits the candidate?
+
+- `pass` only when a sentence you were shown says how this role is worked
+  (that it can be done remotely, from where, or the like) in a way that
+  fits the conditions, and none shows something that rules a posting out.
+  Put that sentence's S-id in the top-level `evidence_sids`. A pass needs
+  at least one. A side detail alone (no travel, a yearly offsite, a time
+  zone) is not enough when nothing says how the role itself is worked.
+- `fail` in every other case — including when the sentences say nothing
+  about how this role is worked. Do not pass on what is usual, on the
+  company's address or on the listed location.
+
+`reason` is one sentence in English, at most 15 words, that the candidate
+will read: what in these sentences decided it ("Work from wherever you
+like within Europe", "No sentence is about how this role is worked").
 
 TITLE: {title} | COMPANY: {company} | LISTED LOCATION: {location}
 {blocks}

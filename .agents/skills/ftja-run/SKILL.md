@@ -291,10 +291,11 @@ writes its answer to `<run_dir>/rc/<n>.out.json`. The answer is ONLY:
               "detail": "<12 words max>", "evidence_sids": ["S3"]}, ...]}
 ```
 
-The model passes a posting only when a sentence it was shown says what
-the user's pass rule asks for; the `answers` report what the posting says
-per category (`?` when it does not). Code holds it to that: a pass that
-points at no sentence it was shown is recorded as a fail. Do not judge,
+The `answers` report what the posting says per category (`?` when it does
+not); an answer the user marked as ruling a posting out fails it, in code.
+Otherwise the top-level `verdict`, the model's overall reading against all
+of the user's answers, decides, and a pass that points at no sentence it
+was shown is recorded as a fail. Do not judge,
 edit or complete an answer yourself.
 
 Then check the answers:

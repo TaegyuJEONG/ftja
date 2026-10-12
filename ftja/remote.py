@@ -1,23 +1,22 @@
 """Remote check — an optional stage between the code filter and Stage 1.
 
 A cheap model reads the title and the sentences around remote-related
-keywords, and does two things. It judges, the way Stage 1 does: pass only
-when a sentence it was shown says what the user's pass rule asks for
-(`pass_when`), fail when one shows an answer the user marked as failing,
-and fail when nothing is said. And it reports, per "category" (how remote,
-from where, which hours, which on-site duties), which of the listed
-answers the posting gives, or "?" when it does not say. Those answers are
-what the results table shows; "not stated" decides nothing.
+keywords. Per "category" (how remote, from where, which hours, which
+on-site duties) it reports which of the listed answers the posting gives,
+or "?" when it does not say. The user has marked each listed answer as
+fine or as ruling a posting out.
 
-Code holds the model to its evidence: a pass with no sentence behind it is
-a fail (see `judge`).
+A posting that gives an answer marked as ruling it out fails. Otherwise
+the model's overall reading decides: it judges the same sentences against
+all of the user's conditions, says why, and a pass has to point at a
+sentence (see `judge`). A posting that says nothing about how the role is
+worked therefore fails; "not stated" in a category decides nothing itself.
 
 The setup lives in `remote-check.json` (the user's own file, like
 criteria.json):
 
   {"languages": ["en", "fr"],           # the languages the keywords are written in
    "keyword_language": {"télétravail": "fr", ...},   # which language each keyword is in (for the page only)
-   "pass_when": "The posting says this role can be done remotely ...",   # the pass rule
    "drop_without_keywords": true,       # no remote keyword at all -> dropped by code
    "guidance": "...",                   # shown to the model above the questions
    "profile": {"residence", "work_countries", "time_zone", "work_permit"},
@@ -29,8 +28,7 @@ criteria.json):
                   {"id": "hybrid", "label": "Hybrid", "rule": "fail"}],
       "unknown": "pass"}]}               # no longer used; kept so older files load
 
-An answer's `rule` "fail" is a fail rule the model is given; "pass" answers
-are simply reported.
+An answer's `rule` is "pass" (fine with the user) or "fail" (rules a posting out).
 
 `/ftja-remote` drafts this file for the user: it works out where they
 live, where they want to work, their time zone and their work permit (from
@@ -68,11 +66,8 @@ GENERATING_STALE_SECONDS = 600
 # "distribution" and "gathering" hit "gather requirements" — together they
 # sent 82% of all postings to the model. Without them it is 67%, and every
 # posting a person had marked as remote in that set is still caught.
-DEFAULT_PASS_WHEN = "The posting says this role can be done remotely."
-
 DEFAULT_CONFIG = {
     "languages": ["en"],
-    "pass_when": DEFAULT_PASS_WHEN,
     "drop_without_keywords": True,
     "guidance": ("Judge the role itself, not the company. Travel, an onboarding week and occasional team "
                  "gatherings are not office days. Steps of the hiring process, such as an on-site interview, say "
@@ -172,8 +167,7 @@ def validate_config(data) -> dict:
     by_keyword = data.get("keyword_language") if isinstance(data.get("keyword_language"), dict) else {}
     keyword_language = {str(k): str(v).strip().lower() for k, v in by_keyword.items() if str(k) in kept and str(v).strip()}
     languages = list(dict.fromkeys([*(x.lower() for x in _strings(data.get("languages"))), *keyword_language.values()]))
-    return {"languages": languages, "keyword_language": keyword_language,
-            "pass_when": str(data.get("pass_when") or "").strip() or DEFAULT_PASS_WHEN, "drop_without_keywords": data.get("drop_without_keywords", True) is not False,
+    return {"languages": languages, "keyword_language": keyword_language, "drop_without_keywords": data.get("drop_without_keywords", True) is not False,
             "guidance": str(data.get("guidance") or "").strip(),
             "profile": {k: str(profile.get(k) or "").strip() for k in PROFILE_KEYS if str(profile.get(k) or "").strip()},
             "categories": clean}
@@ -253,22 +247,18 @@ def blocks_for(job: dict, config: dict) -> list[dict]:
     return head + blocks
 
 
-def pass_rule(config: dict) -> str:
-    return str(config.get("pass_when") or "").strip() or DEFAULT_PASS_WHEN
-
-
 def render_prompt(template: str, config: dict, job: dict, blocks: list[dict]) -> str:
-    questions, fail_when = [], []
+    questions, conditions = [], []
     for c in config["categories"]:
         answers = "\n".join(f"    - `{o['id']}`: {o['label']}" for o in c["options"])
         questions.append(f"- `{c['id']}` — {c['question']}\n{answers}\n    - `{UNKNOWN}`: the sentences do not say")
-        fail_when += [f"- {c['label']}: {o['label']}" for o in c["options"] if o["rule"] == "fail"]
+        conditions += [f"- {c['label']}: {o['label']} — {'rules a posting out' if o['rule'] == 'fail' else 'is fine'}"
+                       for o in c["options"]]
     rendered = "\n".join(
         f"{b['s_id']}[{'title' if b['s_id'] == TITLE_SID else 'K' if b.get('matched') else 'ctx'}] {b['sentence']}"
         for b in blocks)
     return (template.replace("{guidance}", config.get("guidance") or "")
-            .replace("{pass_when}", pass_rule(config))
-            .replace("{fail_when}", "\n".join(fail_when) or "- (nothing listed)")
+            .replace("{conditions}", "\n".join(conditions))
             .replace("{questions}", "\n".join(questions))
             .replace("{title}", str(job.get("title") or "")).replace("{company}", str(job.get("company") or ""))
             .replace("{location}", str(job.get("location") or "")).replace("{blocks}", rendered))
@@ -276,16 +266,16 @@ def render_prompt(template: str, config: dict, job: dict, blocks: list[dict]) ->
 
 # ---- reading the model's answer ------------------------------------------------
 
-NO_EVIDENCE_REASON = "Judged remote, but pointed at no sentence that says so."
+NO_EVIDENCE_REASON = "Read as acceptable, but pointed at no sentence that says so."
 NO_KEYWORD_REASON = "No remote keyword in the posting, so nothing says it is remote."
 
 
 def answer_problems(config: dict, shown_sids: set, answer: dict) -> list[str]:
     """What makes an answer unreadable, so the job is run again: no verdict,
     no list of answers, or an answer that is not one of the category's
-    listed ones. (A pass that points at no sentence is readable; `judge`
-    turns it into a fail, and running it again would only press the model
-    to find a sentence.)"""
+    listed ones. (An overall pass that points at no sentence is readable;
+    `judge` turns it into a fail, and running it again would only press the
+    model to find a sentence.)"""
     problems = []
     if str(answer.get("verdict") or "").lower() not in ("pass", "fail"):
         problems.append("no pass/fail verdict")
@@ -305,19 +295,23 @@ def judge(config: dict, answer: dict | None, shown_sids: set | None = None) -> d
     """One posting's result, from the model's answer.
 
     -> {"verdict": "pass" | "fail", "reason": str, "evidence_sids": [...],
+        "decided_by": "rule" | "model" | "code",
         "answers": [{id, label, answer, answer_label, detail, rule,
                      evidence_sids, note}]}
 
-    The model says pass or fail, the way Stage 1 does: it passes a posting
-    only when a sentence it was shown says what the setup's pass rule asks
-    for. Code holds it to that: a pass that points at no sentence it was
-    shown is a fail, and so is a pass alongside an answer the user marked as
-    failing (the two contradict; the marked answer wins).
+    Each category's listed answers are marked by the user as fine or as
+    ruling a posting out. An answer that rules it out, with its sentence,
+    fails the posting: that is settled in code. Everything else is the
+    model's overall reading: it judges the sentences against all of the
+    user's conditions (the fine ones and the ones that rule out), says why,
+    and a pass from it has to point at a sentence it was shown, or it is a
+    fail. An answer marked fine does not pass a posting by itself: "no
+    extra on-site duties" says nothing about whether the role is remote
+    (measured: it passed postings that never mention remote work).
 
-    The categories are reported, not judged: an answer other than "?" has
-    to point at a sentence too, or it is read as "?" ("not stated"), with a
-    `note` saying so. "Not stated" neither passes nor fails anything.
-    `answer=None` is a posting with no remote keyword: nothing was read."""
+    A category answer other than "?" has to point at a sentence too, or it
+    is read as "?" ("not stated"), with a `note` saying so. `answer=None`
+    is a posting with no remote keyword: nothing was read."""
     by_id = {str(a.get("id")): a for a in (answer or {}).get("answers") or [] if isinstance(a, dict)}
     shown = (lambda sids: [s for s in sids if s in shown_sids]) if shown_sids is not None else (lambda sids: sids)
     out = []
@@ -337,19 +331,24 @@ def judge(config: dict, answer: dict | None, shown_sids: set | None = None) -> d
                     "rule": option["rule"] if option else "",
                     "evidence_sids": sids if option else [], "note": note})
     if answer is None:
-        return {"verdict": "fail", "reason": NO_KEYWORD_REASON, "evidence_sids": [], "answers": out}
+        return {"verdict": "fail", "reason": NO_KEYWORD_REASON, "evidence_sids": [], "decided_by": "code", "answers": out}
+
+    def said(answers: list[dict]) -> str:
+        return "; ".join(f"{a['label']}: {a['answer_label']}" + (f" ({a['detail']})" if a["detail"] else "") for a in answers)
+
+    ruled_out = [a for a in out if a["rule"] == "fail"]
+    if ruled_out:  # the posting gives an answer the user marked as ruling it out: settled
+        return {"verdict": "fail", "reason": said(ruled_out), "evidence_sids": [], "decided_by": "rule", "answers": out}
+    # otherwise the model's overall reading against all of the user's conditions, held to its evidence
     verdict = str(answer.get("verdict") or "").lower()
     reason = str(answer.get("reason") or "").strip()
     evidence = shown([str(s) for s in answer.get("evidence_sids") or []])
-    marked = [a for a in out if a["rule"] == "fail"]
-    if marked:  # an answer the user marked as failing, with its sentence: that settles it
-        said = "; ".join(f"{a['label']}: {a['answer_label']}" + (f" ({a['detail']})" if a["detail"] else "") for a in marked)
-        verdict, reason = "fail", reason if verdict == "fail" and reason else said
-    elif verdict == "pass" and not evidence:
+    if verdict == "pass" and not evidence:
         verdict, reason = "fail", NO_EVIDENCE_REASON
     elif verdict != "pass":
         verdict = "fail"
-    return {"verdict": verdict, "reason": reason, "evidence_sids": evidence if verdict == "pass" else [], "answers": out}
+    return {"verdict": verdict, "reason": reason, "evidence_sids": evidence if verdict == "pass" else [],
+            "decided_by": "model", "answers": out}
 
 
 # ---- the Generate button's request ---------------------------------------------
