@@ -373,12 +373,15 @@ my search settings, continue the setup`) and do not claim that the chat resumed.
   every search term in every location (3 titles × 3 locations = 9
   searches, each up to `results_wanted`), so say what that does to the
   length of a run. When `locations` is set it is used instead of
-  `location`. The setup card takes one location; add the others to
-  `criteria.json` after setup, or tell the user they can add them under
-  Locations on the Pipeline tab. If the candidate mentions more than one
-  region, don't silently scope to just the first one they said.
-- `results_wanted`: the max results scraped per search title (the
-  "Max results per title" field on the search-settings card, 1-1000,
+  `location`. The search-settings card takes several: propose every place
+  the candidate's profile says they want (`"locations": ["France",
+  "Germany"]` in the `criteria` you pass to `set-state`, next to
+  `location`), and the user adds or removes them on the card. If the
+  candidate mentions more than one region, don't silently scope to just
+  the first one they said.
+- `results_wanted`: the max results scraped per search, that is per title
+  in each location (the "Max results per search" field on the
+  search-settings card, 1-1000,
   default 100). `/ftja-run` scrapes every title up to this cap, merges all
   of them into one list, and only then runs the code-based filter and LLM
   judgment once over the merged set — it does not finish one title through

@@ -145,3 +145,21 @@ def test_a_run_judges_with_the_keywords_of_the_languages_read_at_its_start(tmp_p
     acquire(str(tmp_path / ".ftja.lock"))
     run_dir = live.start(str(tmp_path))["run_dir"]
     assert "télétravail" not in remote.all_keywords(live._remote_config(run_dir))  # French is not read: switched off for this run
+
+
+def test_onboarding_search_settings_take_several_locations_and_keep_keyword_languages(tmp_path):
+    from ftja.onboarding import apply_action, read_state, write_state
+    root = str(tmp_path)
+    write_state(root, stage="profile", phase="title_proposal", allowed_actions=["set_profile_draft", "confirm_profile"],
+                profile={"summary_confirmed": True, "criteria": {}}, cards={})
+    stage0 = {"keywords": ["prototype", "prototypage"], "languages": ["en", "fr"], "exclude_keywords": [],
+              "keyword_language": {"prototypage": "fr"}}
+    apply_action(root, {"type": "set_profile_draft", "titles": ["Product Builder"], "location": "France", "stage0": stage0})
+    assert "locations" not in read_state(root)["profile"]["criteria"]  # one location, as before
+    after = apply_action(root, {"type": "confirm_profile", "titles": ["Product Builder"],
+                                "locations": ["France", "Germany", " "], "location": "ignored", "title_must_match": True})
+    criteria = after["profile"]["criteria"]
+    assert criteria["locations"] == ["France", "Germany"] and criteria["location"] == "France, Germany"
+    assert criteria["title_must_match"] is True
+    assert criteria["keywords"] == {"tier1": ["prototype", "prototypage"], "tier1_language": {"prototypage": "fr"}}
+    assert [s["location"] for s in live.searches(criteria)] == ["France", "Germany"]  # a run searches each

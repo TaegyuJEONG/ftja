@@ -196,6 +196,15 @@ def _clamp_results_wanted(value: Any, default: int = 100) -> int:
     return max(1, min(1000, parsed))
 
 
+def _locations(action: dict[str, Any]) -> tuple[list[str], str]:
+    """Where to search, from a search-settings action: its `locations` list
+    (a run searches every title in every one), or the single `location` the
+    card had before there could be several. -> (the list, or [] when only a
+    single location was given; the same as one line)."""
+    listed = _clean_list(action.get("locations")) if isinstance(action.get("locations"), list) else []
+    return listed, ", ".join(listed) if listed else str(action.get("location") or "").strip()
+
+
 def validate_stage0_draft(card: dict[str, Any]) -> dict[str, list[str]]:
     """Require a profile-derived, reviewable Stage 0 proposal."""
     if not isinstance(card, dict):
@@ -291,14 +300,16 @@ def apply_action(project_dir: str, action: dict[str, Any]) -> dict[str, Any]:
         if not profile.get("summary_confirmed"):
             raise OnboardingError("confirm the profile summary before proposing search conditions")
         titles = _clean_list(action.get("titles"))
-        location = str(action.get("location") or "").strip()
+        locations, location = _locations(action)
         if not titles or not location:
             raise OnboardingError("search settings draft needs at least one title and a location")
         stage0 = validate_stage0_draft(action.get("stage0") or {})
         criteria = {
-            **{k: v for k, v in profile.get("criteria", {}).items() if k not in ("is_remote", "exact_phrase_search", "locations")},  # dead settings; setup sets one location
+            **{k: v for k, v in profile.get("criteria", {}).items() if k not in ("is_remote", "exact_phrase_search", "locations")},  # dead settings; the locations are set afresh below
             "search_terms": titles,
             "location": location,
+            **({"locations": locations} if locations else {}),
+            **({"title_must_match": bool(action["title_must_match"])} if "title_must_match" in action else {}),
             "hours_old": int(action.get("hours_old", 24)),
             "results_wanted": _clamp_results_wanted(action.get("results_wanted"), 100),
             "languages": stage0["languages"],
@@ -316,13 +327,15 @@ def apply_action(project_dir: str, action: dict[str, Any]) -> dict[str, Any]:
             raise OnboardingError("confirm the profile summary before setting search conditions")
         stage0 = validate_stage0_draft(cards.get("stage0") or {})
         titles = _clean_list(action.get("titles"))
-        location = str(action.get("location") or "").strip()
+        locations, location = _locations(action)
         if not titles or not location:
             raise OnboardingError("at least one title and a location are required")
         criteria = {
-            **{k: v for k, v in profile.get("criteria", {}).items() if k not in ("is_remote", "exact_phrase_search", "locations")},  # dead settings; setup sets one location
+            **{k: v for k, v in profile.get("criteria", {}).items() if k not in ("is_remote", "exact_phrase_search", "locations")},  # dead settings; the locations are set afresh below
             "search_terms": titles,
             "location": location,
+            **({"locations": locations} if locations else {}),
+            **({"title_must_match": bool(action["title_must_match"])} if "title_must_match" in action else {}),
             "hours_old": int(action.get("hours_old", 24)),
             "results_wanted": _clamp_results_wanted(
                 action.get("results_wanted", profile.get("criteria", {}).get("results_wanted")), 100
@@ -624,11 +637,14 @@ def main() -> None:
                 "keywords": stage0_card.get("keywords", criteria.get("keywords", {}).get("tier1", [])),
                 "languages": stage0_card.get("languages", criteria.get("languages", [])),
                 "exclude_keywords": stage0_card.get("exclude_keywords", criteria.get("exclude_keywords", [])),
+                "keyword_language": stage0_card.get("keyword_language", criteria.get("keywords", {}).get("tier1_language")),
             })
             apply_action(args.project_dir, {
                 "type": "set_profile_draft",
                 "titles": profile.get("titles") or criteria.get("search_terms"),
                 "location": criteria.get("location"),
+                **({"locations": criteria["locations"]} if isinstance(criteria.get("locations"), list) and criteria["locations"] else {}),
+                **({"title_must_match": criteria["title_must_match"]} if "title_must_match" in criteria else {}),
                 "hours_old": criteria.get("hours_old", 24),
                 "results_wanted": criteria.get("results_wanted", 100),
                 "stage0": stage0,
@@ -640,6 +656,7 @@ def main() -> None:
                 "keywords": card.get("keywords", criteria.get("keywords", {}).get("tier1", [])),
                 "languages": card.get("languages", criteria.get("languages", [])),
                 "exclude_keywords": card.get("exclude_keywords", criteria.get("exclude_keywords", [])),
+                "keyword_language": card.get("keyword_language", criteria.get("keywords", {}).get("tier1_language")),
             })
             apply_action(args.project_dir, {"type": "set_stage0_draft", "card": draft})
         else:
