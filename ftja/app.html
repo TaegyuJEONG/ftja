@@ -2751,11 +2751,11 @@ function renderRemoteDialog() {
     } else if (w.step === 'review') {
       body = `${progress}<div class="rm-step">Confirm your setup</div>
         <div class="rm-step-intro">A posting passes when none of its answers is one marked ✕.</div>
+        <div class="rm-card rm-review"><div><b>Keywords</b><div class="rm-review-answers"><span class="meta">${plural(new Set(cats.flatMap(c => c.keywords || [])).size, 'keyword')}</span></div></div>
+          <button class="text-btn" type="button" data-rm-goto="keywords">Change</button></div>
         ${cats.map((c, i) => `<div class="rm-card rm-review"><div><b>${esc(c.label || 'Unnamed')}</b>
           <div class="rm-review-answers">${(c.options || []).map(o => `<span class="${o.rule === 'fail' ? 'fails' : ''}">${o.rule === 'fail' ? '✕' : '✓'} ${esc(o.label)}</span>`).join('')}<span class="meta">Not stated ${c.unknown === 'fail' ? 'fails' : 'passes'}</span></div></div>
           <button class="text-btn" type="button" data-rm-goto="${i}">Change</button></div>`).join('')}
-        <div class="rm-card rm-review"><div><b>Keywords</b><div class="rm-review-answers"><span class="meta">${plural(new Set(cats.flatMap(c => c.keywords || [])).size, 'keyword')}</span></div></div>
-          <button class="text-btn" type="button" data-rm-goto="keywords">Change</button></div>
         <button class="text-btn rc-add" type="button" data-rm-add-category>Add a category</button>
         <details class="fold" style="margin-top:12px;"><summary>Notes for the model</summary>
           <div class="rc-body"><textarea data-rm="guidance" rows="3">${esc(w.config.guidance || '')}</textarea></div></details>
