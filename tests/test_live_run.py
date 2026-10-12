@@ -147,7 +147,7 @@ def test_a_run_from_start_to_finish_as_the_viewer_sees_it(project, capsys):
     assert rows["Beta"][:2] == ("stage1_fail", "Engineers do the prototyping.")
     record = json.loads(open(os.path.join(project, "runs.jsonl")).read())
     assert record["run_id"] == run["run_id"] and record["total_tokens"] == 1234 and record["duration_seconds"] >= 0
-    assert record["scraped_count"] == 3 and record["scraped_by_term"][0] == {"term": "Product Builder", "count": 2}
+    assert record["scraped_count"] == 3 and record["scraped_by_term"][0] == {"term": "Product Builder", "location": "", "count": 2}
     with connect(db) as conn:  # the same posting under a second URL, and a job from before reasons existed
         from ftja.state import mark_seen
         mark_seen(conn, job_url="https://x/2-repost", status="stage1_fail", stage_reached=1, title="Product Manager",
@@ -343,3 +343,45 @@ def test_the_continue_button_reaches_a_waiting_session_and_only_a_waiting_one(tm
     assert result == {"status": "continue", "run_id": run_id}
     assert run_bridge.listening(root)["listening"] is False
     assert run_bridge.wait_for_continue(root, run_id, timeout_seconds=1)["status"] == "timeout"
+
+
+def test_every_search_term_is_searched_in_every_location(project, monkeypatch):
+    criteria = json.load(open(os.path.join(project, "criteria.json")))
+    criteria.update(search_terms=["Product Manager", "Product Owner", "Product Lead"],
+                    locations=["France", "Germany", "Switzerland"], location="ignored when there is a list")
+    json.dump(criteria, open(os.path.join(project, "criteria.json"), "w"))
+
+    run = live.start(project)
+    run_dir = run["run_dir"]
+    assert [(s["term"], s["location"]) for s in run["searches"]] == [
+        ("Product Manager", "France"), ("Product Manager", "Germany"), ("Product Manager", "Switzerland"),
+        ("Product Owner", "France"), ("Product Owner", "Germany"), ("Product Owner", "Switzerland"),
+        ("Product Lead", "France"), ("Product Lead", "Germany"), ("Product Lead", "Switzerland")]
+    assert run["criteria_snapshot"]["locations"] == ["France", "Germany", "Switzerland"]
+    shown = live.state(project)["scrape"]["terms"]
+    assert len(shown) == 9 and shown[4] == {**shown[4], "term": "Product Owner", "location": "Germany", "count": 0}
+
+    asked = []
+    import ftja.scrape as scrape_mod
+    monkeypatch.setattr(scrape_mod, "scrape", lambda **kw: asked.append((kw["search_term"], kw["location"])) or [
+        {"job_url": f"https://x/{kw['search_term']}/{kw['location']}", "title": kw["search_term"],
+         "company": f"{kw['search_term']} {kw['location']} Ltd", "location": kw["location"],
+         "description": f"{BUILD} This team sits in {kw['location']} and hires a {kw['search_term']}."},
+        {"job_url": "https://x/shared", "title": "Product Owner", "company": "Shared Co", "location": "Remote",
+         "description": f"{BUILD} Every search returns this one."}])
+    for n in range(len(run["searches"])):
+        assert live.scrape_term(run_dir, n) == 2
+    assert asked == [(s["term"], s["location"]) for s in run["searches"]]  # nine searches, each term in each place
+
+    counts = live.stage0(run_dir, project, os.path.join(project, "seen.db"))
+    assert counts["scraped"] == 10  # nine postings of their own, and one that every search returned, counted once
+    shared = next(j for j in live._read_json(os.path.join(run_dir, "stage0.json")) if j["job_url"] == "https://x/shared")
+    assert shared["_search_terms"] == ["Product Manager", "Product Owner", "Product Lead"]
+
+
+def test_a_single_location_from_before_there_could_be_several_still_works(project):
+    run = live.start(project)  # the fixture's criteria.json has only "location": "France"
+    assert [(s["term"], s["location"]) for s in run["searches"]] == [("Product Builder", "France"), ("Product Manager", "France")]
+    assert run["criteria_snapshot"]["locations"] == ["France"] and run["criteria_snapshot"]["location"] == "France"
+    old_run = {"search_terms": ["Product Manager"], "location": "European Union"}  # a run.json written by an older version
+    assert live.searches(old_run) == [{"term": "Product Manager", "location": "European Union"}]

@@ -282,7 +282,7 @@ def apply_action(project_dir: str, action: dict[str, Any]) -> dict[str, Any]:
             raise OnboardingError("search settings draft needs at least one title and a location")
         stage0 = validate_stage0_draft(action.get("stage0") or {})
         criteria = {
-            **{k: v for k, v in profile.get("criteria", {}).items() if k not in ("is_remote", "exact_phrase_search")},  # settings LinkedIn ignores
+            **{k: v for k, v in profile.get("criteria", {}).items() if k not in ("is_remote", "exact_phrase_search", "locations")},  # dead settings; setup sets one location
             "search_terms": titles,
             "location": location,
             "hours_old": int(action.get("hours_old", 24)),
@@ -306,7 +306,7 @@ def apply_action(project_dir: str, action: dict[str, Any]) -> dict[str, Any]:
         if not titles or not location:
             raise OnboardingError("at least one title and a location are required")
         criteria = {
-            **{k: v for k, v in profile.get("criteria", {}).items() if k not in ("is_remote", "exact_phrase_search")},  # settings LinkedIn ignores
+            **{k: v for k, v in profile.get("criteria", {}).items() if k not in ("is_remote", "exact_phrase_search", "locations")},  # dead settings; setup sets one location
             "search_terms": titles,
             "location": location,
             "hours_old": int(action.get("hours_old", 24)),
