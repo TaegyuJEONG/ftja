@@ -2526,9 +2526,36 @@ function watchRemoteRequest() {
     if (remoteStatusKey() !== remoteShownKey) {
       renderRemoteSummary();
       if (remoteDialog()) renderRemoteDialog();
+      else if (remoteSetup.draft && remoteStatus() === 'drafted') {  // the draft arrived while the dialog was closed
+        remoteAutoOpened = `drafted|${remoteSetup.request.began_at || remoteSetup.request.requested_at || ''}`;
+        if (!document.getElementById('view-pipeline').classList.contains('active')) openMainView('pipeline');
+        openRemoteSetup();
+      }
     }
     if (!remotePending()) { clearInterval(remoteWatch); remoteWatch = null; }
   }, 2000);
+}
+// The agent can start this from the chat too (`/ftja-remote`). Wherever the
+// page is, it then opens the setup by itself: once when the agent starts
+// writing, and once when its draft is ready to go through.
+let remoteAutoOpened = '';
+async function pollRemote() {
+  if (document.body.classList.contains('onboarding-active') || remoteWatch) return;  // remoteWatch is already following it
+  let next;
+  try { next = await (await fetch('/api/remote-check', {cache: 'no-store'})).json(); } catch (e) { return; }
+  const status = (next.request || {}).status;
+  const moment = status === 'generating' ? 'generating' : next.draft ? 'drafted' : '';
+  const key = moment && `${moment}|${next.request.began_at || next.request.requested_at || ''}`;
+  if (remoteSetup && !key) return;
+  remoteSetup = next;
+  if (key && key !== remoteAutoOpened) {
+    remoteAutoOpened = key;
+    if (remoteDialog()) return;  // already in front of the user
+    if (!document.getElementById('view-pipeline').classList.contains('active')) openMainView('pipeline');
+    renderRemoteSummary();
+    openRemoteSetup();
+    watchRemoteRequest();
+  }
 }
 // Ask the agent for a draft. With no answers it works the user's situation out itself.
 async function askRemoteDraft(answers = {}) {
@@ -3150,7 +3177,7 @@ document.addEventListener('click', (e) => {
 });
 
 // ---- init ----
-(async () => { const onboarding = await maybeStartOnboarding(); if (!onboarding) { document.querySelector('.main-tab[data-view=\"results\"]').classList.add('active'); document.getElementById('view-results').classList.add('active'); loadRuns(); } setInterval(pollLive, 1500); pollLive(); })();
+(async () => { const onboarding = await maybeStartOnboarding(); if (!onboarding) { document.querySelector('.main-tab[data-view=\"results\"]').classList.add('active'); document.getElementById('view-results').classList.add('active'); loadRuns(); } setInterval(pollLive, 1500); pollLive(); setInterval(pollRemote, 2500); pollRemote(); })();
 // A clone only changes when its owner pulls; say so when there is something to pull.
 fetch('/api/version').then(r => r.json()).then(v => {
   // two clones share the port: say which folder's data this is

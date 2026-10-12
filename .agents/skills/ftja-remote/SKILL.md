@@ -193,8 +193,10 @@ with their answers and this skill runs again.
 
 Tell the user, in their language and briefly:
 
-- that the draft is waiting on the Pipeline tab under **Remote check**
-  ("Review and confirm"), and is not in use until they confirm it there;
+- that the web view has opened the draft for them to go through (it opens
+  by itself; if their web view is closed, it is on the Pipeline tab under
+  **Remote check**, "Review and confirm"), and that it is not in use until
+  they confirm it there;
 - the situation you assumed for them, saying which parts you worked out
   yourself rather than were told;
 - the categories, and for each which answers fail;
