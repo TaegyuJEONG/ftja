@@ -286,13 +286,16 @@ record each call's tokens). Each subagent reads `<run_dir>/rc/<n>.txt` and
 writes its answer to `<run_dir>/rc/<n>.out.json`. The answer is ONLY:
 
 ```json
-{"answers": [{"id": "<category id>", "answer": "<one of that category's answer ids, or ?>",
+{"verdict": "pass" | "fail", "reason": "<one sentence, at most 15 words>", "evidence_sids": ["S3"],
+ "answers": [{"id": "<category id>", "answer": "<one of that category's answer ids, or ?>",
               "detail": "<12 words max>", "evidence_sids": ["S3"]}, ...]}
 ```
 
-The model does not say pass or fail. Code reads each answer and applies
-the rule the user set for it; an answer that points at no sentence it was
-shown is read as `?`. Do not judge, edit or complete an answer yourself.
+The model passes a posting only when a sentence it was shown says what
+the user's pass rule asks for; the `answers` report what the posting says
+per category (`?` when it does not). Code holds it to that: a pass that
+points at no sentence it was shown is recorded as a fail. Do not judge,
+edit or complete an answer yourself.
 
 Then check the answers:
 
@@ -300,8 +303,10 @@ Then check the answers:
 venv/bin/python -m ftja.live check-remote --dir <run_dir>
 ```
 
-`rerun` lists jobs with no usable answer file, or an answer that is not
-one of the category's listed ones: rerun exactly those job numbers once.
+`rerun` lists jobs whose answer cannot be read (no file, no verdict, an
+answer that is not on a category's list): rerun exactly those job numbers
+once. A pass without an evidence sentence is not in this list and is not
+to be rerun: it is settled as a fail.
 The next step refuses while any is missing.
 
 ## 3. Stage 1 — cheap-model sentence-block judgment

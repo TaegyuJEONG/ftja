@@ -172,15 +172,16 @@ def _remote_table(rows: list[dict]) -> str:
     labels = list(dict.fromkeys(a["label"] for row in rows for a in row.get("answers") or []))
     out = io.StringIO()
     writer = csv.writer(out)
-    writer.writerow(["Title", "Company", "Location", "URL", *[x for label in labels for x in (label, f"{label}: details")],
+    writer.writerow(["Title", "Company", "Location", "URL", "Why", *[x for label in labels for x in (label, f"{label}: details")],
                      "Evidence sentences"])
     for row in rows:
         by_label = {a["label"]: a for a in row.get("answers") or []}
         sentences = {b.get("sid"): b.get("sentence") for b in row.get("blocks") or []}
-        cited = list(dict.fromkeys(sentences[sid] for a in row.get("answers") or [] for sid in a.get("evidence_sids") or []
+        cited = list(dict.fromkeys(sentences[sid] for sid in [*(row.get("evidence_sids") or []),
+                                                              *(sid for a in row.get("answers") or [] for sid in a.get("evidence_sids") or [])]
                                    if sentences.get(sid)))
         writer.writerow([row.get("title") or "", row.get("company") or "", row.get("location") or "", row.get("job_url") or "",
-                         *[x for label in labels for x in ((by_label.get(label) or {}).get("answer_label", ""),
+                         row.get("reason") or "", *[x for label in labels for x in ((by_label.get(label) or {}).get("answer_label", ""),
                                                            (by_label.get(label) or {}).get("detail", ""))],
                          " | ".join(cited)])
     return out.getvalue()

@@ -18,12 +18,13 @@ digests — are never touched by an update.
   saved is read as that.
 - **A new optional stage, the Remote check**, sits before Stage 1. For
   each posting a cheap model reads only the title and the sentences around
-  your remote keywords, and answers a few questions ("categories"): how
-  remote the role is, from where you may work, which hours, which on-site
-  duties. It picks each answer from a list, with the sentence it rests on.
-  It does not say pass or fail: you mark, per answer, whether it passes or
-  fails, and whether "not stated" passes. Changing a rule later needs no
-  new model call for future runs to follow it.
+  your remote keywords. It passes a posting only when one of those
+  sentences says what your pass rule asks for ("this role can be done
+  remotely, from ..."), and fails it when a sentence shows something you
+  marked as ruling a posting out (hybrid, on-site, the wrong region). A
+  posting that says nothing about remote work does not pass. Alongside the
+  verdict it reports what the posting says per topic ("categories": how
+  remote, from where, which hours, which on-site duties), or "Not stated".
 - **Your agent writes the setup for you.** On the Pipeline tab, fill in
   where you live, where you want to work, your time zone and your work
   permit, and press the button; or type `/ftja-remote` in the chat. The

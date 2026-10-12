@@ -143,6 +143,9 @@ def _remote_lines(job: dict) -> list[str]:
     stored = job.get("remote") or {}
     sentences = {b.get("sid"): b.get("sentence") for b in stored.get("blocks") or []}
     lines = []
+    if stored.get("reason"):
+        lines.append(f"*{stored['reason']}*")
+        lines += [f"  > {sentences[sid]}" for sid in stored.get("evidence_sids") or [] if sentences.get(sid)]
     for a in stored.get("answers") or []:
         lines.append(f"- {a['label']}: {a['answer_label']}" + (f" — {a['detail']}" if a.get("detail") else ""))
         lines += [f"  > {sentences[sid]}" for sid in a.get("evidence_sids") or [] if sentences.get(sid)]

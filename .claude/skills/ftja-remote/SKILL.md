@@ -91,7 +91,8 @@ Write it as JSON to `.ftja-run/remote-check.draft.json` (create `.ftja-run/`
 if it is missing):
 
 ```json
-{"languages": ["en", "fr"],
+{"pass_when": "The posting says this role can be done remotely, from France or from a region that includes it.",
+ "languages": ["en", "fr"],
  "keyword_language": {"remote": "en", "télétravail": "fr", "à distance": "fr"},
  "drop_without_keywords": true,
  "guidance": "<two or three sentences for the model, see below>",
@@ -128,9 +129,20 @@ this user:
    travel (pass); frequent — regular on-site weeks or heavy travel (pass:
    the user decides once they have seen real postings).
 
-**The rule for "?"** (`unknown`): `pass` for every category. Most postings
-say nothing about most of these; the user tightens a rule after reading
-what the check found. Always write `drop_without_keywords` as true.
+An answer's rule `fail` means "this rules a posting out"; `pass` means it
+is only reported.
+
+**The pass rule** (`pass_when`): one sentence saying what a posting has to
+say to pass, written for this user: that the role can be done remotely,
+and from where if their situation makes that matter ("... fully remote, or
+remote within a region that includes France"). The model passes a posting
+only when a sentence it read says this, so a posting that says nothing
+about remote work fails. Keep it to what must be *said*; the things that
+rule a posting out are the answers marked `fail` below.
+
+**"Not stated".** A category's answer is `?` when the posting does not
+say. That is reported and decides nothing; there is no rule to set for it
+(write `"unknown": "pass"`). Always write `drop_without_keywords` as true.
 
 **Answers.** Two to four per category, each a state a posting can plainly
 be in, none overlapping. The label is what the user reads on every job
@@ -217,9 +229,10 @@ Tell the user, in their language and briefly:
   they confirm it there;
 - the situation you assumed for them, saying which parts you worked out
   yourself rather than were told;
-- the categories, and for each which answers fail;
-- that "not stated" passes everywhere for now (theirs to change), and
-  that a posting with none of the keywords is dropped without being read;
+- the pass rule, and for each category which answers rule a posting out;
+- that a posting which says nothing about remote work does not pass, that
+  "not stated" in a category is only information, and that a posting with
+  none of the keywords is dropped without being read;
 - how many keywords, in which languages, and the coverage numbers if you
   measured;
 - that they can change any name, keyword, answer or rule while they go

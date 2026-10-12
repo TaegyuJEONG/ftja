@@ -340,8 +340,10 @@ def prepare_remote(run_dir: str, project_dir: str = ".") -> dict:
 
 
 def check_remote(run_dir: str) -> dict:
-    """Remote check answers that cannot be used, by job number, so the run
-    can rerun them before moving on."""
+    """Remote check answers that cannot be read (no file, no verdict, an
+    answer that is not on a category's list), by job number, so the run
+    can rerun them before moving on. A pass without evidence is not one of
+    these: it is settled as a fail, not asked again."""
     config = _remote_config(run_dir)
     manifest = [e for e in _read_json(os.path.join(run_dir, "rc", "manifest.json"), []) or [] if not e.get("auto")]
     rerun = {}
@@ -357,9 +359,9 @@ def check_remote(run_dir: str) -> dict:
 
 
 def _remote_results(run_dir: str) -> tuple[list[dict], list[dict], list[int]]:
-    """-> (passed, failed, numbers still without a usable answer). Pass and
-    fail are worked out here, from each category's answer and the rule the
-    user set for it; the model never says either."""
+    """-> (passed, failed, numbers still without a readable answer). The
+    model says pass or fail; `remote_check.judge` holds a pass to its
+    evidence sentence."""
     config = _remote_config(run_dir)
     manifest_path = os.path.join(run_dir, "rc", "manifest.json")
     passed, failed, pending = [], [], []
@@ -375,6 +377,7 @@ def _remote_results(run_dir: str) -> tuple[list[dict], list[dict], list[int]]:
                 continue
         judged = remote_check.judge(config, answer, shown)
         entry = {**entry, "judged_at": judged_at, "answers": judged["answers"], "reason": judged["reason"],
+                 "evidence_sids": judged["evidence_sids"],
                  "remote_blocks": [{"sid": b["s_id"], "sentence": b["sentence"], "matched": bool(b["matched"]),
                                     "keywords": b.get("keywords") or []} for b in entry.get("blocks") or []]}
         (passed if judged["verdict"] == "pass" else failed).append(entry)
@@ -638,7 +641,8 @@ def assemble_results(run_dir: str) -> dict:
     if remote_pending or pending or missing:
         remote_part = f"Remote check missing: {remote_pending}; " if "remote" in stages else ""
         raise SystemExit(f"Not complete — {remote_part}Stage 1 missing: {pending}; Stage 2 missing: {missing}. Rerun those, then call this again.")
-    remote_by_url = {e["job_url"]: {"answers": e["answers"], "blocks": e["remote_blocks"]}
+    remote_by_url = {e["job_url"]: {"answers": e["answers"], "blocks": e["remote_blocks"], "reason": e["reason"],
+                                    "evidence_sids": e["evidence_sids"]}
                      for e in remote_passed + remote_failed}
 
     def base(entry: dict) -> dict:
@@ -792,7 +796,8 @@ def state(project_dir: str = ".") -> dict | None:
         s1_by_url = {e["job_url"]: e for e in _stage1_results(run_dir)[0]}
         jobs = [_live_card(run_dir, e, definitions, descriptions, s1_by_url) for e in manifest]
         if out["remote"]:  # what the Remote check read stays on the card
-            remote_by_url = {e["job_url"]: {"answers": e["answers"], "blocks": e["remote_blocks"]}
+            remote_by_url = {e["job_url"]: {"answers": e["answers"], "blocks": e["remote_blocks"], "reason": e["reason"],
+                                            "evidence_sids": e["evidence_sids"]}
                              for e in _remote_results(run_dir)[0]}
             jobs = [{**j, "remote": remote_by_url.get(j["job_url"])} for j in jobs]
         tally = {s: sum(j["status"] == s for j in jobs) for s in ("judging", "passed", "review", "stage2_fail")}
@@ -855,7 +860,8 @@ def remote_jobs(project_dir: str, db_path: str, run_id: str, page: int = 1, verd
         passed, failed, _ = _remote_results(run_dir)
         chosen = sorted(passed if verdict == "pass" else failed, key=lambda e: e["judged_at"], reverse=True)
         rows = [{"job_url": e["job_url"], "title": e.get("title"), "company": e.get("company"), "location": e.get("location"),
-                 "reason": e["reason"], "answers": e["answers"], "blocks": e["remote_blocks"]} for e in chosen]
+                 "reason": e["reason"], "evidence_sids": e["evidence_sids"], "answers": e["answers"],
+                 "blocks": e["remote_blocks"]} for e in chosen]
     else:
         with connect(db_path) as conn:
             found = conn.execute(
@@ -876,8 +882,9 @@ def remote_jobs(project_dir: str, db_path: str, run_id: str, page: int = 1, verd
             shown.add(key)
             failed_on = [a for a in answers if a.get("rule") == "fail"]
             rows.append({"job_url": job_url, "title": title, "company": company, "location": location,
-                         "reason": "; ".join(f"{a['label']}: {a['answer_label']}" for a in failed_on),
-                         "answers": answers, "blocks": stored.get("blocks") or [], "pruned_at": pruned_at})
+                         # runs from before the model gave a verdict: the answers that failed
+                         "reason": stored.get("reason") or "; ".join(f"{a['label']}: {a['answer_label']}" for a in failed_on),
+                         "evidence_sids": stored.get("evidence_sids") or [], "answers": answers, "blocks": stored.get("blocks") or [], "pruned_at": pruned_at})
     total = len(rows)
     size = page_size or max(1, total)
     page = max(1, page)

@@ -76,24 +76,29 @@ def finalize(run_dir, project, capsys):
 
 
 def answer_remote(run_dir, by_company):
-    """Write the Remote check's answer for each job, from {company: {category: (answer, detail, keyword)}}.
-    The evidence is the sentence holding `keyword`."""
+    """Write the Remote check's answer for each job, from
+    {company: (verdict, reason, keyword, {category: (answer, detail, keyword)})}.
+    Evidence is the sentence holding the keyword."""
     for entry in live._read_json(os.path.join(run_dir, "rc", "manifest.json")):
         if entry.get("auto"):
             continue
-        answers = []
-        for category, (value, detail, keyword) in by_company[entry["company"]].items():
-            sids = [b["s_id"] for b in entry["blocks"] if keyword and keyword in b["sentence"]]
-            answers.append({"id": category, "answer": value, "detail": detail, "evidence_sids": sids})
-        live._write_json(os.path.join(run_dir, "rc", f"{entry['n']}.out.json"), {"answers": answers})
+        sids = lambda keyword: [b["s_id"] for b in entry["blocks"] if keyword and keyword in b["sentence"]]
+        verdict, reason, keyword, categories = by_company[entry["company"]]
+        answers = [{"id": category, "answer": value, "detail": detail, "evidence_sids": sids(word)}
+                   for category, (value, detail, word) in categories.items()]
+        live._write_json(os.path.join(run_dir, "rc", f"{entry['n']}.out.json"),
+                         {"verdict": verdict, "reason": reason, "evidence_sids": sids(keyword), "answers": answers})
 
 
 REMOTE_ANSWERS = {
-    "Alpha": {"remote_level": ("fully_remote", "Remote within the EU", "fully remote"),
-              "work_location": ("restricted", "EU", "fully remote"),
-              "onsite_duties": ("occasional", "Two gatherings a year", "gathering")},
-    "Beta": {"remote_level": ("hybrid", "3 days a week in the Lyon office", "hybrid")},
+    "Alpha": ("pass", "Fully remote within the EU.", "fully remote", {
+        "remote_level": ("fully_remote", "Remote within the EU", "fully remote"),
+        "work_location": ("restricted", "EU", "fully remote"),
+        "onsite_duties": ("occasional", "Two gatherings a year", "gathering")}),
+    "Beta": ("fail", "Three office days a week in Lyon.", "", {
+        "remote_level": ("hybrid", "3 days a week in the Lyon office", "hybrid")}),
 }
+DELTA = ("pass", "The title says remote.", "Remote", {"remote_level": ("fully_remote", "", "Remote")})
 
 
 # ---- the setup file ----
@@ -153,43 +158,58 @@ def test_the_prompt_lists_each_question_with_its_answers():
 
 # ---- the rules ----
 
-def test_code_applies_the_rule_set_for_each_answer_and_for_not_stated():
+def test_the_model_gives_the_verdict_and_a_pass_has_to_point_at_a_sentence():
     cfg = config()
     shown = {"S1", "S2"}
-    hybrid = {"answers": [{"id": "remote_level", "answer": "hybrid", "detail": "3 days", "evidence_sids": ["S1"]}]}
-    judged = remote.judge(cfg, hybrid, shown)
-    assert judged["verdict"] == "fail" and judged["reason"] == "Remote level: Hybrid: regular office days (3 days)"
+    remote_ok = {"verdict": "pass", "reason": "Fully remote.", "evidence_sids": ["S1"],
+                 "answers": [{"id": "remote_level", "answer": "fully_remote", "detail": "Anywhere", "evidence_sids": ["S1"]}]}
+    judged = remote.judge(cfg, remote_ok, shown)
+    assert (judged["verdict"], judged["reason"], judged["evidence_sids"]) == ("pass", "Fully remote.", ["S1"])
     by_id = {a["id"]: a for a in judged["answers"]}
-    assert by_id["remote_level"]["rule"] == "fail" and by_id["time_zone"] == {
-        "id": "time_zone", "label": "Time zone", "answer": "?", "answer_label": "Not stated", "detail": "",
-        "rule": "pass", "evidence_sids": [], "note": ""}  # a category the model left out is "not stated"
+    assert by_id["time_zone"] == {"id": "time_zone", "label": "Time zone", "answer": "?", "answer_label": "Not stated",
+                                  "detail": "", "rule": "", "evidence_sids": [], "note": ""}  # reported, decides nothing
 
-    # the user decides, per category, what "not stated" means
-    assert remote.judge(cfg, {"answers": []}, shown)["verdict"] == "pass"
-    cfg["categories"][0]["unknown"] = "fail"
-    silent = remote.judge(cfg, {"answers": []}, shown)
-    assert silent["verdict"] == "fail" and silent["reason"] == "Remote level: Not stated"
-    assert remote.judge(cfg, None)["verdict"] == "fail"  # a posting with no remote keyword: all "?", no model call
+    # the keyword sat in a sentence about something else: the model says fail, everything "not stated"
+    nothing = {"verdict": "fail", "reason": "No sentence is about how this role is worked.", "evidence_sids": [], "answers": []}
+    judged = remote.judge(cfg, nothing, shown)
+    assert judged["verdict"] == "fail" and all(a["answer"] == "?" for a in judged["answers"])
 
-    # the user flips a rule: the same answer now passes, with no new model call
-    cfg["categories"][0]["unknown"] = "pass"
-    cfg["categories"][0]["options"][1]["rule"] = "pass"
-    assert remote.judge(cfg, hybrid, shown)["verdict"] == "pass"
+    # a pass with no sentence behind it, or one it was never shown, is a fail; it is not asked again
+    for evidence in ([], ["S9"]):
+        unbacked = {"verdict": "pass", "reason": "Probably remote.", "evidence_sids": evidence, "answers": []}
+        judged = remote.judge(cfg, unbacked, shown)
+        assert (judged["verdict"], judged["reason"]) == ("fail", remote.NO_EVIDENCE_REASON)
+        assert remote.answer_problems(cfg, shown, unbacked) == []
+
+    # a pass alongside an answer the user marked as failing: the marked answer wins
+    hybrid = {"verdict": "pass", "reason": "Remote two days.", "evidence_sids": ["S1"],
+              "answers": [{"id": "remote_level", "answer": "hybrid", "detail": "3 days", "evidence_sids": ["S1"]}]}
+    judged = remote.judge(cfg, hybrid, shown)
+    assert (judged["verdict"], judged["reason"]) == ("fail", "Remote level: Hybrid: regular office days (3 days)")
+    said_fail = {**hybrid, "verdict": "fail", "reason": "Three office days a week."}
+    assert remote.judge(cfg, said_fail, shown)["reason"] == "Three office days a week."
+    assert remote.judge(cfg, None) == {**remote.judge(cfg, None), "verdict": "fail", "reason": remote.NO_KEYWORD_REASON}
+
+    prompt = remote.render_prompt(live._template(os.path.join(REPO, "remote_prompt.md")), {**cfg, "pass_when": "Remote within the EU."},
+                                  JOBS[0], remote.blocks_for(JOBS[0], cfg))
+    assert "Pass when:\n- Remote within the EU." in prompt  # the user's pass rule
+    assert "- Remote level: Hybrid: regular office days\n- Remote level: On-site" in prompt  # the answers marked as failing
+    assert remote.validate_config({**cfg, "pass_when": " "})["pass_when"] == remote.DEFAULT_PASS_WHEN
 
 
 def test_an_answer_without_a_sentence_behind_it_is_read_as_not_stated():
     cfg = config()
     shown = {"S1"}
-    unbacked = {"answers": [{"id": "remote_level", "answer": "on_site", "detail": "Office", "evidence_sids": []}]}
+    unbacked = {"verdict": "fail", "reason": "Office.", "answers": [{"id": "remote_level", "answer": "on_site", "detail": "Office", "evidence_sids": []}]}
     judged = remote.judge(cfg, unbacked, shown)
-    assert judged["verdict"] == "pass" and judged["answers"][0]["answer"] == "?" and "without pointing" in judged["answers"][0]["note"]
-    invented = {"answers": [{"id": "remote_level", "answer": "on_site", "evidence_sids": ["S9"]}]}  # a sentence it was never shown
+    assert judged["answers"][0]["answer"] == "?" and "without pointing" in judged["answers"][0]["note"]
+    invented = {"verdict": "fail", "answers": [{"id": "remote_level", "answer": "on_site", "evidence_sids": ["S9"]}]}  # a sentence it was never shown
     assert remote.judge(cfg, invented, shown)["answers"][0]["answer"] == "?"
-    # an answer that is not on the category's list makes the job run again
-    assert remote.answer_problems(cfg, shown, {"answers": [{"id": "remote_level", "answer": "mostly"}]}) == [
+    # an answer that cannot be read makes the job run again
+    assert remote.answer_problems(cfg, shown, {"verdict": "fail", "answers": [{"id": "remote_level", "answer": "mostly"}]}) == [
         "remote_level: 'mostly' is not one of the listed answers"]
+    assert remote.answer_problems(cfg, shown, {"answers": []}) == ["no pass/fail verdict"]
     assert remote.answer_problems(cfg, shown, {"verdict": "pass"}) == ["no `answers` list"]
-    assert remote.answer_problems(cfg, shown, unbacked) == []
 
 
 # ---- the code filter ----
@@ -254,14 +274,14 @@ def test_a_run_with_the_remote_check_before_stage1_and_stage2(project, capsys):
         live.prepare_stage1(run_dir, project)  # its answers are not in yet
 
     live._write_json(os.path.join(run_dir, "rc", "0.out.json"), {"answers": [{"id": "remote_level", "answer": "sometimes"}]})
-    assert live.check_remote(run_dir)["rerun"][0] == ["remote_level: 'sometimes' is not one of the listed answers"]
+    assert live.check_remote(run_dir)["rerun"][0] == ["no pass/fail verdict", "remote_level: 'sometimes' is not one of the listed answers"]
     answer_remote(run_dir, REMOTE_ANSWERS)
     assert live.check_remote(run_dir) == {"jobs": 2, "rerun": {}}
     state = live.state(project)
     assert state["remote"] == {"total": 2, "pass": 1, "fail": 1, "pending": 0} and state["stages"] == run["stages"]
     failed = live.remote_jobs(project, db, run["run_id"])
     assert failed["total"] == 1 and failed["jobs"][0]["company"] == "Beta"
-    assert failed["jobs"][0]["reason"] == "Remote level: Hybrid: regular office days (3 days a week in the Lyon office)"
+    assert failed["jobs"][0]["reason"] == "Three office days a week in Lyon."
 
     assert live.prepare_stage1(run_dir, project)["jobs"] == 1  # only what the Remote check let through
     manifest = live._read_json(os.path.join(run_dir, "s1", "manifest.json"))
@@ -292,9 +312,10 @@ def test_a_run_with_the_remote_check_before_stage1_and_stage2(project, capsys):
     assert "failed at the Remote check" in open(os.path.join(project, "rejected-" + live.run_dir_for(project, run["run_id"]).split("/")[-1] + ".md")).read()
 
     after = live.remote_jobs(project, db, run["run_id"])  # now from seen.db
-    assert after["total"] == 1 and after["jobs"][0]["reason"] == "Remote level: Hybrid: regular office days"
+    assert after["total"] == 1 and after["jobs"][0]["reason"] == "Three office days a week in Lyon."
     passed = live.remote_jobs(project, db, run["run_id"], verdict="pass", page_size=None)
     assert [j["company"] for j in passed["jobs"]] == ["Alpha"] and passed["jobs"][0]["answers"][0]["detail"] == "Remote within the EU"
+    assert passed["jobs"][0]["reason"] == "Fully remote within the EU." and passed["jobs"][0]["evidence_sids"]
 
 
 def test_a_remote_only_run_stops_and_can_go_on_to_stage1_then_stage2(project, capsys):
@@ -309,7 +330,7 @@ def test_a_remote_only_run_stops_and_can_go_on_to_stage1_then_stage2(project, ca
         with pytest.raises(SystemExit):
             step(run_dir, project)  # not part of this run: nothing is spent by mistake
     live.prepare_remote(run_dir, project)
-    answer_remote(run_dir, {**REMOTE_ANSWERS, "Delta": {"remote_level": ("fully_remote", "", "Remote")}})
+    answer_remote(run_dir, {**REMOTE_ANSWERS, "Delta": DELTA})
     assert live.assemble_results(run_dir) == {
         "results": 3, "stage1_fail": 0, "stage2": 0, "stopped_after_stage1": False, "waiting_for_stage2": 0,
         "remote_pass": 2, "remote_fail": 1, "stopped_after": "remote", "waiting": 2}
@@ -361,9 +382,7 @@ def test_a_remote_only_run_stops_and_can_go_on_to_stage1_then_stage2(project, ca
 def test_the_remote_check_can_feed_stage2_directly_and_keep_postings_without_keywords(project, capsys):
     db = os.path.join(project, "seen.db")
     set_stages(project, remote=True, stage1=False, stage2=True)
-    cfg = config(drop_without_keywords=False)
-    cfg["categories"][0]["unknown"] = "fail"  # not stated how remote: out
-    remote.save_config(project, cfg)
+    remote.save_config(project, config(drop_without_keywords=False))
     run_dir = live.start(project)["run_dir"]
     scrape(run_dir)
     assert live.stage0(run_dir, project, db)["passed"] == 4  # nothing is dropped for lacking a remote keyword
@@ -371,10 +390,10 @@ def test_the_remote_check_can_feed_stage2_directly_and_keep_postings_without_key
     assert (prepared["jobs"], prepared["without_remote_keywords"]) == (3, 1)
     manifest = live._read_json(os.path.join(run_dir, "rc", "manifest.json"))
     assert manifest[-1]["company"] == "Gamma" and manifest[-1]["auto"] and not os.path.exists(os.path.join(run_dir, "rc", "3.txt"))
-    answer_remote(run_dir, {**REMOTE_ANSWERS, "Delta": {"remote_level": ("fully_remote", "", "Remote")}})
+    answer_remote(run_dir, {**REMOTE_ANSWERS, "Delta": DELTA})
     failed = {e["company"]: e["reason"] for e in live._remote_results(run_dir)[1]}
-    assert failed == {"Beta": "Remote level: Hybrid: regular office days (3 days a week in the Lyon office)",
-                      "Gamma": "Remote level: Not stated"}  # no keyword: every category "?", judged by the rule, no model call
+    assert failed == {"Beta": "Three office days a week in Lyon.",
+                      "Gamma": remote.NO_KEYWORD_REASON}  # no keyword: nothing says it is remote, no model call
     assert live.prepare_stage2(run_dir, project)["jobs"] == 2  # the Remote check's passes, straight to Stage 2
     for n in (0, 1):
         live._write_json(os.path.join(run_dir, "s2", f"{n}.out.json"), {

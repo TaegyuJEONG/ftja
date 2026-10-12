@@ -1937,7 +1937,7 @@ function remoteAnswersHtml(answers, blocks) {
   const sentence = Object.fromEntries((blocks || []).map(b => [b.sid, b.sentence]));
   return `<table class="ra-table">${(answers || []).map(a => `
     <tr><td>${esc(a.label)}</td>
-      <td><span class="${a.rule === 'fail' ? 'ra-fail' : a.answer === '?' ? 'ra-unknown' : ''}">${esc(a.answer_label)}</span>${a.detail ? ` — ${esc(a.detail)}` : ''}${a.rule === 'fail' ? ' <span class="ra-fail">· fails by your rule</span>' : ''}
+      <td><span class="${a.rule === 'fail' ? 'ra-fail' : a.answer === '?' ? 'ra-unknown' : ''}">${esc(a.answer_label)}</span>${a.detail ? ` — ${esc(a.detail)}` : ''}${a.rule === 'fail' ? ' <span class="ra-fail">· one of your fail rules</span>' : ''}
         ${(a.evidence_sids || []).filter(sid => sentence[sid]).map(sid => `<div class="ra-quote">${quoteText(sentence[sid])}</div>`).join('')}
         ${a.note ? `<div class="ra-note">${esc(a.note)}</div>` : ''}</td></tr>`).join('')}</table>`;
 }
@@ -1955,7 +1955,7 @@ async function openRemoteJobs(runId, verdict = 'fail') {
   dialog.innerHTML = `
     <div class="s1-head"><h3>${heading}</h3><button class="text-btn" type="button" data-close>Close</button></div>
     <div class="s1-body">
-      <div class="s1-explain">The Remote check reads only the title and the sentences around your remote keywords. The model answers each category; your rules on the Pipeline tab decide which answers fail. These are the jobs it ${passed ? 'let through' : 'turned down'}.
+      <div class="s1-explain">The Remote check reads only the title and the sentences around your remote keywords. The model passes a posting only when one of those sentences says what your pass rule asks for, and reports what the posting says for each category. These are the jobs it ${passed ? 'let through' : 'turned down'}.
         <a href="/api/remote-jobs.csv?run_id=${encodeURIComponent(runId)}&verdict=${verdict}">Download as a table (CSV)</a></div>
       <div id="s1-rows"></div>
       <div class="pagination" id="s1-pages"></div>
@@ -1972,11 +1972,11 @@ async function openRemoteJobs(runId, verdict = 'fail') {
       return `
       <div class="s1-row">
         <div class="s1-title"><a href="${esc(j.job_url)}" target="_blank">${esc(j.title)}</a> <span>— ${esc(j.company)}${j.location ? ' · ' + esc(j.location) : ''}</span></div>
-        ${!passed && j.reason ? `<div class="s1-reason">${esc(j.reason)}</div>` : ''}
+        ${j.reason ? `<div class="s1-reason">${esc(j.reason)}${(j.evidence_sids || []).map(sid => (j.blocks || []).find(b => b.sid === sid)).filter(Boolean).map(b => `<div class="ra-quote">${quoteText(b.sentence)}</div>`).join('')}</div>` : ''}
         ${j.pruned_at ? `<div class="pruned-note">The details were removed on ${esc(fmtDate(j.pruned_at))} to save space.</div>` : remoteAnswersHtml(j.answers, j.blocks)}
         ${(j.blocks || []).length ? fold(`Everything it read · ${plural(j.blocks.length, 'sentence')}`,
             `${keywords.length ? `<div class="s1-keywords"><span>Matched</span>${keywords.map(k => `<span class="chip">${esc(k)}</span>`).join('')}</div>` : ''}${stage1BlocksHtml(j.blocks, keywords)}`)
-          : (j.pruned_at ? '' : '<div class="s1-reason none">No remote keyword in this posting: every category is “not stated”, without a model call.</div>')}
+          : ''}
       </div>`; }).join('') || `<div class="empty">Nothing has ${passed ? 'passed' : 'been turned down at'} the Remote check.</div>`;
     const pages = dialog.querySelector('#s1-pages');
     const shown = [...new Set([1, data.total_pages, page - 2, page - 1, page, page + 1, page + 2])]
@@ -2700,10 +2700,11 @@ function renderRemoteSummary() {
   } else {
     const profile = REMOTE_PROFILE_FIELDS.map(([key]) => (cfg.profile || {})[key]).filter(Boolean).join(' · ');
     html = `${profile ? `<div class="store-note"><b>Your situation</b> — ${esc(profile)}</div>` : ''}
+      <div class="store-note"><b>Passes when</b> — ${esc(cfg.pass_when || '')}</div>
       <div class="rm-sum-grid">${(cfg.categories || []).map(c => `
         <div class="rm-sum-card"><b>${esc(c.label)}</b>
           ${(c.options || []).map(o => `<div class="${o.rule === 'fail' ? 'fails' : ''}">${o.rule === 'fail' ? '✕' : '✓'} ${esc(o.label)}</div>`).join('')}
-          <div class="meta">Not stated ${c.unknown === 'fail' ? 'fails' : 'passes'} · ${plural((c.keywords || []).length, 'keyword')}</div></div>`).join('')}</div>
+</div>`).join('')}</div>
       <div class="store-note">${plural(new Set((cfg.categories || []).flatMap(c => c.keywords || [])).size, 'keyword')}. A posting with none of them is not read.</div>
       ${((kwLang || {}).missing || {}).remote ? kwLang.missing.remote.map(code => keywordAskHtml('remote', code, 'so a posting written in ' + languageLabel(code) + ' would never be read')).join('') : ''}
       <div class="save-row"><button class="save-btn" type="button" data-rm-open>Edit the setup</button><button class="text-btn" type="button" data-rm-start>Have my agent draft it again</button></div>`;
@@ -2731,18 +2732,16 @@ function remoteCategoryFields(c) {
   const answers = (c.options || []).map((o, j) => `
     <div class="rm-answer" data-id="${esc(o.id || '')}">
       <input type="text" data-rm="option-label" value="${esc(o.label || '')}" placeholder="An answer the model may give">
-      <select data-rm="option-rule" aria-label="What this answer means"><option value="pass" ${o.rule === 'fail' ? '' : 'selected'}>passes</option><option value="fail" ${o.rule === 'fail' ? 'selected' : ''}>fails</option></select>
+      <select data-rm="option-rule" aria-label="What this answer means"><option value="pass" ${o.rule === 'fail' ? '' : 'selected'}>is fine</option><option value="fail" ${o.rule === 'fail' ? 'selected' : ''}>fails the posting</option></select>
       <button class="text-btn" type="button" data-rm-remove-option="${j}" title="Remove this answer">Remove</button>
     </div>`).join('');
   return `
     <div class="field"><label>Name — what shows on each job</label><input type="text" data-rm="label" value="${esc(c.label || '')}"></div>
     <div class="field"><label>Question — what the model answers about each posting</label><input type="text" data-rm="question" value="${esc(c.question || '')}"></div>
-    <div class="field"><label>Answers the model picks from, and what each means for the posting</label>
+    <div class="field"><label>What a posting can say here. Mark the ones that rule a posting out; when it says nothing, this shows as “Not stated” and decides nothing.</label>
       <div class="rm-answers">${answers}</div>
       <button class="text-btn rc-add" type="button" data-rm-add-option>Add an answer</button>
-    </div>
-    <div class="rm-unknown"><span>When the posting does not say, the posting</span>
-      <select data-rm="unknown"><option value="pass" ${c.unknown === 'fail' ? '' : 'selected'}>passes</option><option value="fail" ${c.unknown === 'fail' ? 'selected' : ''}>fails</option></select></div>`;
+    </div>`;
 }
 // The keywords are confirmed in one step, shown by language. Matching does not
 // care which category or language a keyword belongs to: any of them gets a
@@ -2776,6 +2775,8 @@ function readRemoteStep() {
   if (!w || !root) return;
   if (w.step === 'situation') {
     w.config.profile = Object.fromEntries([...root.querySelectorAll('[data-rm-profile]')].map(f => [f.dataset.rmProfile, f.value.trim()]));
+  } else if (w.step === 'rule') {
+    w.config.pass_when = root.querySelector('[data-rm="pass-when"]').value.trim();
   } else if (w.step === 'keywords') {
     readRemoteKeywords(w.config);
   } else if (typeof w.step === 'number') {
@@ -2786,7 +2787,7 @@ function readRemoteStep() {
       options: [...root.querySelectorAll('.rm-answer')].map(row => ({
         id: row.dataset.id || undefined, label: row.querySelector('[data-rm="option-label"]').value.trim(),
         rule: row.querySelector('[data-rm="option-rule"]').value})),
-      unknown: root.querySelector('[data-rm="unknown"]').value,
+      unknown: 'pass',
     };
   } else {
     w.config.drop_without_keywords = true;  // no longer a choice: a posting with none of the keywords is never read
@@ -2820,8 +2821,8 @@ function renderRemoteDialog() {
                       origin: remoteSetup.draft ? 'draft' : remoteSetup.saved ? 'saved' : 'general'};
     }
     const w = remoteWizard, cats = w.config.categories;
-    const total = cats.length + 3;
-    const at = w.step === 'situation' ? 1 : w.step === 'keywords' ? 2 : w.step === 'review' ? total : w.step + 3;
+    const total = cats.length + 4;
+    const at = w.step === 'situation' ? 1 : w.step === 'keywords' ? 2 : w.step === 'rule' ? 3 : w.step === 'review' ? total : w.step + 4;
     const progress = `<div class="rm-progress">Step ${at} of ${total}</div>`;
     if (w.step === 'situation') {
       const p = w.config.profile || {};
@@ -2837,13 +2838,20 @@ function renderRemoteDialog() {
         ${languages.map(code => `<div class="field"><label>${esc(languageLabel(code))} · ${groups[code].length}</label>${renderChipInput('rm-kw-' + code, groups[code])}
           ${groups[code].length ? '' : ask(code)}</div>`).join('')}
         <div class="rm-nav"><button class="text-btn" type="button" data-rm-back>Back</button><button class="save-btn" type="button" data-rm-next>Confirm</button></div>`;
+    } else if (w.step === 'rule') {
+      body = `${progress}<div class="rm-step">What passes</div>
+        <div class="rm-step-intro">A posting passes the Remote check only when one of the sentences it read says this. A posting that says nothing about it does not pass. The things that rule a posting out come next, one topic at a time.</div>
+        <div class="field"><label>A posting passes when</label><textarea data-rm="pass-when" rows="3">${esc(w.config.pass_when || '')}</textarea></div>
+        <div class="rm-nav"><button class="text-btn" type="button" data-rm-back>Back</button><button class="save-btn" type="button" data-rm-next>Confirm</button></div>`;
     } else if (w.step === 'review') {
       body = `${progress}<div class="rm-step">Confirm your setup</div>
-        <div class="rm-step-intro">A posting passes when none of its answers is one marked ✕.</div>
+        <div class="rm-step-intro">A posting passes when a sentence says what your pass rule asks for and none shows an answer marked ✕.</div>
+        <div class="rm-card rm-review"><div><b>Passes when</b><div class="rm-review-answers"><span>${esc(w.config.pass_when || '')}</span></div></div>
+          <button class="text-btn" type="button" data-rm-goto="rule">Change</button></div>
         <div class="rm-card rm-review"><div><b>Keywords</b><div class="rm-review-answers"><span class="meta">${plural(new Set(cats.flatMap(c => c.keywords || [])).size, 'keyword')}</span></div></div>
           <button class="text-btn" type="button" data-rm-goto="keywords">Change</button></div>
         ${cats.map((c, i) => `<div class="rm-card rm-review"><div><b>${esc(c.label || 'Unnamed')}</b>
-          <div class="rm-review-answers">${(c.options || []).map(o => `<span class="${o.rule === 'fail' ? 'fails' : ''}">${o.rule === 'fail' ? '✕' : '✓'} ${esc(o.label)}</span>`).join('')}<span class="meta">Not stated ${c.unknown === 'fail' ? 'fails' : 'passes'}</span></div></div>
+          <div class="rm-review-answers">${(c.options || []).map(o => `<span class="${o.rule === 'fail' ? 'fails' : ''}">${o.rule === 'fail' ? '✕' : '✓'} ${esc(o.label)}</span>`).join('')}</div></div>
           <button class="text-btn" type="button" data-rm-goto="${i}">Change</button></div>`).join('')}
         <button class="text-btn rc-add" type="button" data-rm-add-category>Add a category</button>
         <details class="fold" style="margin-top:12px;"><summary>Notes for the model</summary>
@@ -2887,8 +2895,8 @@ function bindRemoteDialog(root) {
     renderRemoteDialog();
   });
   if (!w) return;
-  on('[data-rm-back]', () => go(() => { w.step = w.step === 'review' ? (w.config.categories.length ? w.config.categories.length - 1 : 'keywords') : w.step === 'keywords' ? 'situation' : w.step === 0 ? 'keywords' : w.step - 1; }));
-  on('[data-rm-goto]', b => go(() => { w.step = b.dataset.rmGoto === 'keywords' ? 'keywords' : parseInt(b.dataset.rmGoto, 10); w.fromReview = true; }));
+  on('[data-rm-back]', () => go(() => { w.step = w.step === 'review' ? (w.config.categories.length ? w.config.categories.length - 1 : 'rule') : w.step === 'keywords' ? 'situation' : w.step === 'rule' ? 'keywords' : w.step === 0 ? 'rule' : w.step - 1; }));
+  on('[data-rm-goto]', b => go(() => { w.step = ['keywords', 'rule'].includes(b.dataset.rmGoto) ? b.dataset.rmGoto : parseInt(b.dataset.rmGoto, 10); w.fromReview = true; }));
   on('[data-rm-add-category]', () => go(() => {
     w.config.categories.push({label: '', question: '', keywords: [], options: [{label: '', rule: 'pass'}], unknown: 'pass'});
     w.step = w.config.categories.length - 1; w.fromReview = true;
@@ -2902,6 +2910,9 @@ function bindRemoteDialog(root) {
       if (!w.config.profile.residence && w.origin !== 'general') { root.querySelector('[data-rm-profile="residence"]').focus(); return; }
       w.step = 'keywords';
     } else if (w.step === 'keywords') {
+      w.step = w.fromReview ? 'review' : 'rule';
+      w.fromReview = false;
+    } else if (w.step === 'rule') {
       w.step = w.fromReview || !w.config.categories.length ? 'review' : 0;
       w.fromReview = false;
     } else {
@@ -3161,8 +3172,8 @@ function renderConfigSection() {
     ${stageOn('remote') ? '' : '<div class="stage-off-note">Off. Runs skip this stage and behave as they did before it existed.</div>'}
     <div class="explain">
       For postings that passed Stage0, shows a cheap AI model (haiku) <b>only the title and the sentences around your remote keywords</b>.
-      The model answers each category below from a fixed list of answers, with the sentence it rests on; <b>your rule for that answer</b> decides pass or fail.
-      Only what passes goes on to the next stage that is on.
+      It passes a posting only when one of those sentences says what <b>your pass rule</b> asks for, and none shows something you marked as ruling a posting out.
+      It also reports what each posting says per category (or “Not stated”). Only what passes goes on to the next stage that is on.
     </div>
     <div id="remote-summary"><div class="empty">Loading</div></div>
   </div>
