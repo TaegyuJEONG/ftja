@@ -1,7 +1,7 @@
 """Stage 0 — deterministic filter, no LLM call.
 
 Location is NOT filtered here — it's already deterministic at scrape time
-(jobspy's `location`/`is_remote` params in ftja/scrape.py), so a second
+(jobspy's `location` param in ftja/scrape.py), so a second
 location check here would just be redundant with what the scrape already
 guaranteed. (Caveat: if criteria.json's `location` is a single string like
 "European Union", visa-sponsored locations mentioned in rubric.md but never

@@ -46,7 +46,8 @@ def test_a_run_from_start_to_finish_as_the_viewer_sees_it(project, capsys):
     run = live.start(project)
     run_dir = run["run_dir"]
     state = live.state(project)
-    assert state["run_id"] == run["run_id"] and state["criteria_snapshot"]["is_remote"] is False
+    assert state["run_id"] == run["run_id"] and state["criteria_snapshot"]["location"] == "France"
+    assert "is_remote" not in state["criteria_snapshot"]  # LinkedIn ignores the filter; it is no longer sent or shown
     assert [t["term"] for t in state["scrape"]["terms"]] == ["Product Builder", "Product Manager"]
     assert state["scrape"]["total"] == 0 and state["stage0"] is None and state["jobs"] == []
 

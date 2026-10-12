@@ -5,6 +5,22 @@ What changed in each version, newest first. If you cloned FTJA earlier, run
 these. Your own files — `criteria.json`, `rubric.md`, `profile/`, `seen.db`,
 digests — are never touched by an update.
 
+## 0.2.13 — 2026-10-12
+
+### What changes for you after updating
+
+- The "Remote only" setting is gone, from setup and from the Pipeline tab.
+  It never had an effect: LinkedIn ignores its Remote filter for searches
+  that are not logged in, which is how FTJA searches. Tested on one search,
+  the same postings came back with the filter set to remote, hybrid,
+  on-site or left out. Runs that had it on were not restricted to remote
+  postings.
+- To find remote roles, put "remote" in a search term (it then matches the
+  posting's text), and let FTJA judge remote from each posting: keywords
+  such as "remote", "hybrid" and "on-site", and a rubric criterion.
+- Nothing to change in your files: an `is_remote` line left in
+  `criteria.json` is ignored.
+
 ## 0.2.12 — 2026-10-11
 
 ### What changes for you after updating

@@ -52,7 +52,7 @@ Optional --stats file (JSON): {"ts_start": iso8601, "duration_seconds": float,
 "total_tokens": int, "scraped_count": int, "already_seen_skipped": int,
 "stage0_dropped": {"language": int, "no_tier1_hit": int, "exclude_keyword": int,
 "language_requirement": int, "duplicate_content": int},
-"criteria_snapshot": {"search_terms": [...], "location": str, "is_remote": bool,
+"criteria_snapshot": {"search_terms": [...], "location": str,
 "hours_old": int, "results_wanted": int}} — whatever the orchestrating skill can
 report. Fields it can't measure are just omitted; finalize never fabricates a
 number it wasn't given. `criteria_snapshot` matters because criteria.json can

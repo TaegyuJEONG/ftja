@@ -42,7 +42,7 @@ from ftja.verdict import (DEFAULT_CRITERIA_PATH, STATUS_FOR_VERDICT, clean_extra
 
 RUNS_DIR = ".ftja-run"
 KEEP_RUNS = 5
-SNAPSHOT_KEYS = ("search_terms", "location", "is_remote", "hours_old", "results_wanted", "exact_phrase_search",
+SNAPSHOT_KEYS = ("search_terms", "location", "hours_old", "results_wanted", "exact_phrase_search",
                  "stage1_only")
 PAGE_SIZE = 10
 # A replay has no lock to say it is alive; it counts as running while it keeps writing.
@@ -151,7 +151,7 @@ def scrape_term(run_dir: str, n: int) -> int:
         _write_json(progress_path, {"term": term, "count": count, "wanted": wanted, "done": done})
 
     jobs = scrape(search_term=term, location=snapshot.get("location") or "",
-                  is_remote=bool(snapshot.get("is_remote")), results_wanted=wanted,
+                  results_wanted=wanted,
                   hours_old=int(snapshot.get("hours_old") or 72),
                   exact_phrase=snapshot.get("exact_phrase_search", True) is not False,
                   on_batch=report)

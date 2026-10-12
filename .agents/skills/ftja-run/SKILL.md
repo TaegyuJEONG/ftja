@@ -210,7 +210,7 @@ with a line to the user between them (see "Keep the user informed"):
 venv/bin/python -m ftja.live scrape --dir <run_dir> --term <index>
 ```
 
-Each call reads the term, location, remote-only flag, time window, cap per
+Each call reads the term, location, time window, cap per
 term and exact-phrase setting from the run's own snapshot, scrapes in
 batches of 10, and updates that term's count after every batch.
 
