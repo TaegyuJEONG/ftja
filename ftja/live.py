@@ -16,11 +16,18 @@ Layout:
   rubric.md                the viewer mid-run; this run judges against the copies
   scrape/<n>.json          jobs scraped for search term n
   scrape/<n>.progress.json {term, count, wanted, done}, rewritten every batch
+  remote-check.json        copy of the Remote check's setup, when that stage is on
   stage0.json, stage0-dropped.json, stage0-counts.json
+  rc/manifest.json         jobs sent to the Remote check; rc/<n>.txt prompt, rc/<n>.out.json answers
   s1/manifest.json         jobs sent to Stage 1; s1/<n>.txt prompt, s1/<n>.out.json verdict
   s2/manifest.json         jobs sent to Stage 2; s2/<n>.txt prompt, s2/<n>.out.json answer
   results.json, stats.json what finalize reads
   done.json                written by finalize; the run is no longer live
+
+Which judging stages a run does is fixed at its start (`stages` in its
+snapshot: any of remote, stage1, stage2, in that order). Each stage judges
+what the stage before it let through. A run whose last stage is not Stage 2
+ends with its passes waiting, and `continue` reopens it for one more stage.
 
 Live Stage 2 cards are judged with the same `ftja.verdict.judge` finalize
 uses, on the same JD text, so the live card and the final one can't differ.
@@ -35,6 +42,7 @@ import sys
 import time
 from datetime import datetime, timezone
 
+from ftja import remote as remote_check
 from ftja.lock import is_locked
 from ftja.state import connect, is_seen
 from ftja.verdict import (DEFAULT_CRITERIA_PATH, STATUS_FOR_VERDICT, clean_extras, judge, load_criteria,
@@ -44,6 +52,9 @@ RUNS_DIR = ".ftja-run"
 KEEP_RUNS = 5
 SNAPSHOT_KEYS = ("search_terms", "location", "locations", "hours_old", "results_wanted", "title_must_match",
                  "stage1_only")
+STAGES = ("remote", "stage1", "stage2")
+STAGE_NAMES = {"remote": "the Remote check", "stage1": "Stage 1", "stage2": "Stage 2"}
+NO_KEYWORD_REASON = "None of your Stage 1 keywords appears in this posting."
 PAGE_SIZE = 10
 # A replay has no lock to say it is alive; it counts as running while it keeps writing.
 REPLAY_STALE_SECONDS = 120
@@ -129,17 +140,43 @@ def searches(snapshot: dict) -> list[dict]:
             for term in (snapshot.get("search_terms") or []) for location in locations_of(snapshot)]
 
 
+def stages_of(criteria: dict) -> list[str]:
+    """The judging stages criteria.json asks for, in order. Its `stages`
+    object switches each one on or off; a file from before there were
+    switches means Stage 1 and Stage 2, or Stage 1 alone with `stage1_only`."""
+    chosen = criteria.get("stages")
+    if isinstance(chosen, dict):
+        return [s for s in STAGES if chosen.get(s)]
+    if isinstance(chosen, list):  # a run's own snapshot
+        return [s for s in STAGES if s in chosen]
+    return ["stage1"] + ([] if criteria.get("stage1_only") else ["stage2"])
+
+
+def run_stages(run_dir: str) -> list[str]:
+    """The stages this run does: the ones it started with, plus any it was
+    continued into since."""
+    run = _read_json(os.path.join(run_dir, "run.json"), {}) or {}
+    stages = set(stages_of(run.get("criteria_snapshot") or {})) | set(run.get("added_stages") or [])
+    if run.get("continued_at") and not run.get("added_stages"):
+        stages.add("stage2")  # continued by a version that only knew "Continue to Stage 2"
+    return [s for s in STAGES if s in stages]
+
+
 def start(project_dir: str = ".") -> dict:
     """Step 0: fix the run id and create the directory. From this moment the
     run shows in the viewer's Results tab."""
     criteria = _read_json(os.path.join(project_dir, "criteria.json"), {}) or {}
+    stages = stages_of(criteria)
+    if not stages:
+        raise SystemExit("Every stage is switched off. Turn on at least one of Remote check, Stage 1 and Stage 2 "
+                         "on the Pipeline tab.")
     ts_start = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     run_dir = run_dir_for(project_dir, ts_start)
     if os.path.exists(run_dir):  # the id is the start time to the second; never reuse a directory
         time.sleep(1)
         return start(project_dir)
     for old in _run_dirs(project_dir)[KEEP_RUNS - 1:]:
-        if not awaiting_stage2(old):  # its files are what "Continue to Stage 2" reads
+        if not awaiting_stage2(old):  # its files are what "Continue" reads
             shutil.rmtree(old, ignore_errors=True)
     os.makedirs(run_dir, exist_ok=True)
     for name in (DEFAULT_CRITERIA_PATH, "rubric.md"):
@@ -147,13 +184,16 @@ def start(project_dir: str = ".") -> dict:
     snapshot = {k: criteria.get(k) for k in SNAPSHOT_KEYS if k in criteria}
     snapshot["locations"] = locations_of(criteria)
     snapshot["location"] = ", ".join(snapshot["locations"])  # as one line, for anything that shows it
+    snapshot["stages"] = stages
+    if "remote" in stages:  # judged against the setup as it is now, like the rubric
+        _write_json(os.path.join(run_dir, remote_check.CONFIG_FILE), remote_check.config_or_default(project_dir))
     run = {"run_id": ts_start, "ts_start": ts_start, "criteria_snapshot": snapshot}
     _write_json(os.path.join(run_dir, "run.json"), run)
     plan = searches(snapshot)
     for n, search in enumerate(plan):
         _write_json(os.path.join(run_dir, "scrape", f"{n}.progress.json"),
                     {**search, "count": 0, "wanted": snapshot.get("results_wanted"), "done": False})
-    return {**run, "run_dir": run_dir, "searches": plan}
+    return {**run, "run_dir": run_dir, "searches": plan, "stages": stages}
 
 
 def scrape_term(run_dir: str, n: int) -> int:
@@ -200,7 +240,12 @@ def stage0(run_dir: str, project_dir: str = ".", db_path: str = "seen.db") -> di
     jobs = list(merged.values())
     criteria = _read_json(os.path.join(project_dir, "criteria.json"), {})
     dropped_jobs: list[dict] = []
-    passed, dropped = filter_stage0(jobs, criteria, dropped_jobs)
+    stages = run_stages(run_dir)
+    if stages == ["stage1", "stage2"] or stages == ["stage1"]:  # no Remote check: the filter as it always was
+        passed, dropped = filter_stage0(jobs, criteria, dropped_jobs)
+    else:
+        passed, dropped = filter_stage0(jobs, criteria, dropped_jobs, remote=_remote_config(run_dir),
+                                        stage1="stage1" in stages)
     with connect(db_path) as conn:
         fresh = [j for j in passed if not is_seen(conn, j.get("job_url", ""))]
     dropped = {**dropped, "already_seen": len(passed) - len(fresh)}
@@ -227,30 +272,154 @@ def _matched(job: dict) -> tuple[list[str], list[str]]:
     return keywords, [b["sentence"] for b in blocks]
 
 
+def _entry(job: dict) -> dict:
+    return {"job_url": job["job_url"], "title": job.get("title"), "company": job.get("company"),
+            # a repost listed for other places too names them all
+            "location": " / ".join(filter(None, [job.get("location"), *(job.get("_duplicate_locations") or [])]))}
+
+
+def _feeding(run_dir: str, stage: str) -> tuple[list[dict], list[int], str | None]:
+    """What `stage` gets to judge in this run: the passes of the stage before
+    it, or every Stage 0 survivor when it is the first one.
+    -> (jobs, numbers the earlier stage has not settled yet, that stage)."""
+    earlier = [s for s in run_stages(run_dir) if STAGES.index(s) < STAGES.index(stage)]
+    if not earlier:
+        jobs = _read_json(os.path.join(run_dir, "stage0.json"), []) or []
+        return [{**_entry(job), "n": n} for n, job in enumerate(jobs)], [], None
+    folder, command = ("s1", "prepare-stage1") if earlier[-1] == "stage1" else ("rc", "prepare-remote")
+    if not os.path.exists(os.path.join(run_dir, folder, "manifest.json")):
+        raise SystemExit(f"{STAGE_NAMES[earlier[-1]]} comes first in this run and has not been prepared. "
+                         f"Run `{command}` and judge its jobs, then call this again.")
+    passed, _, pending = _stage1_results(run_dir) if earlier[-1] == "stage1" else _remote_results(run_dir)
+    return passed, pending, earlier[-1]
+
+
+def _require(run_dir: str, stage: str):
+    if stage not in run_stages(run_dir):
+        raise SystemExit(f"{STAGE_NAMES[stage][0].upper()}{STAGE_NAMES[stage][1:]} is not part of this run "
+                         f"(its stages: {', '.join(run_stages(run_dir))}). Skip this step.")
+
+
+# ---- the Remote check ---------------------------------------------------------
+
+def _remote_config(run_dir: str) -> dict | None:
+    """This run's copy of the Remote check's setup; None when the run has no such stage."""
+    if "remote" not in run_stages(run_dir):
+        return None
+    return remote_check.load_config(os.path.join(run_dir, remote_check.CONFIG_FILE)) or remote_check.default_config()
+
+
+def prepare_remote(run_dir: str, project_dir: str = ".") -> dict:
+    """Remote check setup: one prompt file per Stage 0 survivor that has a
+    remote keyword, and the manifest. A survivor without one (kept because
+    the setup says so) gets no prompt: every category is "?" for it."""
+    _require(run_dir, "remote")
+    config = _remote_config(run_dir)
+    jobs = _read_json(os.path.join(run_dir, "stage0.json"), []) or []
+    jobs = sorted(jobs, key=lambda j: not j.get("_remote_blocks"))  # the ones a model reads are numbered first
+    template = _template(os.path.join(project_dir, "remote_prompt.md"))
+    os.makedirs(os.path.join(run_dir, "rc"), exist_ok=True)
+    manifest = []
+    for n, job in enumerate(jobs):
+        blocks = job.get("_remote_blocks") or []
+        entry = {"n": n, **_entry(job),
+                 "blocks": [{"s_id": b["s_id"], "sentence": b["sentence"], "matched": bool(b.get("matched")),
+                             "keywords": b.get("matched_keywords") or []} for b in blocks]}
+        if blocks:
+            with open(os.path.join(run_dir, "rc", f"{n}.txt"), "w") as f:
+                f.write(remote_check.render_prompt(template, config, job, blocks))
+        else:
+            entry["auto"] = True
+        manifest.append(entry)
+    _write_json(os.path.join(run_dir, "rc", "manifest.json"), manifest)
+    read = sum(1 for e in manifest if not e.get("auto"))
+    return {"jobs": read, "without_remote_keywords": len(manifest) - read,
+            "prompt_files": os.path.join(run_dir, "rc", "<n>.txt"), "output_files": os.path.join(run_dir, "rc", "<n>.out.json")}
+
+
+def check_remote(run_dir: str) -> dict:
+    """Remote check answers that cannot be used, by job number, so the run
+    can rerun them before moving on."""
+    config = _remote_config(run_dir)
+    manifest = [e for e in _read_json(os.path.join(run_dir, "rc", "manifest.json"), []) or [] if not e.get("auto")]
+    rerun = {}
+    for entry in manifest:
+        answer = _read_answer(os.path.join(run_dir, "rc", f"{entry['n']}.out.json"))
+        if answer is None:
+            rerun[entry["n"]] = ["no usable answer file"]
+            continue
+        problems = remote_check.answer_problems(config, {b["s_id"] for b in entry["blocks"]}, answer)
+        if problems:
+            rerun[entry["n"]] = problems
+    return {"jobs": len(manifest), "rerun": rerun}
+
+
+def _remote_results(run_dir: str) -> tuple[list[dict], list[dict], list[int]]:
+    """-> (passed, failed, numbers still without a usable answer). Pass and
+    fail are worked out here, from each category's answer and the rule the
+    user set for it; the model never says either."""
+    config = _remote_config(run_dir)
+    manifest_path = os.path.join(run_dir, "rc", "manifest.json")
+    passed, failed, pending = [], [], []
+    for entry in _read_json(manifest_path, []) or []:
+        shown = {b["s_id"] for b in entry.get("blocks") or []}
+        if entry.get("auto"):
+            answer, judged_at = None, _mtime(manifest_path)
+        else:
+            path = os.path.join(run_dir, "rc", f"{entry['n']}.out.json")
+            answer, judged_at = _read_answer(path), _mtime(path)
+            if answer is None or remote_check.answer_problems(config, shown, answer):
+                pending.append(entry["n"])
+                continue
+        judged = remote_check.judge(config, answer, shown)
+        entry = {**entry, "judged_at": judged_at, "answers": judged["answers"], "reason": judged["reason"],
+                 "remote_blocks": [{"sid": b["s_id"], "sentence": b["sentence"], "matched": bool(b["matched"]),
+                                    "keywords": b.get("keywords") or []} for b in entry.get("blocks") or []]}
+        (passed if judged["verdict"] == "pass" else failed).append(entry)
+    return passed, failed, pending
+
+
+# ---- Stage 1 ---------------------------------------------------------------------
+
 def prepare_stage1(run_dir: str, project_dir: str = ".") -> dict:
-    """Step 3 setup: write one prompt file per Stage 0 survivor and the
-    manifest that maps file numbers to jobs."""
-    fresh = _read_json(os.path.join(run_dir, "stage0.json"), [])
+    """Step 3 setup: write one prompt file per job Stage 1 judges (the Stage
+    0 survivors, or the Remote check's passes when that stage ran first) and
+    the manifest that maps file numbers to jobs."""
+    _require(run_dir, "stage1")
+    entries, unsettled, feeder = _feeding(run_dir, "stage1")
+    if unsettled:
+        raise SystemExit(f"{STAGE_NAMES[feeder]} has no usable answer yet for: {unsettled}. Rerun those jobs, then call this again.")
+    by_url = {j["job_url"]: j for j in _read_json(os.path.join(run_dir, "stage0.json"), []) or []}
+    fresh = [by_url[e["job_url"]] for e in entries if e["job_url"] in by_url]
+    # Only a run that started without Stage 1 can hold a job with no keyword
+    # sentence. Those are failed by code and numbered last.
+    fresh.sort(key=lambda j: not any(b.get("matched") for b in j.get("_t1_blocks") or []))
     template = _template(os.path.join(project_dir, "stage1_prompt.md"))
     excerpt = _rubric_excerpt(os.path.join(run_dir, "rubric.md"))
     os.makedirs(os.path.join(run_dir, "s1"), exist_ok=True)
     manifest = []
     for n, job in enumerate(fresh):
         blocks = job.get("_t1_blocks") or []
+        entry = {"n": n, **_entry(job),
+                 "blocks": [{"s_id": b["s_id"], "sentence": b["sentence"], "matched": bool(b.get("matched")),
+                             "keywords": b.get("matched_keywords") or []} for b in blocks]}
+        if not any(b.get("matched") for b in blocks):
+            manifest.append({**entry, "auto_fail": NO_KEYWORD_REASON})
+            continue
         rendered = "\n".join(f"{b['s_id']}[{'T1' if b.get('matched') else 'ctx'}] {b['sentence']}" for b in blocks)
         prompt = (template.replace("{rubric_pass_fail_excerpt}", excerpt)
                   .replace("{title}", str(job.get("title") or "")).replace("{company}", str(job.get("company") or ""))
                   .replace("{blocks}", rendered))
         with open(os.path.join(run_dir, "s1", f"{n}.txt"), "w") as f:
             f.write(prompt)
-        manifest.append({"n": n, "job_url": job["job_url"], "title": job.get("title"), "company": job.get("company"),
-                         # a repost listed for other places too names them all
-                         "location": " / ".join(filter(None, [job.get("location"), *(job.get("_duplicate_locations") or [])])),
-                         "blocks": [{"s_id": b["s_id"], "sentence": b["sentence"], "matched": bool(b.get("matched")),
-                                     "keywords": b.get("matched_keywords") or []} for b in blocks]})
+        manifest.append(entry)
     _write_json(os.path.join(run_dir, "s1", "manifest.json"), manifest)
-    return {"jobs": len(manifest),
-            "prompt_files": os.path.join(run_dir, "s1", "<n>.txt"), "output_files": os.path.join(run_dir, "s1", "<n>.out.json")}
+    by_code = sum(1 for e in manifest if e.get("auto_fail"))
+    out = {"jobs": len(manifest) - by_code,
+           "prompt_files": os.path.join(run_dir, "s1", "<n>.txt"), "output_files": os.path.join(run_dir, "s1", "<n>.out.json")}
+    if by_code:
+        out["failed_by_code_no_keyword"] = by_code
+    return out
 
 
 def stage1_problems(entry: dict, answer: dict) -> tuple[list[str], list[str]]:
@@ -283,7 +452,7 @@ def stage1_problems(entry: dict, answer: dict) -> tuple[list[str], list[str]]:
 def check_stage1(run_dir: str) -> dict:
     """Every Stage 1 answer's problems and warnings, by job number, so the
     run can rerun the unusable ones before moving on."""
-    manifest = _read_json(os.path.join(run_dir, "s1", "manifest.json"), []) or []
+    manifest = [e for e in _read_json(os.path.join(run_dir, "s1", "manifest.json"), []) or [] if not e.get("auto_fail")]
     rerun, warn = {}, {}
     for entry in manifest:
         answer = _read_answer(os.path.join(run_dir, "s1", f"{entry['n']}.out.json"))
@@ -302,10 +471,15 @@ def check_stage1(run_dir: str) -> dict:
 
 def _stage1_results(run_dir: str) -> tuple[list[dict], list[dict], list[int]]:
     """-> (passed, failed, numbers still without a usable verdict)."""
-    manifest = _read_json(os.path.join(run_dir, "s1", "manifest.json"), []) or []
+    manifest_path = os.path.join(run_dir, "s1", "manifest.json")
+    manifest = _read_json(manifest_path, []) or []
     passed, failed, pending = [], [], []
     replay = bool((_read_json(os.path.join(run_dir, "run.json"), {}) or {}).get("replay"))
     for entry in manifest:
+        if entry.get("auto_fail"):  # no keyword sentence to show a model: failed by code
+            failed.append({**entry, "judged_at": _mtime(manifest_path), "reason": entry["auto_fail"],
+                           "stage1_warnings": [], "evidence_sentences": [], "t1_blocks": []})
+            continue
         path = os.path.join(run_dir, "s1", f"{entry['n']}.out.json")
         answer = _read_answer(path)
         verdict = str((answer or {}).get("verdict") or "").lower()
@@ -355,15 +529,18 @@ def tokens_total(run_dir: str) -> int:
 
 
 def prepare_stage2(run_dir: str, project_dir: str = ".", partial: bool = False) -> dict:
-    """Step 4 setup: one prompt file per Stage 1 pass. It only ever adds: a
-    job keeps the number it was first given, so it can be called again as
-    more Stage 1 verdicts land (`partial`) and Stage 2 can start on the
-    first passes while Stage 1 is still working through the rest. Without
-    `partial` it refuses while Stage 1 verdicts are missing, naming them,
+    """Step 4 setup: one prompt file per job Stage 2 judges — the Stage 1
+    passes, or the Remote check's when the run has no Stage 1. It only ever
+    adds: a job keeps the number it was first given, so it can be called
+    again as more Stage 1 verdicts land (`partial`) and Stage 2 can start on
+    the first passes while Stage 1 is still working through the rest.
+    Without `partial` it refuses while verdicts are missing, naming them,
     so none is silently dropped."""
-    passed, _, pending = _stage1_results(run_dir)
+    _require(run_dir, "stage2")
+    passed, pending, feeder = _feeding(run_dir, "stage2")
     if pending and not partial:
-        raise SystemExit(f"Stage 1 has no usable verdict yet for: {pending}. Rerun those jobs, then call this again.")
+        name = "Stage 1" if feeder == "stage1" else "The Remote check"
+        raise SystemExit(f"{name} has no usable verdict yet for: {pending}. Rerun those jobs, then call this again.")
     by_url = {j["job_url"]: j for j in _read_json(os.path.join(run_dir, "stage0.json"), [])}
     definitions = load_criteria(os.path.join(run_dir, DEFAULT_CRITERIA_PATH))["criteria"]
     template = (_template(os.path.join(project_dir, "stage2_prompt.md"))
@@ -395,47 +572,72 @@ def prepare_stage2(run_dir: str, project_dir: str = ".", partial: bool = False) 
             "prompt_files": os.path.join(run_dir, "s2", "<n>.txt"), "output_files": os.path.join(run_dir, "s2", "<n>.out.json")}
 
 
+def stops_after(run_dir: str) -> str | None:
+    """The stage this run ends at, when that is not Stage 2: what passed it
+    is recorded as waiting, and the run can be continued."""
+    stages = run_stages(run_dir)
+    return stages[-1] if stages and stages[-1] != "stage2" else None
+
+
 def stops_after_stage1(run_dir: str) -> bool:
-    """A run started with `stage1_only` in criteria.json stops once Stage 1
-    is done, unless it has since been continued."""
-    run = _read_json(os.path.join(run_dir, "run.json"), {}) or {}
-    return bool((run.get("criteria_snapshot") or {}).get("stage1_only")) and not run.get("continued_at")
+    """A run started with Stage 2 switched off (`stage1_only` before there
+    were switches) stops once Stage 1 is done, unless it has since been
+    continued."""
+    return stops_after(run_dir) == "stage1"
 
 
 def awaiting_stage2(run_dir: str) -> bool:
-    """A finished run that stopped after Stage 1 and can still be continued."""
+    """A finished run that stopped before Stage 2, with postings waiting,
+    and can still be continued."""
     done = _read_json(os.path.join(run_dir, "done.json"))
     return bool(done and done.get("stage2_pending"))
 
 
-def continue_run(project_dir: str, run_id: str) -> dict:
-    """Reopen a run that stopped after Stage 1 so Stage 2 can judge its
-    passes. The run keeps its id, its Stage 1 answers and its copy of the
-    rubric; it becomes the run in progress again (the caller holds the lock)."""
+def continue_run(project_dir: str, run_id: str, to: str | None = None) -> dict:
+    """Reopen a run that stopped before Stage 2 so one more stage (`to`:
+    Stage 2 unless said otherwise) can judge what is waiting. The run keeps
+    its id, its answers so far and its copy of the rubric; it becomes the
+    run in progress again (the caller holds the lock)."""
     run_dir = run_dir_for(project_dir, run_id)
     if not awaiting_stage2(run_dir):
-        raise SystemExit("That run is not waiting for Stage 2 (it was not stopped after Stage 1, "
+        raise SystemExit("That run is not waiting for another stage (it ran to the end, "
                          "it has already been continued, or its working files are gone).")
+    last, to = stops_after(run_dir), to or "stage2"
+    if to not in STAGES or STAGES.index(to) <= STAGES.index(last):
+        raise SystemExit(f"That run stopped after {STAGE_NAMES[last]}; it can go on to "
+                         f"{' or '.join(STAGE_NAMES[s] for s in STAGES[STAGES.index(last) + 1:])}.")
     run = _read_json(os.path.join(run_dir, "run.json"), {}) or {}
     run["continued_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    run["added_stages"] = [*(run.get("added_stages") or []), to]
     _write_json(os.path.join(run_dir, "run.json"), run)  # also makes it the newest run, which is the live one
     os.remove(os.path.join(run_dir, "done.json"))
-    passed, _, _ = _stage1_results(run_dir)
-    return {"run_id": run_id, "run_dir": run_dir, "stage1_passes": len(passed)}
+    if last == "stage1":
+        return {"run_id": run_id, "run_dir": run_dir, "stage1_passes": len(_stage1_results(run_dir)[0])}
+    return {"run_id": run_id, "run_dir": run_dir, "to": to, "remote_passes": len(_remote_results(run_dir)[0])}
 
 
 def assemble_results(run_dir: str) -> dict:
     """Step 5 setup: results.json and stats.json for finalize. Refuses while
-    any Stage 2 answer is missing. For a run that stops after Stage 1, the
-    Stage 1 passes are recorded as waiting (`stage1_pass`) instead."""
+    any answer of a stage this run does is missing. For a run that stops
+    before Stage 2, what passed its last stage is recorded as waiting
+    (`stage1_pass` or `remote_pass`) instead."""
     by_url = {j["job_url"]: j for j in _read_json(os.path.join(run_dir, "stage0.json"), [])}
-    passed, failed, pending = _stage1_results(run_dir)
-    stop = stops_after_stage1(run_dir)
-    s2_manifest = [] if stop else (_read_json(os.path.join(run_dir, "s2", "manifest.json"), []) or [])
+    stages = run_stages(run_dir)
+    for stage, folder, command in (("remote", "rc", "prepare-remote"), ("stage1", "s1", "prepare-stage1"),
+                                   ("stage2", "s2", "prepare-stage2")):
+        if stage in stages and not os.path.exists(os.path.join(run_dir, folder, "manifest.json")):
+            raise SystemExit(f"Not complete — {STAGE_NAMES[stage]} has not been prepared. Run `{command}` and judge its jobs first.")
+    remote_passed, remote_failed, remote_pending = _remote_results(run_dir) if "remote" in stages else ([], [], [])
+    passed, failed, pending = _stage1_results(run_dir) if "stage1" in stages else ([], [], [])
+    stop = stops_after(run_dir)
+    s2_manifest = (_read_json(os.path.join(run_dir, "s2", "manifest.json"), []) or []) if "stage2" in stages else []
     answers = {e["job_url"]: _read_answer(os.path.join(run_dir, "s2", f"{e['n']}.out.json")) for e in s2_manifest}
     missing = [e["n"] for e in s2_manifest if not isinstance((answers[e["job_url"]] or {}).get("criteria"), list)]
-    if pending or missing:
-        raise SystemExit(f"Not complete — Stage 1 missing: {pending}; Stage 2 missing: {missing}. Rerun those, then call this again.")
+    if remote_pending or pending or missing:
+        remote_part = f"Remote check missing: {remote_pending}; " if "remote" in stages else ""
+        raise SystemExit(f"Not complete — {remote_part}Stage 1 missing: {pending}; Stage 2 missing: {missing}. Rerun those, then call this again.")
+    remote_by_url = {e["job_url"]: {"answers": e["answers"], "blocks": e["remote_blocks"]}
+                     for e in remote_passed + remote_failed}
 
     def base(entry: dict) -> dict:
         job = by_url.get(entry["job_url"], {})
@@ -446,37 +648,58 @@ def assemble_results(run_dir: str) -> dict:
             out["duplicate_job_urls"] = job["_duplicate_job_urls"]
         if keywords:
             out.update(t1_matched_keywords=keywords, t1_matched_sentences=sentences)
+        if entry["job_url"] in remote_by_url:
+            out["remote"] = remote_by_url[entry["job_url"]]
         return out
 
-    results = []
+    results, waiting = [], 0
+    for entry in remote_failed:
+        results.append({**base(entry), "status": "remote_fail", "stage_reached": 0, "verdict": "fail",
+                        "reasoning": entry["reason"]})
     for entry in failed:
         results.append({**base(entry), "status": "stage1_fail", "stage_reached": 1, "verdict": "fail",
                         "reasoning": entry["reason"], "evidence_sentences": entry["evidence_sentences"],
                         "t1_blocks": entry["t1_blocks"]})
-    for entry in passed:
-        if stop:  # waiting for Stage 2: recorded, so the next run does not judge it again
-            results.append({**base(entry), "status": "stage1_pass", "stage_reached": 1, "verdict": "",
-                            "reasoning": entry["reason"], "stage1_reason": entry["reason"],
-                            "evidence_sentences": entry["evidence_sentences"], "t1_blocks": entry["t1_blocks"]})
-        elif entry["job_url"] in answers:
-            results.append({**base(entry), "stage_reached": 2, "stage2": answers[entry["job_url"]],
-                            "stage1_reason": entry["reason"], "t1_blocks": entry["t1_blocks"]})
-        else:  # passed Stage 1 but had no JD text to judge
-            results.append({**base(entry), "status": "stage1_fail", "stage_reached": 1, "verdict": "fail",
-                            "reasoning": "Passed Stage 1, but the posting had no description to judge."})
+    if "stage1" in stages:
+        for entry in passed:
+            if stop:  # waiting for Stage 2: recorded, so the next run does not judge it again
+                waiting += 1
+                results.append({**base(entry), "status": "stage1_pass", "stage_reached": 1, "verdict": "",
+                                "reasoning": entry["reason"], "stage1_reason": entry["reason"],
+                                "evidence_sentences": entry["evidence_sentences"], "t1_blocks": entry["t1_blocks"]})
+            elif entry["job_url"] in answers:
+                results.append({**base(entry), "stage_reached": 2, "stage2": answers[entry["job_url"]],
+                                "stage1_reason": entry["reason"], "t1_blocks": entry["t1_blocks"]})
+            else:  # passed Stage 1 but had no JD text to judge
+                results.append({**base(entry), "status": "stage1_fail", "stage_reached": 1, "verdict": "fail",
+                                "reasoning": "Passed Stage 1, but the posting had no description to judge."})
+    else:  # a run without Stage 1: Stage 2, when it is on, reads what the Remote check (or Stage 0) let through
+        for entry in (_feeding(run_dir, "stage2")[0] if "stage2" in stages else remote_passed):
+            if stop:
+                waiting += 1
+                results.append({**base(entry), "status": "remote_pass", "stage_reached": 0, "verdict": "", "reasoning": ""})
+            elif entry["job_url"] in answers:
+                results.append({**base(entry), "stage_reached": 2, "stage2": answers[entry["job_url"]]})
+            else:
+                results.append({**base(entry), "status": "stage2_fail", "stage_reached": 2, "verdict": "fail",
+                                "reasoning": "The posting had no description to judge."})
     _write_json(os.path.join(run_dir, "results.json"), results)
 
     run = _read_json(os.path.join(run_dir, "run.json"), {})
     counts = _read_json(os.path.join(run_dir, "stage0-counts.json"), {}) or {}
     stats = {"ts_start": run.get("ts_start"), "criteria_snapshot": run.get("criteria_snapshot"),
-             "stage2_pending": len(passed) if stop else 0, "continued_at": run.get("continued_at"),
+             "stage2_pending": waiting, "continued_at": run.get("continued_at"),
+             "stages": stages, "stopped_after": stop,
              "scraped_count": counts.get("scraped"), "stage0_dropped": counts.get("dropped"),
              "scraped_by_term": [{"term": p["term"], "location": p.get("location") or "", "count": p["count"]}
                                  for p in _scrape_progress(run_dir)],
              "already_seen_skipped": (counts.get("dropped") or {}).get("already_seen")}
     _write_json(os.path.join(run_dir, "stats.json"), stats)
-    return {"results": len(results), "stage1_fail": len(failed), "stage2": len(s2_manifest),
-            "stopped_after_stage1": stop, "waiting_for_stage2": len(passed) if stop else 0}
+    out = {"results": len(results), "stage1_fail": len(failed), "stage2": len(s2_manifest),
+           "stopped_after_stage1": stop == "stage1", "waiting_for_stage2": waiting if stop == "stage1" else 0}
+    if "remote" in stages or "stage1" not in stages:
+        out.update(remote_pass=len(remote_passed), remote_fail=len(remote_failed), stopped_after=stop, waiting=waiting)
+    return out
 
 
 # ---- the live view -----------------------------------------------------------
@@ -548,7 +771,12 @@ def state(project_dir: str = ".") -> dict | None:
            "continued_at": run.get("continued_at"),
            "scrape": {"terms": terms, "total": sum(t.get("count") or 0 for t in terms),
                       "done": bool(terms) and all(t.get("done") for t in terms)},
-           "stage0": counts, "stage1": None, "stage2": None, "jobs": []}
+           "stages": run_stages(run_dir), "stage0": counts, "remote": None, "stage1": None, "stage2": None, "jobs": []}
+
+    if os.path.exists(os.path.join(run_dir, "rc", "manifest.json")):
+        passed, failed, pending = _remote_results(run_dir)
+        out["remote"] = {"total": len(passed) + len(failed) + len(pending), "pass": len(passed),
+                         "fail": len(failed), "pending": len(pending)}
 
     if os.path.exists(os.path.join(run_dir, "s1", "manifest.json")):
         passed, failed, pending = _stage1_results(run_dir)
@@ -606,6 +834,49 @@ def stage1_fails(project_dir: str, db_path: str, run_id: str, page: int = 1, ver
     page = max(1, page)
     return {"jobs": rows[(page - 1) * PAGE_SIZE: page * PAGE_SIZE], "page": page, "total": total,
             "total_pages": max(1, (total + PAGE_SIZE - 1) // PAGE_SIZE)}
+
+
+def remote_jobs(project_dir: str, db_path: str, run_id: str, page: int = 1, verdict: str = "fail",
+                page_size: int | None = PAGE_SIZE) -> dict:
+    """What the Remote check made of each job it failed (or, with
+    verdict="pass", each it let through): one answer per category with the
+    rule that applied, and the sentences it read. From the run directory
+    while the run is live, from seen.db afterwards. `page_size=None` is
+    every job on one page (the table download)."""
+    run_dir = current_run_dir(project_dir)
+    live = run_dir and (_read_json(os.path.join(run_dir, "run.json"), {}) or {}).get("run_id") == run_id
+    if live and os.path.exists(os.path.join(run_dir, "rc", "manifest.json")):
+        passed, failed, _ = _remote_results(run_dir)
+        chosen = sorted(passed if verdict == "pass" else failed, key=lambda e: e["judged_at"], reverse=True)
+        rows = [{"job_url": e["job_url"], "title": e.get("title"), "company": e.get("company"), "location": e.get("location"),
+                 "reason": e["reason"], "answers": e["answers"], "blocks": e["remote_blocks"]} for e in chosen]
+    else:
+        with connect(db_path) as conn:
+            found = conn.execute(
+                f"""SELECT job_url, title, company, location, remote, pruned_at FROM seen_jobs
+                    WHERE run_id = ? AND {"status != 'remote_fail' AND (remote IS NOT NULL OR status = 'remote_pass')"
+                                          if verdict == 'pass' else "status = 'remote_fail'"}
+                    ORDER BY title""", (run_id,)).fetchall()
+        rows, shown = [], set()
+        for job_url, title, company, location, stored, pruned_at in found:
+            try:
+                stored = json.loads(stored) if stored else {}
+            except json.JSONDecodeError:
+                stored = {}
+            answers = stored.get("answers") or []
+            key = (title, company, json.dumps(answers, sort_keys=True))
+            if key in shown:  # a repost under another URL: same reading, one row
+                continue
+            shown.add(key)
+            failed_on = [a for a in answers if a.get("rule") == "fail"]
+            rows.append({"job_url": job_url, "title": title, "company": company, "location": location,
+                         "reason": "; ".join(f"{a['label']}: {a['answer_label']}" for a in failed_on),
+                         "answers": answers, "blocks": stored.get("blocks") or [], "pruned_at": pruned_at})
+    total = len(rows)
+    size = page_size or max(1, total)
+    page = max(1, page)
+    return {"jobs": rows[(page - 1) * size: page * size], "page": page, "total": total,
+            "total_pages": max(1, (total + size - 1) // size)}
 
 
 def _real_reason(reasoning) -> str:
@@ -756,6 +1027,8 @@ def main():
     sub.add_parser("start", help="create the run directory; prints run_id and run_dir")
     for name, help_ in (("scrape", "scrape one search term (--term N), reporting progress"),
                         ("stage0", "merge the scrapes and run the code-only filter"),
+                        ("prepare-remote", "write the Remote check's prompt files and the manifest"),
+                        ("check-remote", "list Remote check answers that are not among a category's listed answers"),
                         ("prepare-stage1", "write Stage 1 prompt files and the manifest"),
                         ("prepare-stage2", "write Stage 2 prompt files for the Stage 1 passes"),
                         ("results", "assemble results.json and stats.json for finalize")):
@@ -768,8 +1041,10 @@ def main():
             p.add_argument("--term", "--search", dest="term", type=int, required=True,
                            help="which search, by its number in the `searches` list that `start` printed "
                                 "(each search term in each location)")
-    co = sub.add_parser("continue", help="reopen a run that stopped after Stage 1, so Stage 2 can judge its passes")
-    co.add_argument("--run-id", default="", help="default: the latest run that is waiting for Stage 2")
+    co = sub.add_parser("continue", help="reopen a run that stopped before Stage 2, so one more stage can judge what is waiting")
+    co.add_argument("--run-id", default="", help="default: the latest run that is waiting")
+    co.add_argument("--to", choices=("stage1", "stage2"), default="stage2",
+                    help="the stage to run next (default: stage2; stage1 only for a run that stopped after the Remote check)")
     cp = sub.add_parser("check-stage1", help="list Stage 1 answers that cite sentences the prompt never had, or pass with no evidence")
     cp.add_argument("--dir", required=True)
     tp = sub.add_parser("record-tokens", help="add one subagent call's usage.subagent_tokens to the run's total")
@@ -789,6 +1064,10 @@ def main():
         out = {"term": args.term, "scraped": scrape_term(args.dir, args.term)}
     elif args.cmd == "stage0":
         out = stage0(args.dir, args.project_dir, args.db)
+    elif args.cmd == "prepare-remote":
+        out = prepare_remote(args.dir, args.project_dir)
+    elif args.cmd == "check-remote":
+        out = check_remote(args.dir)
     elif args.cmd == "prepare-stage1":
         out = prepare_stage1(args.dir, args.project_dir)
     elif args.cmd == "prepare-stage2":
@@ -799,8 +1078,8 @@ def main():
         run_id = args.run_id or next(((_read_json(os.path.join(d, "run.json"), {}) or {}).get("run_id")
                                       for d in _run_dirs(args.project_dir) if awaiting_stage2(d)), "")
         if not run_id:
-            raise SystemExit("No run is waiting for Stage 2.")
-        out = continue_run(args.project_dir, run_id)
+            raise SystemExit("No run is waiting for another stage.")
+        out = continue_run(args.project_dir, run_id, args.to)
     elif args.cmd == "check-stage1":
         out = check_stage1(args.dir)
     elif args.cmd == "record-tokens":

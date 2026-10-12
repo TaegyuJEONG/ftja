@@ -1,4 +1,5 @@
-"""How the viewer's "Continue to Stage 2" button reaches the agent.
+"""How the viewer's buttons reach the agent: "Continue to Stage 1 / 2" on a
+run that stopped early, and "Generate" on the Remote check's setup.
 
 The viewer cannot start the agent. What it can do is leave a request in
 the project folder, and an agent session that is waiting there picks it
@@ -9,6 +10,10 @@ while with `wait`. While it waits, `run-bridge.json` says "listening" and
 the button's request (`run-action.json`) is answered at once. When nobody
 is listening, the viewer falls back to showing the line to type in the
 agent: `/ftja-run continue <run id>`.
+
+The Remote check's Generate button uses the same wait: its request is
+answered with `{"status": "remote"}`, and the session follows `/ftja-remote`.
+When nobody is listening the viewer shows `/ftja-remote` to type instead.
 
 Usage:
     python -m ftja.run_bridge wait --run-id <id> [--timeout 540]
@@ -65,47 +70,67 @@ def listening(project_dir: str = ".") -> dict:
             "until": bridge.get("until") if alive else None}
 
 
-def request_continue(project_dir: str, run_id: str) -> dict:
+def request_continue(project_dir: str, run_id: str, to: str | None = None) -> dict:
     """The button was pressed. -> {"listening": bool}: whether a waiting
-    agent session will pick the request up, or the user has to type it."""
+    agent session will pick the request up, or the user has to type it.
+    `to` is the stage to run next (Stage 2 when left out)."""
     state = listening(project_dir)
     heard = state["listening"] and state["run_id"] == run_id
-    _write(project_dir, ACTION_FILE, {"type": "continue", "run_id": run_id, "requested_at": time.time(),
-                                      "at": datetime.now(timezone.utc).isoformat()})
+    action = {"type": "continue", "run_id": run_id, "requested_at": time.time(),
+              "at": datetime.now(timezone.utc).isoformat()}
+    if to:
+        action["to"] = to
+    _write(project_dir, ACTION_FILE, action)
+    return {"listening": heard}
+
+
+def request_remote(project_dir: str) -> dict:
+    """The Remote check's Generate button was pressed (its answers are in
+    remote-request.json). -> {"listening": bool}. Any waiting session can
+    take it, whichever run it is waiting on."""
+    heard = listening(project_dir)["listening"]
+    if heard:
+        _write(project_dir, ACTION_FILE, {"type": "remote", "requested_at": time.time(),
+                                          "at": datetime.now(timezone.utc).isoformat()})
     return {"listening": heard}
 
 
 def wait_for_continue(project_dir: str, run_id: str, timeout_seconds: int = DEFAULT_TIMEOUT_SECONDS) -> dict:
     """Block until the viewer asks to continue this run, or the time is up.
-    -> {"status": "continue" | "timeout", "run_id"}. Only a request made
-    while this wait is running counts: an old one is not a go-ahead for a
-    step that spends this much."""
+    -> {"status": "continue" | "remote" | "timeout", "run_id"}, with `to`
+    (the stage to run next) when the button named one. "remote" is the
+    Remote check's Generate button. Only a request made while this wait is
+    running counts: an old one is not a go-ahead for a step that spends
+    this much."""
     if not 1 <= timeout_seconds <= 3600:
         raise ValueError("timeout must be between 1 and 3600 seconds")
     started = time.time()
     _remove(project_dir, ACTION_FILE)
     _write(project_dir, BRIDGE_FILE, {"status": "listening", "run_id": run_id, "pid": os.getpid(),
                                       "since": started, "until": started + timeout_seconds})
-    status = "timeout"
+    status, to = "timeout", None
     try:
         while time.time() < started + timeout_seconds:
             action = _read(project_dir, ACTION_FILE)
             if (action.get("type") == "continue" and action.get("run_id") == run_id
                     and float(action.get("requested_at") or 0) >= started):
-                status = "continue"
+                status, to = "continue", action.get("to")
+                break
+            if action.get("type") == "remote" and float(action.get("requested_at") or 0) >= started:
+                status = "remote"
                 break
             time.sleep(0.5)
     finally:
         _remove(project_dir, ACTION_FILE)
         _write(project_dir, BRIDGE_FILE, {"status": "offline", "run_id": run_id, "last_status": status})
-    return {"status": status, "run_id": run_id}
+    return {"status": status, "run_id": run_id, **({"to": to} if to else {})}
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--project-dir", default=".")
     sub = ap.add_subparsers(dest="cmd", required=True)
-    w = sub.add_parser("wait", help="wait for the viewer's Continue to Stage 2 button")
+    w = sub.add_parser("wait", help="wait for the viewer's Continue button (or the Remote check's Generate button)")
     w.add_argument("--run-id", required=True)
     w.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT_SECONDS)
     sub.add_parser("status", help="is an agent session waiting for the button?")

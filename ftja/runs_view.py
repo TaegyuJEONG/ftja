@@ -26,6 +26,10 @@ def _normalize_run(r: dict) -> dict:
     r.setdefault("stage2_review", by_status.get("review", 0))
     r.setdefault("stage2_pending", by_status.get("stage1_pass", 0))
     r.setdefault("stage1_pass", r.get("total_evaluated", 0) - r.get("stage1_fail", 0))
+    # which judging stages the run did; records from before there were switches did Stage 1 and 2
+    snapshot = r.get("criteria_snapshot") or {}
+    r.setdefault("stages", snapshot.get("stages") or (["stage1"] if snapshot.get("stage1_only") and r.get("stage2_pending") else ["stage1", "stage2"]))
+    r.setdefault("stopped_after", "stage1" if r.get("stage2_pending") else None)
     dropped = r.get("stage0_dropped") or {}
     scraped = r.get("scraped_count")
     r.setdefault("stage0_passed", (scraped - sum(dropped.values())) if scraped is not None else None)

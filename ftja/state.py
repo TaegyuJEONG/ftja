@@ -23,6 +23,14 @@ Schema: seen_jobs(job_url_hash PK, job_url, title, company, location, status,
   that stopped at Stage 1. NULL for runs before Stage 1 gave reasons.
   stage1_reason: Stage 1's one-sentence reason, for jobs that went on to
   Stage 2 (for a Stage 1 fail the reason is in `reasoning`).
+  remote: the Remote check's reading of the job, when that stage ran — a
+  JSON object {answers: [{id, label, answer, answer_label, detail, rule,
+  evidence_sids, note}], blocks: [{sid, sentence, matched, keywords}]}:
+  one answer per category, the rule the user had set for it, and the
+  sentences the model read. NULL for a job the check never saw.
+  status also takes 'remote_fail' (a category's answer carried the rule
+  "fail") and 'remote_pass' / 'stage1_pass' (passed the last stage the run
+  did, and waits for the next one).
   pruned_at: when this row's bulky details were removed to save space (see
   `prune`). The row itself stays, so the job is never re-judged and counts
   in every statistic.
@@ -134,7 +142,7 @@ def _migrate(conn: sqlite3.Connection):
                 "user_action", "user_reason", "user_decided_at", "run_id",
                 "decision_review_status", "criteria", "criteria_feedback",
                 "description", "company_line", "employer", "notes", "t1_blocks",
-                "stage1_reason", "pruned_at"):
+                "stage1_reason", "pruned_at", "remote"):
         if col not in cols:
             conn.execute(f"ALTER TABLE seen_jobs ADD COLUMN {col} TEXT")
     conn.commit()
@@ -184,7 +192,7 @@ def mark_seen(conn: sqlite3.Connection, job_url: str, status: str, stage_reached
               criteria: list[dict] | None = None, description: str | None = None,
               company_line: str | None = None, employer: list[dict] | None = None,
               notes: list[dict] | None = None, t1_blocks: list[dict] | None = None,
-              stage1_reason: str | None = None):
+              stage1_reason: str | None = None, remote: dict | None = None):
     """Note: the ON CONFLICT clause intentionally does NOT touch
     user_action/user_reason/user_decided_at/criteria_feedback — a re-scrape
     or an alias URL from content dedup must never overwrite a decision the
@@ -194,8 +202,8 @@ def mark_seen(conn: sqlite3.Connection, job_url: str, status: str, stage_reached
                                   stage_reached, verdict, t1_matched_keywords, t1_matched_sentences,
                                   reasoning, evidence_sentences, rubric_version, run_id,
                                   criteria, description, company_line, employer, notes, t1_blocks,
-                                  stage1_reason, last_seen_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                  stage1_reason, remote, last_seen_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON CONFLICT(job_url_hash) DO UPDATE SET
              title=excluded.title, company=excluded.company, location=excluded.location,
              status=excluded.status, stage_reached=excluded.stage_reached,
@@ -205,14 +213,15 @@ def mark_seen(conn: sqlite3.Connection, job_url: str, status: str, stage_reached
              rubric_version=excluded.rubric_version, run_id=excluded.run_id,
              criteria=excluded.criteria, description=excluded.description,
              company_line=excluded.company_line, employer=excluded.employer, notes=excluded.notes,
-             t1_blocks=excluded.t1_blocks, stage1_reason=excluded.stage1_reason, pruned_at=NULL,
+             t1_blocks=excluded.t1_blocks, stage1_reason=excluded.stage1_reason, remote=excluded.remote,
+             pruned_at=NULL,
              last_seen_at=excluded.last_seen_at""",
         (hash_url(job_url), job_url, title, company, location, status, stage_reached, verdict,
          json.dumps(t1_matched_keywords or [], ensure_ascii=False),
          json.dumps(t1_matched_sentences or [], ensure_ascii=False),
          reasoning, json.dumps(evidence_sentences or [], ensure_ascii=False), rubric_version, run_id,
          _json_or_none(criteria), description, company_line, _json_or_none(employer), _json_or_none(notes),
-         _json_or_none(t1_blocks), stage1_reason,
+         _json_or_none(t1_blocks), stage1_reason, _json_or_none(remote),
          datetime.now(timezone.utc).isoformat()),
     )
     conn.commit()
@@ -376,6 +385,7 @@ PRUNE_COLUMNS = {
     "notes": "notes on the posting",
     "company_line": "the one-line company description",
     "t1_blocks": "the sentences Stage 1 read and what it made of each",
+    "remote": "the Remote check's answers and the sentences it read",
     "t1_matched_sentences": "the keyword sentences",
     "evidence_sentences": "the quoted evidence",
 }
