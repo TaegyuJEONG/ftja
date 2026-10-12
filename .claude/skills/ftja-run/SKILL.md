@@ -493,6 +493,10 @@ venv/bin/python -m ftja.run_bridge wait --run-id <run id>
   the Pipeline tab. Follow the `ftja-remote` skill
   (`.claude/skills/ftja-remote/SKILL.md`) from its step 1, then start this
   wait again.
+- `{"status": "keywords"}`: the user asked on the Pipeline tab for the
+  keywords of a language they started reading. Follow the `ftja-keywords`
+  skill (`.claude/skills/ftja-keywords/SKILL.md`) from its step 1, then
+  start this wait again.
 - `{"status": "timeout"}`: nobody pressed anything. End your turn, and say
   that the run can still be continued any time by typing
   `/ftja-run continue <run id>` in this chat (the button shows the exact

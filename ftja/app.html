@@ -106,6 +106,11 @@ h1.serif { font-size: 38px; font-weight: 400; line-height: 1; margin-bottom: 8px
 .rm-review-answers .meta { color: var(--text3); }
 #remote-dialog .rm-step { margin-top: 0; font-size: 15px; }
 #remote-dialog .rm-step-intro { margin-left: 0; }
+.kw-ask { margin: 8px 0 0; }
+.onboarding-kw-group { display: flex; gap: 10px; align-items: baseline; margin-bottom: 8px; }
+.onboarding-kw-lang { flex: none; width: 64px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text3); }
+.kw-off { opacity: .5; }
+.kw-off .chip-tag { cursor: default; }
 .rm-answers { margin: 4px 0 2px; }
 .rm-answer { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
 .rm-answer input[type="text"] { flex: 1; }
@@ -1026,7 +1031,7 @@ function rubricCard(state) {
     const stage0Keywords = onboardingDraft.tier1;
     const stage0Languages = onboardingDraft.languages;
     const stage0Excludes = onboardingDraft.exclude_keywords;
-    return `<div class="onboarding-card"><h3>Code-based filter</h3><p>Review the first screen before LLM judgment. Matching keywords, readable languages, and excluded words are applied here.</p><div class="onboarding-field"><label>Keywords to match</label>${onboardingTags(stage0Keywords, 'tier1', true)}</div><div class="onboarding-field"><label>Languages you use</label>${onboardingTags(stage0Languages, 'languages', true)}</div><div class="onboarding-field"><label>Words to exclude</label>${onboardingTags(stage0Excludes, 'exclude_keywords', true)}</div><div class="onboarding-actions onboarding-confirm-actions"><button class="primary" type="button" data-confirm-stage0>Confirm filter</button></div></div>`;
+    return `<div class="onboarding-card"><h3>Code-based filter</h3><p>Review the first screen before LLM judgment. Matching keywords, readable languages, and excluded words are applied here.</p><div class="onboarding-field"><label>Keywords to match</label>${onboardingKeywordsByLanguage(stage0Keywords, stage0Languages)}</div><div class="onboarding-field"><label>Languages you use</label>${onboardingTags(stage0Languages, 'languages', true)}</div><div class="onboarding-field"><label>Words to exclude</label>${onboardingTags(stage0Excludes, 'exclude_keywords', true)}</div><div class="onboarding-actions onboarding-confirm-actions"><button class="primary" type="button" data-confirm-stage0>Confirm filter</button></div></div>`;
   }
   const questions = state.rubric_questions || [];
   const currentIndex = questions.findIndex(question => !String(question.answer || '').trim());
@@ -1160,6 +1165,18 @@ async function submitOnboardingAction(button, type, payload = {}) {
     alert(error.message || 'Could not send this decision to the setup chat.');
   }
 }
+// The proposed keywords, one row per language the candidate reads, so it is
+// plain that each language has its own. Each pill keeps its place in the
+// one list underneath, which is what removing and confirming work on.
+function onboardingKeywordsByLanguage(keywords, languages) {
+  const marked = onboardingDraft.keyword_language || {};
+  if (!Object.keys(marked).length || (languages || []).length < 2) return onboardingTags(keywords, 'tier1', true);
+  const rows = languages.map(code => ({code, items: []}));
+  (keywords || []).forEach((k, i) => (rows.find(r => r.code === marked[k]) || rows[0]).items.push([k, i]));
+  const groups = rows.map(r => `<div class="onboarding-kw-group"><span class="onboarding-kw-lang">${esc(languageLabel(r.code))}</span><div class="onboarding-pills">${r.items.map(([k, i]) =>
+    `<span class="onboarding-pill">${esc(k)} <button type="button" data-remove="tier1" data-index="${i}" aria-label="Remove ${esc(k)}">×</button></span>`).join('') || '<span class="onboarding-source-note" style="margin:0">None yet</span>'}</div></div>`).join('');
+  return `<div class="onboarding-editor" data-onboarding-editor="tier1">${groups}<div class="onboarding-add-row"><div class="onboarding-input-wrap"><input type="text" data-onboarding-input="tier1" placeholder="Add a keyword" autocomplete="off"></div><button type="button" data-onboarding-add="tier1">Add</button></div></div>`;
+}
 function addOnboardingValue(key, rawValue) {
   let value = String(rawValue || '').trim();
   if (!value) return;
@@ -1257,7 +1274,7 @@ function bindOnboarding() {
   const saveSummary = document.querySelector('[data-save-profile-summary]'); if (saveSummary) saveSummary.addEventListener('click', () => { const summary = document.querySelector('[data-profile-summary]').value.trim(); profileSummaryDraft = summary; submitOnboardingAction(saveSummary, 'set_profile_summary', {summary}); });
   const confirmSummary = document.querySelector('[data-confirm-profile-summary]'); if (confirmSummary) confirmSummary.addEventListener('click', () => submitOnboardingAction(confirmSummary, 'confirm_profile_summary'));
   const confirmProfile = document.querySelector('[data-confirm-profile]'); if (confirmProfile) confirmProfile.addEventListener('click', () => submitOnboardingAction(confirmProfile, 'confirm_profile', {titles: onboardingDraft.titles, location: document.getElementById('profile-location').value.trim(), hours_old: Number(document.getElementById('profile-hours').value), results_wanted: Number(document.getElementById('profile-results-wanted').value) || 100}));
-  const confirmStage0 = document.querySelector('[data-confirm-stage0]'); if (confirmStage0) confirmStage0.addEventListener('click', () => submitOnboardingAction(confirmStage0, 'confirm_stage0', {keywords: onboardingDraft.tier1, languages: onboardingDraft.languages, exclude_keywords: onboardingDraft.exclude_keywords}));
+  const confirmStage0 = document.querySelector('[data-confirm-stage0]'); if (confirmStage0) confirmStage0.addEventListener('click', () => submitOnboardingAction(confirmStage0, 'confirm_stage0', {keywords: onboardingDraft.tier1, languages: onboardingDraft.languages, exclude_keywords: onboardingDraft.exclude_keywords, keyword_language: onboardingDraft.keyword_language || {}}));
   const answerQuestion = document.querySelector('[data-answer-rubric-question]'); if (answerQuestion) answerQuestion.addEventListener('click', () => submitOnboardingAction(answerQuestion, 'answer_rubric_question', {question_id: answerQuestion.dataset.questionId, answer: document.getElementById('rubric-answer').value.trim()}));
   const confirmRubric = document.querySelector('[data-confirm-rubric]');
   if (confirmRubric) {
@@ -1315,7 +1332,7 @@ async function refreshOnboarding(force = false) {
   const stage0Keywords = Array.isArray(stage0.keywords) ? stage0.keywords : (criteria.keywords?.tier1 || onboardingDraft.tier1);
   const stage0Languages = Array.isArray(stage0.languages) ? stage0.languages : (criteria.languages || onboardingDraft.languages);
   const stage0Excludes = Array.isArray(stage0.exclude_keywords) ? stage0.exclude_keywords : (criteria.exclude_keywords || onboardingDraft.exclude_keywords);
-  onboardingDraft = {...onboardingDraft, titles: profile.titles || onboardingDraft.titles, location: criteria.location || onboardingDraft.location, hours_old: criteria.hours_old || onboardingDraft.hours_old, results_wanted: criteria.results_wanted || onboardingDraft.results_wanted, tier1: stage0Keywords, languages: stage0Languages, exclude_keywords: stage0Excludes};
+  onboardingDraft = {...onboardingDraft, titles: profile.titles || onboardingDraft.titles, location: criteria.location || onboardingDraft.location, hours_old: criteria.hours_old || onboardingDraft.hours_old, results_wanted: criteria.results_wanted || onboardingDraft.results_wanted, tier1: stage0Keywords, languages: stage0Languages, exclude_keywords: stage0Excludes, keyword_language: stage0.keyword_language || criteria.keywords?.tier1_language || onboardingDraft.keyword_language || {}};
   renderOnboarding();
 }
 async function maybeStartOnboarding() {
@@ -2540,28 +2557,12 @@ function watchRemoteRequest() {
 // writing, and once when its draft is ready to go through.
 let remoteAutoOpened = '';
 async function pollRemote() {
-  if (document.body.classList.contains('onboarding-active') || remoteWatch) return;  // remoteWatch is already following it
+  if (document.body.classList.contains('onboarding-active')) return;
+  await pollKeywordLanguages();
+  if (remoteWatch) return;  // remoteWatch is already following the Remote check's request
   let next;
   try { next = await (await fetch('/api/remote-check', {cache: 'no-store'})).json(); } catch (e) { return; }
   const status = (next.request || {}).status;
-  // The user is on the Keywords step with a language that has none, and was told
-  // to type /ftja-remote: follow the agent, and take its keywords in when they land.
-  const w = remoteWizard;
-  if (w && w.step === 'keywords' && w.awaiting && remoteDialog()) {
-    const filled = next.draft && remoteKeywordGroups(next.draft);
-    if (status === 'drafted' && filled && w.awaiting.every(code => (filled.groups[code] || []).length)) {
-      readRemoteStep();
-      remoteSetup = next;
-      remoteWizard = {...w, config: {...JSON.parse(JSON.stringify(next.draft)), profile: w.config.profile}, origin: 'draft', awaiting: null, writing: false};
-      remoteAutoOpened = `drafted|${next.request.began_at || next.request.requested_at || ''}`;
-      renderRemoteDialog();
-    } else if ((status === 'generating') !== !!w.writing) {
-      readRemoteStep();
-      w.writing = status === 'generating';
-      renderRemoteDialog();
-    }
-    return;
-  }
   const moment = status === 'generating' ? 'generating' : next.draft ? 'drafted' : '';
   const key = moment && `${moment}|${next.request.began_at || next.request.requested_at || ''}`;
   if (remoteSetup && !key) return;
@@ -2610,9 +2611,11 @@ function renderRemoteSummary() {
           ${(c.options || []).map(o => `<div class="${o.rule === 'fail' ? 'fails' : ''}">${o.rule === 'fail' ? '✕' : '✓'} ${esc(o.label)}</div>`).join('')}
           <div class="meta">Not stated ${c.unknown === 'fail' ? 'fails' : 'passes'} · ${plural((c.keywords || []).length, 'keyword')}</div></div>`).join('')}</div>
       <div class="store-note">${plural(new Set((cfg.categories || []).flatMap(c => c.keywords || [])).size, 'keyword')}. A posting with none of them is not read.</div>
+      ${((kwLang || {}).missing || {}).remote ? kwLang.missing.remote.map(code => keywordAskHtml('remote', code, 'so a posting written in ' + languageLabel(code) + ' would never be read')).join('') : ''}
       <div class="save-row"><button class="save-btn" type="button" data-rm-open>Edit the setup</button><button class="text-btn" type="button" data-rm-start>Have my agent draft it again</button></div>`;
   }
   root.innerHTML = html;
+  bindKeywordAsks(root);
   root.querySelectorAll('[data-rm-open]').forEach(b => b.addEventListener('click', openRemoteSetup));
   root.querySelectorAll('[data-rm-start]').forEach(b => b.addEventListener('click', () => askRemoteDraft(remoteSetup.saved ? (cfg.profile || {}) : {})));
 }
@@ -2706,11 +2709,8 @@ function renderRemoteDialog() {
   const skeleton = `<div class="rm-skeleton">${[82, 94, 68, 90, 74].map(w => `<div class="onboarding-skeleton-line" style="width:${w}%"></div>`).join('')}</div>`;
   const general = remoteSetup.saved ? '' : `<button class="text-btn rc-add" type="button" data-rm-general>Or start from a general setup and edit it yourself</button>`;
   let title = 'Remote check setup', body;
-  const following = remoteWizard && remoteWizard.step === 'keywords' && remoteWizard.awaiting;  // stays on its step while the agent adds keywords
 
-  if (following) {
-    body = '';
-  } else if (status === 'generating') {
+  if (status === 'generating') {
     body = `<div class="store-note"><span class="onboarding-spinner"></span> <span class="busy">Your agent is drafting your situation and the categories</span></div>${skeleton}`;
   } else if (status === 'requested' && !remoteLate()) {
     body = `<div class="store-note"><span class="onboarding-spinner"></span> <span class="busy">Asking your agent session</span></div>${skeleton}`;
@@ -2719,7 +2719,7 @@ function renderRemoteDialog() {
     body = `<div class="store-note">${status === 'failed' ? `<b>${esc(remoteSetup.request.error || 'The draft was not written.')}</b> ` : '<b>No agent session picked this up.</b> '}Type this in the agent session connected to this folder. This page goes on by itself when the draft is ready.</div>
       ${command}<div><button class="text-btn rc-add" type="button" data-rm-cancel>Cancel</button></div>${general}`;
   }
-  if (following || !body) {
+  if (!body) {
     if (!remoteWizard) {
       const source = remoteSetup.draft || remoteSetup.config;
       remoteWizard = {config: JSON.parse(JSON.stringify(source)), step: 'situation',
@@ -2737,12 +2737,7 @@ function renderRemoteDialog() {
         <div class="rm-nav"><span></span><button class="save-btn" type="button" data-rm-next>Confirm</button></div>`;
     } else if (w.step === 'keywords') {
       const {languages, groups, read} = remoteKeywordGroups(w.config);
-      const empty = languages.filter(code => !groups[code].length);
-      w.awaiting = empty.length ? empty : null;
-      const ask = code => w.writing
-        ? `<div class="store-note" style="margin-top:8px;"><span class="onboarding-spinner"></span> <span class="busy">Your agent is writing the ${esc(languageLabel(code))} keywords</span></div>`
-        : `<div class="store-note" style="margin-top:8px;"><b>No ${esc(languageLabel(code))} keywords yet</b>, so a posting written in ${esc(languageLabel(code))} would never be read. Type this in the agent session connected to this folder; it adds them and this step updates by itself. Or type them in above.</div>
-           <div class="continue-cmd"><code>/ftja-remote</code><button class="storage-btn" type="button" data-rm-copy>Copy</button></div>`;
+      const ask = code => keywordAskHtml('remote', code, 'so a posting written in ' + languageLabel(code) + ' would never be read');
       body = `${progress}<div class="rm-step">Keywords</div>
         <div class="rm-step-intro">The check reads a posting only where one of these appears: that sentence, and the one before and after. A posting with none of them is dropped without being read. They are listed for each language you read postings in${read.length ? ` (${read.map(languageLabel).map(esc).join(', ')}, set under Stage0)` : ''}. Remove what does not fit, add what is missing.</div>
         ${languages.map(code => `<div class="field"><label>${esc(languageLabel(code))} · ${groups[code].length}</label>${renderChipInput('rm-kw-' + code, groups[code])}
@@ -2776,6 +2771,7 @@ function renderRemoteDialog() {
     <div class="s1-body"><div id="remote-editor">${body}</div></div>`;
   dialog.querySelector('[data-close]').addEventListener('click', () => dialog.close());
   dialog.querySelectorAll('.chip-input[id^="rm-kw-"]').forEach(el => initChipInput(el.id));
+  bindKeywordAsks(dialog);
   bindRemoteDialog(dialog);
 }
 
@@ -2832,6 +2828,209 @@ function bindRemoteDialog(root) {
   });
 }
 
+// ---- keywords by language ----
+// Stage1's keywords and the Remote check's are each kept per language. When
+// the user starts reading a language, its list is empty: the page offers to
+// have the agent write it, and shows the result to confirm (ftja.keywords).
+// kwLang = {read: [codes], missing: {stage1: [codes], remote: [codes]}, request: {status, items}, listening}
+let kwLang = null;
+let kwAskedAt = 0;
+let kwAutoOpened = '';
+let kwShownKey = '';
+const KW_TARGET_NAMES = {stage1: 'Stage1', remote: 'Remote check'};
+async function refreshKeywordLanguages() {
+  try { kwLang = await (await fetch('/api/keyword-languages', {cache: 'no-store'})).json(); } catch (e) {}
+  return kwLang;
+}
+function kwStatus() { return ((kwLang || {}).request || {}).status || 'none'; }
+function kwLate() { return kwStatus() === 'requested' && Date.now() - kwAskedAt > REMOTE_WAIT_MS; }
+function kwKey() { return `${kwStatus()}|${kwLate()}|${JSON.stringify(((kwLang || {}).request || {}).items || [])}`; }
+function redrawConfigSection() {
+  if (!document.getElementById('view-pipeline').classList.contains('active') || !pipelineConfig) return;
+  const at = window.scrollY;
+  renderConfigSection();
+  window.scrollTo(0, at);
+}
+// Under an empty language's list: the offer to have the agent write it.
+function keywordAskHtml(target, code, why) {
+  const name = esc(languageLabel(code));
+  const mine = ((kwLang || {}).request || {}).items || [];
+  const busy = ['requested', 'generating'].includes(kwStatus()) && mine.some(i => i.target === target && i.language === code);
+  if (busy) return `<div class="store-note kw-ask"><span class="onboarding-spinner"></span> <span class="busy">${kwStatus() === 'generating' ? `Your agent is writing the ${name} keywords` : 'Asking your agent session'}</span></div>`;
+  return `<div class="store-note kw-ask"><b>No ${name} keywords yet</b>${why ? ', ' + esc(why) : ''}.
+    <button class="link-btn pass" type="button" data-kw-ask="${target}:${esc(code)}">Add ${name} keywords with my agent</button></div>`;
+}
+function bindKeywordAsks(root) {
+  root.querySelectorAll('[data-kw-ask]').forEach(b => b.addEventListener('click', () => {
+    const [target, language] = b.dataset.kwAsk.split(':');
+    askKeywords([{target, language}]);
+  }));
+}
+async function askKeywords(items) {
+  if (remoteWizard) readRemoteStep();
+  kwAskedAt = Date.now();
+  try { kwLang = {...kwLang, ...await postJson('/api/keywords-request', {items})}; }
+  catch (e) { kwLang = {...kwLang, request: {status: 'failed', error: e.message, items}}; }
+  kwAutoOpened = '';
+  showKeywordProgress();
+}
+// Inside the Remote check's setup the answer lands in the Keywords step the
+// user is on; anywhere else it opens in a small dialog of its own.
+function kwInWizard() {
+  return remoteWizard && remoteWizard.step === 'keywords' && remoteDialog()
+    && (((kwLang || {}).request || {}).items || []).every(i => i.target === 'remote');
+}
+function showKeywordProgress() {
+  kwShownKey = kwKey();
+  if (kwInWizard()) {
+    if (kwStatus() === 'drafted') { takeKeywordsIntoWizard(); return; }
+    if (kwStatus() === 'requested' && kwLate() || kwStatus() === 'failed') { openKeywordDialog(); return; }
+    readRemoteStep(); renderRemoteDialog();
+    return;
+  }
+  redrawStage1AndRemoteAsks();
+  if (kwStatus() !== 'none') openKeywordDialog();
+}
+function redrawStage1AndRemoteAsks() {
+  if (document.querySelector('#view-pipeline.active') && pipelineConfig && !document.querySelector('dialog[open]')) redrawConfigSection();
+}
+async function takeKeywordsIntoWizard() {
+  const w = remoteWizard, cfg = w.config;
+  readRemoteStep();
+  (kwLang.request.items || []).forEach(item => {
+    const ids = cfg.categories.map(c => c.id);
+    (item.keywords || []).forEach(word => {
+      if (!cfg.categories.some(c => (c.keywords || []).includes(word))) {
+        const id = ids.includes((item.category_of || {})[word]) ? item.category_of[word] : ids[0];
+        cfg.categories.find(c => c.id === id).keywords.push(word);
+      }
+      cfg.keyword_language = {...(cfg.keyword_language || {}), [word]: item.language};
+    });
+    cfg.languages = [...new Set([...(cfg.languages || []), item.language])];
+  });
+  try { kwLang = {...kwLang, ...await postJson('/api/keywords-cancel', {})}; } catch (e) {}
+  kwLang.request = {status: 'none', items: []};
+  const kd = document.getElementById('kw-dialog'); if (kd && kd.open) kd.close();
+  renderRemoteDialog();  // the step now shows them; its own Confirm keeps them
+}
+async function pollKeywordLanguages() {
+  const before = kwLang ? kwKey() : '';
+  if (!await refreshKeywordLanguages()) return;
+  const status = kwStatus();
+  if (kwInWizard() && status !== 'none') { if (kwKey() !== kwShownKey) showKeywordProgress(); return; }
+  const key = ['generating', 'drafted'].includes(status) ? `${status}|${kwLang.request.began_at || kwLang.request.requested_at || ''}` : '';
+  const dialog = document.getElementById('kw-dialog');
+  if (dialog && dialog.open) { if (kwKey() !== kwShownKey) renderKeywordDialog(); return; }
+  if (key && key !== kwAutoOpened && !remoteDialog()) {  // started from the chat, or finished while the dialog was closed
+    kwAutoOpened = key;
+    if (!document.getElementById('view-pipeline').classList.contains('active')) openMainView('pipeline');
+    openKeywordDialog();
+  } else if (kwKey() !== before && before) redrawStage1AndRemoteAsks();
+}
+function openKeywordDialog() {
+  let dialog = document.getElementById('kw-dialog');
+  if (!dialog) {
+    dialog = document.createElement('dialog');
+    dialog.id = 'kw-dialog';
+    dialog.className = 's1-dialog';
+    document.body.appendChild(dialog);
+    dialog.addEventListener('close', () => { refreshKeywordLanguages().then(() => { if (remoteDialog()) { if (remoteWizard) { readRemoteStep(); renderRemoteDialog(); } } else redrawConfigSection(); }); });
+  }
+  if (!dialog.open) dialog.showModal();
+  renderKeywordDialog();
+}
+function renderKeywordDialog() {
+  const dialog = document.getElementById('kw-dialog');
+  if (!dialog || !kwLang) return;
+  kwShownKey = kwKey();
+  const request = kwLang.request || {}, status = kwStatus(), items = request.items || [];
+  const what = items.map(i => `${languageLabel(i.language)} keywords for ${KW_TARGET_NAMES[i.target]}`).join(', ');
+  const command = `<div class="continue-cmd"><code>/ftja-keywords</code><button class="storage-btn" type="button" data-kw-copy>Copy</button></div>`;
+  const skeleton = `<div class="rm-skeleton">${[86, 70, 92].map(w => `<div class="onboarding-skeleton-line" style="width:${w}%"></div>`).join('')}</div>`;
+  let body;
+  if (status === 'generating') {
+    body = `<div class="store-note"><span class="onboarding-spinner"></span> <span class="busy">Your agent is writing the ${esc(what)}</span></div>${skeleton}`;
+  } else if (status === 'requested' && !kwLate()) {
+    body = `<div class="store-note"><span class="onboarding-spinner"></span> <span class="busy">Asking your agent session</span></div>${skeleton}`;
+    setTimeout(() => { if (dialog.open && kwKey() !== kwShownKey) renderKeywordDialog(); }, REMOTE_WAIT_MS - (Date.now() - kwAskedAt) + 200);
+  } else if (status === 'requested' || status === 'failed') {
+    body = `<div class="store-note">${status === 'failed' ? `<b>${esc(request.error || 'The keywords were not written.')}</b> ` : '<b>No agent session picked this up.</b> '}Type this in the agent session connected to this folder. This page goes on by itself when the keywords are ready.</div>
+      ${command}<div><button class="text-btn rc-add" type="button" data-kw-cancel>Cancel</button></div>`;
+  } else if (status === 'drafted') {
+    body = `<div class="rm-step-intro" style="margin-left:0;">Your agent wrote these from the keywords you already have. Remove what does not fit, add what is missing. Your existing keywords are not changed.</div>
+      ${items.map((item, n) => `<div class="field"><label>${esc(KW_TARGET_NAMES[item.target])} · ${esc(languageLabel(item.language))} · ${(item.keywords || []).length}</label>${renderChipInput('kwp-' + n, item.keywords)}</div>`).join('')}
+      <div class="rm-nav"><button class="text-btn" type="button" data-kw-cancel>Discard</button><button class="save-btn" type="button" data-kw-confirm>Confirm and add</button></div>`;
+  } else {
+    dialog.close();
+    return;
+  }
+  dialog.innerHTML = `
+    <div class="s1-head"><h3>Keywords for a new language</h3><button class="text-btn" type="button" data-close>Close</button></div>
+    <div class="s1-body">${body}</div>`;
+  dialog.querySelector('[data-close]').addEventListener('click', () => dialog.close());
+  items.forEach((item, n) => { if (document.getElementById('kwp-' + n)) initChipInput('kwp-' + n); });
+  dialog.querySelectorAll('[data-kw-copy]').forEach(b => b.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText('/ftja-keywords'); b.textContent = 'Copied'; }
+    catch (err) { b.textContent = 'Select the text and copy it'; }
+  }));
+  dialog.querySelectorAll('[data-kw-cancel]').forEach(b => b.addEventListener('click', async () => {
+    try { kwLang = {...kwLang, ...await postJson('/api/keywords-cancel', {})}; } catch (e) {}
+    dialog.close();
+  }));
+  dialog.querySelectorAll('[data-kw-confirm]').forEach(b => b.addEventListener('click', async () => {
+    b.disabled = true;
+    const confirmed = items.map((item, n) => ({...item, keywords: getChipValues('kwp-' + n)}));
+    try { kwLang = {...kwLang, ...await postJson('/api/keywords-confirm', {items: confirmed})}; } catch (e) { b.disabled = false; return; }
+    // the lists on the page are redrawn from what is now saved
+    const fresh = await (await fetch('/api/pipeline')).json();
+    pipelineConfig.criteria = fresh.criteria;
+    dialog.close();
+    if (!remoteDialog()) loadRemoteSetup();
+  }));
+}
+// Stage1's keywords, one list per language the user reads. A keyword with no
+// language recorded shows under the first. Keywords of a language that is no
+// longer read are shown switched off: kept, not matched.
+function stage1KeywordGroups(c) {
+  const read = c.languages || [];
+  const all = (c.keywords || {}).tier1 || [], marked = (c.keywords || {}).tier1_language || {};
+  if (!read.length) return {read, groups: [{code: '', label: 'All languages', keywords: all, on: true}]};
+  const groups = read.map(code => ({code, label: languageLabel(code), keywords: [], on: true}));
+  const off = {};
+  all.forEach(k => {
+    const code = marked[k];
+    if (!code) groups[0].keywords.push(k);
+    else if (read.includes(code)) groups.find(g => g.code === code).keywords.push(k);
+    else (off[code] = off[code] || []).push(k);
+  });
+  Object.entries(off).forEach(([code, keywords]) => groups.push({code, label: languageLabel(code), keywords, on: false}));
+  return {read, groups};
+}
+function stage1KeywordGroupsHtml(c) {
+  const {groups} = stage1KeywordGroups(c);
+  const any = groups.some(g => g.on && g.keywords.length);
+  return groups.map(g => g.on
+    ? `<div class="field"><label>${esc(g.label)} · ${g.keywords.length}</label>${renderChipInput('cfg-tier1-' + (g.code || 'all'), g.keywords)}
+        ${g.code && !g.keywords.length && any ? keywordAskHtml('stage1', g.code, 'so a posting written in ' + languageLabel(g.code) + ' is always dropped') : ''}</div>`
+    : `<div class="field kw-off"><label>${esc(g.label)} · ${g.keywords.length} · switched off: ${esc(g.label)} is not among your readable languages. Add it back under Stage0 to use these again.</label>
+        <div class="chip-input" id="cfg-tier1-${esc(g.code)}">${g.keywords.map(k => `<span class="chip-tag">${esc(k)}</span>`).join('')}</div></div>`).join('');
+}
+function readStage1Keywords(c) {
+  const {groups} = stage1KeywordGroups(c);
+  const old = (c.keywords || {}).tier1_language || {};
+  const tier1 = [], tier1_language = {};
+  groups.forEach(g => {
+    const box = document.getElementById('cfg-tier1-' + (g.code || 'all'));
+    const words = g.on && box ? getChipValues(box.id) : g.keywords;
+    words.forEach(k => {
+      if (tier1.includes(k)) return;
+      tier1.push(k);
+      if (g.code && (g !== groups[0] || old[k])) tier1_language[k] = g.code;  // under the first language, a keyword with no language recorded stays that way
+    });
+  });
+  return {tier1, tier1_language};
+}
+
 function renderConfigSection() {
   const c = pipelineConfig.criteria;
   const el = document.getElementById('pipeline-config');
@@ -2884,7 +3083,8 @@ function renderConfigSection() {
       The full posting is not shown — it's a first-pass filter for "does this look promising" based only on the Pass/Fail sections of rubric.md. The criteria
       themselves are edited one by one under Stage2 (section 5) below.
     </div>
-    <div class="field"><label>Include keywords — a posting with none of them is dropped by code, before any model call</label>${renderChipInput('cfg-tier1', (c.keywords || {}).tier1)}</div>
+    <div class="field" style="margin-bottom:6px;"><label>Include keywords — a posting with none of them is dropped by code, before any model call. One list for each language you read postings in (set under Stage0).</label></div>
+    ${stage1KeywordGroupsHtml(c)}
     <div class="save-row"><button class="save-btn" id="save-stage1">Save</button><span class="saved-note mono">Saved</span></div>
   </div>
 </div>
@@ -2916,7 +3116,8 @@ function renderConfigSection() {
   initChipInput('cfg-search-terms');
   initChipInput('cfg-locations');
   initChipInput('cfg-languages');
-  initChipInput('cfg-tier1');
+  el.querySelectorAll('.chip-input[id^="cfg-tier1-"]').forEach(box => { if (!box.closest('.kw-off')) initChipInput(box.id); });
+  bindKeywordAsks(el);
   initChipInput('cfg-exclude');
   initProfileSources();
 
@@ -2939,11 +3140,14 @@ function renderConfigSection() {
       languages: getChipValues('cfg-languages'),
       exclude_keywords: getChipValues('cfg-exclude'),
     };
+    // the Stage1 keywords as they are on screen go along, so nothing typed there is lost when the lists are redrawn
+    criteria.keywords = {...(criteria.keywords || {}), ...readStage1Keywords(pipelineConfig.criteria)};
     pipelineConfig.criteria = criteria;
-    saveConfig({criteria}, e.target);
+    // a language added or removed changes the keyword lists below: one per language you read
+    saveConfig({criteria}, e.target).then(async () => { await refreshKeywordLanguages(); redrawConfigSection(); });
   });
   document.getElementById('save-stage1').addEventListener('click', (e) => {
-    const criteria = {...pipelineConfig.criteria, keywords: {...(pipelineConfig.criteria.keywords || {}), tier1: getChipValues('cfg-tier1')}};
+    const criteria = {...pipelineConfig.criteria, keywords: {...(pipelineConfig.criteria.keywords || {}), ...readStage1Keywords(pipelineConfig.criteria)}};
     pipelineConfig.criteria = criteria;
     saveConfig({criteria}, e.target);
   });
@@ -2977,6 +3181,7 @@ function renderConfigSection() {
 }
 
 async function loadPipeline() {
+  if (!pipelineLoaded) await refreshKeywordLanguages();
   fetch('/api/runs').then(r => r.json()).then(list => { runs = list.filter(r => r.run_id); renderNoRunBanners(); }).catch(() => {});
   if (pipelineLoaded) return;
   const res = await fetch('/api/pipeline');

@@ -75,27 +75,15 @@ you stop, so the page does not wait for you.
   as one of the five below (they added it), and keep the `id` of every
   category and answer that still exists, even if you reword it.
 
-## 2b. Only a language is missing? Add its keywords and stop
+## 2b. Only a language is missing? That is another skill
 
-`show` also prints `draft` (a draft the user is going through on the page,
-if there is one) and `languages_without_keywords`: languages the user
-reads postings in that the draft (or, with no draft, the saved setup) has
-no keyword for. This happens when they added a language under Stage0
-after the setup was written, and the page then sends them here.
-
-If that list is not empty, and the request is not a fresh `requested` one
-carrying answers that differ from the setup's `profile`, do only this:
-
-1. Take the draft (or the saved setup) exactly as it is: every category,
-   answer, rule, id, keyword, `profile` and `guidance` unchanged.
-2. Add keywords for each missing language, following the keyword rules in
-   step 3, into the categories they inform; add each to
-   `keyword_language` with that language's code, and the code to
-   `languages`.
-3. Do steps 4 to 6. In your report say only which languages you added
-   keywords for and how many; the page shows them in its Keywords step.
-
-Otherwise go on with step 3 and write the whole setup.
+`show` also prints `languages_without_keywords`: languages the user reads
+postings in that the draft (or, with no draft, the saved setup) has no
+keyword for. If that list is not empty and the request did not come from
+the page's setup button (`status` was `none`, `drafted` or `done`), the
+user most likely wants just those keywords: stop here and follow the
+`ftja-keywords` skill (`.claude/skills/ftja-keywords/SKILL.md`) instead. It
+adds a language's keywords without touching the rest.
 
 ## 3. Write the setup
 

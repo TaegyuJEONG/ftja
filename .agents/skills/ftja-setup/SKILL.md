@@ -312,7 +312,7 @@ Write the complete combined proposal in a single command **before** instructing
 the user to review search settings:
 
 ```bash
-venv/bin/python -m ftja.onboarding . set-state --stage profile --phase title_proposal --status waiting --json '{"profile":{"titles":["Product Builder","AI Product Manager","Founding Product Manager"],"criteria":{"search_terms":["Product Builder","AI Product Manager","Founding Product Manager"],"location":"France","hours_old":24,"results_wanted":100,"keywords":{"tier1":["AI product","LLM","Product Builder"]},"languages":["en","fr"],"exclude_keywords":["pure sales"]}},"cards":{"stage0":{"keywords":["AI product","LLM","Product Builder"],"languages":["en","fr"],"exclude_keywords":["pure sales"]}}}'
+venv/bin/python -m ftja.onboarding . set-state --stage profile --phase title_proposal --status waiting --json '{"profile":{"titles":["Product Builder","AI Product Manager","Founding Product Manager"],"criteria":{"search_terms":["Product Builder","AI Product Manager","Founding Product Manager"],"location":"France","hours_old":24,"results_wanted":100,"keywords":{"tier1":["AI product","LLM","Product Builder","produit IA","chef de produit IA"],"tier1_language":{"AI product":"en","Product Builder":"en","produit IA":"fr","chef de produit IA":"fr"}},"languages":["en","fr"],"exclude_keywords":["pure sales"]}},"cards":{"stage0":{"keywords":["AI product","LLM","Product Builder","produit IA","chef de produit IA"],"keyword_language":{"AI product":"en","Product Builder":"en","produit IA":"fr","chef de produit IA":"fr"},"languages":["en","fr"],"exclude_keywords":["pure sales"]}}}'
 ```
 
 The `set-state` helper records drafts only. It must leave the state at
@@ -324,7 +324,9 @@ safety; see "Move quickly through routine steps"):
 
 - state is still `profile/title_proposal`;
 - the search-settings card contains the proposed titles and location;
-- `cards.stage0` already contains non-empty keywords and languages.
+- `cards.stage0` already contains non-empty keywords and languages, with
+  keywords in every one of those languages and `keyword_language` saying
+  which language each is in.
 
 Tell the user both upcoming screens were prefilled from the confirmed profile and
 remain editable. Then wait for `confirm_profile`. When it returns, the state
@@ -398,7 +400,16 @@ my search settings, continue the setup`) and do not claim that the chat resumed.
   so a language requirement does not need an `exclude_keywords` entry — and
   a bare language name there would also drop "the German market".
 - `keywords.tier1`: the keyword phrases that must appear in a JD sentence
-  for it to even reach Stage 1. A keyword matches whole words and their
+  for it to even reach Stage 1. **Write them in every language in
+  `languages`, not only English**: a posting written in French is caught
+  only by French keywords, so a candidate who reads English and French
+  gets both sets. Do not translate word for word; give the terms postings
+  in that language really use, and, since word forms are only folded the
+  English way, list the forms yourself (singular and plural, masculine and
+  feminine). Record which language each keyword is in as
+  `keywords.tier1_language` (`{"prototypage": "fr"}`), and in the Stage 0
+  card as `keyword_language`; a name that is the same in every language
+  ("LLM", "Cursor") goes under the first. A keyword matches whole words and their
   forms ("remote" matches "remotely", not "premote"; "time zone" matches
   "time zones"), so write full words, never a fragment like "tele". A
   keyword in capitals ("UTC") matches only those capitals. Include the
