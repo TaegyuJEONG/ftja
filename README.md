@@ -156,6 +156,7 @@ Skills are the instructions your agent follows. You only need the first two.
 | `/ftja-setup` | Onboarding: profile, search settings, rubric | Once, or to start over |
 | `/ftja-run` | Scrape, filter, judge, show results | Whenever you want a search |
 | `/ftja-remote` | Writes the Remote check's keywords, categories and rules for where you live | When you switch the Remote check on, or move |
+| `/ftja-keywords` | Writes the keywords for a language you started reading postings in | When you add a language |
 | `/ftja-tune` | Adds a preference you state in chat to your rubric | When you say one |
 | `/ftja-review` | Turns your apply/skip reasons into proposed rubric changes | Automatically at the start of a run |
 | `/ftja-update` | Updates FTJA and tells you what changed | When a run tells you an update exists |

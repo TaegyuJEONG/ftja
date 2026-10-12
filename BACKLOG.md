@@ -423,3 +423,33 @@ passing ones.
 
 Not needed to ship the stage. The popup already shows every answer with
 its rule, so the effect of a rule can be read off before changing it.
+
+## Word forms in languages other than English
+
+### Problem
+
+A keyword matches whole words and their forms: "prototype" also finds
+"prototyping" and "prototypes". The folding of forms is the English Porter
+stemmer, applied to every keyword whatever its language. In French, German
+or Korean it folds little or nothing useful: "basé" does not find "basée"
+or "basés", and Korean particles attached to a word are not separated at
+all.
+
+### What is done instead
+
+`/ftja-keywords`, `/ftja-remote` and onboarding are told to list the forms
+themselves (singular and plural, masculine and feminine). That works for
+the common forms and misses the rest.
+
+### Proposed design
+
+Pick the stemmer by the keyword's recorded language (`tier1_language`,
+`keyword_language`), and stem each sentence with the stemmer of the
+posting's detected language. Snowball covers the European languages;
+Korean needs a morphological analyser, a much heavier dependency.
+
+### Why it is parked
+
+Decided 2026-10-12: listing the forms is enough to start with. Take it up
+when a run shows postings in a second language being dropped for a missing
+word form.

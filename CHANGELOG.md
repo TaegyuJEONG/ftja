@@ -37,6 +37,16 @@ digests — are never touched by an update.
   code filter (languages and exclude words), Remote check, Stage 1,
   Stage 2. The "Include keywords" moved from the code filter to Stage 1,
   the stage that reads them. With Stage 1 off, they are not required.
+- **Keywords are kept per language.** A posting written in French is only
+  caught by French keywords, so Stage 1's keywords and the Remote check's
+  now show one list for each language you read postings in. Onboarding
+  proposes keywords in every one of your languages. When you add a
+  language later, its list is empty and offers "Add French keywords with
+  my agent" (or type `/ftja-keywords`): the agent writes them from the
+  keywords you already have, and you confirm them on the page before they
+  are added. Take a language off your readable languages and its keywords
+  are switched off, not deleted; they come back with the language. Your
+  existing keywords count for your first language and work as before.
 - **Results:** a run with the Remote check shows a Remote line with
   "Passed N — see why" and "Failed N — see why". Each posting lists every
   category with its answer, the detail, whether that fails by your rule,
