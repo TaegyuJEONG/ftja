@@ -127,7 +127,7 @@ def test_any_category_keyword_gets_a_posting_read_and_the_title_counts(tmp_path)
     blocks = remote.blocks_for(JOBS[0], cfg)
     assert [b["s_id"] for b in blocks][0] == "T" and blocks[0]["matched"] is False  # the title is shown, as context here
     hit = {k for b in blocks for k in b["matched_keywords"]}
-    assert {"remote", "gathering", "EU"} <= hit  # keywords of three different categories
+    assert {"remote", "team gathering", "EU"} <= hit  # keywords of three different categories
     assert remote.blocks_for(JOBS[2], cfg) == []  # nothing about remote work anywhere
     only_title = remote.blocks_for(JOBS[3], cfg)  # "(Remote)" in the title is enough to have it read
     assert [(b["s_id"], b["matched"]) for b in only_title] == [("T", True)]

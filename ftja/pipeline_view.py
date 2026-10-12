@@ -33,6 +33,14 @@ _DEFAULT_CRITERIA = {
 }
 
 
+def _stages(criteria: dict) -> dict:
+    """Which judging stages are switched on, for a criteria.json from before
+    there were switches too (see ftja.live.stages_of)."""
+    from ftja.live import STAGES, stages_of
+    on = stages_of(criteria)
+    return {stage: stage in on for stage in STAGES}
+
+
 def _profile_sources(project_dir: str) -> list[dict]:
     """Registered profile sources, defaulting to the two files setup already
     asks the user to place in profile/. The registry controls references only;
@@ -64,6 +72,7 @@ def read_config(project_dir: str = ".") -> dict:
     """Raw config for the Pipeline tab: criteria, shared rubric, profile
     summary, and a non-destructive registry of source files."""
     criteria = {**_DEFAULT_CRITERIA, **(_read_json(f"{project_dir}/criteria.json", {}) or {})}
+    criteria["stages"] = _stages(criteria)
     return {
         "criteria": criteria,
         "rubric_md": _read(f"{project_dir}/rubric.md", ""),

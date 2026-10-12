@@ -50,6 +50,12 @@ PROFILE_KEYS = ("residence", "work_countries", "time_zone", "work_permit")
 # A request the agent took up and never finished stops showing as "generating" after this long.
 GENERATING_STALE_SECONDS = 600
 
+# The built-in setup, used until the user has their own. Its keywords were
+# measured on 988 scraped European postings: matching is by word stem, so
+# "globally" also hit "global", "countries" hit "country", "distributed" hit
+# "distribution" and "gathering" hit "gather requirements" — together they
+# sent 82% of all postings to the model. Without them it is 67%, and every
+# posting a person had marked as remote in that set is still caught.
 DEFAULT_CONFIG = {
     "drop_without_keywords": True,
     "guidance": ("Judge the role itself, not the company. Travel, an onboarding week and occasional team "
@@ -58,9 +64,9 @@ DEFAULT_CONFIG = {
     "categories": [
         {"id": "remote_level", "label": "Remote level", "question": "How remote is the role itself?",
          "keywords": ["remote", "remote-first", "work from home", "working from home", "WFH", "home office",
-                      "home-based", "telework", "distributed", "hybrid", "on-site", "onsite", "in-office",
-                      "in the office", "office days", "days per week", "days a week", "work from", "anywhere",
-                      "relocate", "relocation"],
+                      "home-based", "telework", "fully distributed", "distributed team", "distributed company",
+                      "hybrid", "on-site", "onsite", "in-office", "in the office", "office days", "days per week",
+                      "days a week", "work from", "anywhere", "relocate", "relocation"],
          "options": [{"id": "fully_remote", "label": "Fully remote", "rule": "pass"},
                      {"id": "hybrid", "label": "Hybrid: regular office days", "rule": "fail"},
                      {"id": "on_site", "label": "On-site", "rule": "fail"}],
@@ -69,7 +75,7 @@ DEFAULT_CONFIG = {
          "question": "From where may the person work?",
          "keywords": ["based in", "located in", "reside", "residents", "residency", "eligible to work",
                       "authorized to work", "right to work", "work authorization", "work permit", "visa",
-                      "sponsorship", "worldwide", "globally", "EMEA", "EU", "countries"],
+                      "sponsorship", "work from anywhere", "anywhere in the world", "EMEA", "EU"],
          "options": [{"id": "anywhere", "label": "Anywhere", "rule": "pass"},
                      {"id": "restricted", "label": "Only certain countries or regions", "rule": "pass"}],
          "unknown": "pass"},
@@ -81,8 +87,8 @@ DEFAULT_CONFIG = {
          "unknown": "pass"},
         {"id": "onsite_duties", "label": "Extra on-site duties",
          "question": "Besides regular office days, which on-site presence does it ask for?",
-         "keywords": ["onboarding", "offsite", "off-site", "retreat", "gathering", "meetup", "meet-up",
-                      "travel", "in person", "in-person", "headquarters", "HQ"],
+         "keywords": ["onboarding", "offsite", "off-site", "retreat", "team gathering", "company gathering",
+                      "meetup", "meet-up", "travel", "in person", "in-person", "headquarters", "HQ"],
          "options": [{"id": "none", "label": "None", "rule": "pass"},
                      {"id": "occasional", "label": "Occasional: onboarding, gatherings or travel", "rule": "pass"}],
          "unknown": "pass"},

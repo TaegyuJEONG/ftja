@@ -79,6 +79,25 @@ h1.serif { font-size: 38px; font-weight: 400; line-height: 1; margin-bottom: 8px
 .check-row b { color: var(--text); }
 .continue-cmd { display: flex; gap: 10px; align-items: center; margin: 12px 0; padding: 10px 12px; background: var(--accent-dim); border-left: 3px solid var(--accent); font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; }
 .continue-cmd code { flex: 1; user-select: all; }
+.stage-switch { margin-left: auto; display: inline-flex; align-items: center; gap: 7px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 400; color: var(--text3); cursor: pointer; text-transform: none; letter-spacing: 0; }
+.stage-switch input { accent-color: var(--accent-strong); }
+.stage-switch.on { color: var(--accent-text); }
+.card.stage-off > *:not(.stage-off-note) { opacity: .45; }
+.stage-off-note { font-size: 12px; color: var(--warn-text); background: var(--warn-bg); padding: 8px 10px; margin-bottom: 12px; }
+.rm-answers { margin: 4px 0 2px; }
+.rm-answer { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+.rm-answer input[type="text"] { flex: 1; }
+.rm-answer select, .rm-unknown select { font: inherit; font-size: 12.5px; padding: 5px 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); }
+.rm-unknown { display: flex; gap: 8px; align-items: center; font-size: 12.5px; color: var(--text2); margin: 8px 0 10px; }
+.rm-status { margin-bottom: 14px; }
+.rm-skeleton { padding: 6px 0 12px; }
+.ra-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12.5px; }
+.ra-table td { padding: 5px 8px 5px 0; vertical-align: top; border-top: 1px solid var(--border); }
+.ra-table td:first-child { color: var(--text3); white-space: nowrap; width: 1%; }
+.ra-table .ra-fail { color: var(--danger-text); font-weight: 600; }
+.ra-table .ra-unknown { color: var(--text3); }
+.ra-table .ra-quote { color: var(--text2); font-size: 12px; margin-top: 3px; padding-left: 9px; border-left: 2px solid var(--border2); }
+.ra-table .ra-note { color: var(--warn-text); font-size: 11.5px; margin-top: 3px; }
 .run-item .wait-badge { color: var(--accent-text); font-weight: 600; }
 .store-h { font-family: 'IBM Plex Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--text3); margin: 18px 0 2px; }
 .run-item.selected { border-top-color: var(--accent-strong); background: rgba(46,81,66,.13); }
@@ -1330,7 +1349,7 @@ function renderRunList() {
     const selected = !liveSelected && r.run_id === selectedRunId ? 'selected' : '';
     return `<div class="run-item ${selected}" data-run-id="${esc(r.run_id)}">
       <span class="date">${esc(fmtDate(r.ts_end))}</span>
-      ${r.stage2_pending ? `<span class="wait-badge">${fmtN(r.stage2_pending)} waiting for Stage 2</span>` : `<span class="pass-badge">${fmtN(r.passed)} passed</span>`}
+      ${r.stage2_pending ? `<span class="wait-badge">${fmtN(r.stage2_pending)} ${r.stopped_after === 'remote' ? 'passed the Remote check' : 'waiting for Stage 2'}</span>` : `<span class="pass-badge">${fmtN(r.passed)} passed</span>`}
       <span class="muted">${fmtN(r.scraped_count)} scraped · ${fmtN(r.total_evaluated)} evaluated</span>
       ${r.run_id ? `<button class="run-delete" type="button" data-delete-run="${esc(r.run_id)}" title="Move this run to the trash. Its postings are judged again on the next run.">Delete</button>` : ''}
     </div>`;
@@ -1365,11 +1384,23 @@ function selectRun(runId, filter = "passed") {
 
 function count(key, n) { return `<span data-count="${key}" data-value="${n ?? ''}">${fmtN(n)}</span>`; }
 
+// A run does any of these judging stages, in this order (see ftja.live.STAGES).
+const STAGE_ORDER = ['remote', 'stage1', 'stage2'];
+const STAGE_LABELS = {remote: 'the Remote check', stage1: 'Stage 1', stage2: 'Stage 2'};
+function runStages(snapshot, given) {
+  if (given && given.length) return given;
+  const cs = snapshot || {};
+  if (Array.isArray(cs.stages) && cs.stages.length) return cs.stages;
+  return cs.stage1_only ? ['stage1'] : ['stage1', 'stage2'];  // recorded before there were switches
+}
+
 // The run's funnel, for a finished run (numbers from runs.jsonl) and for a
 // run in progress (numbers from /api/live) alike. `v`:
 //   {runId, live, scraped, terms: [{term, count, wanted, done}]|null, cs,
-//    stage0: {passed, dropped}|null, skip, stage1: {pass, fail, pending}|null,
-//    stage2: {passed, review, fail, pending}|null, meta}
+//    stages: ['remote', 'stage1', 'stage2'] (the ones this run does),
+//    stage0: {passed, dropped}|null, skip, remote: {pass, fail, pending}|null,
+//    stage1: {pass, fail, pending}|null, stage2: {passed, review, fail, pending}|null,
+//    stoppedAfter, stage2Pending (how many wait there), continueTo: [stages], meta}
 function funnelHtml(v) {
   const cs = v.cs || {};
   const wanted = cs.results_wanted;
@@ -1389,14 +1420,43 @@ function funnelHtml(v) {
     const parts = [`Location <b>${esc((cs.locations || []).filter(Boolean).join(', ') || cs.location || 'anywhere')}</b>`,
       `Posted within <b>${esc(cs.hours_old)} hours</b>`, `Up to <b>${fmtN(wanted)}</b> per search${(cs.locations || []).length > 1 ? ' (each term in each location)' : ' term'}`];
     if (cs.title_must_match) parts.push(`<b>Title must contain the search term</b>`);
-    if (cs.stage1_only) parts.push(`<b>Stops after Stage 1</b>`);
+    const planned = runStages(cs);  // as the run was started, before any Continue
+    if (planned.includes('remote') || !planned.includes('stage1')) parts.push(`Stages <b>${planned.map(x => x === 'remote' ? 'Remote check' : STAGE_LABELS[x]).join(' → ')}</b>`);
+    if (planned[planned.length - 1] !== 'stage2') parts.push(`<b>Stops after ${STAGE_LABELS[planned[planned.length - 1]]}</b>`);
     scrape += `<div class="conditions">${parts.join(' · ')}</div>`;
   }
+  const stages = runStages(cs, v.stages);
+  const has = name => stages.includes(name);
+  const last = stages[stages.length - 1];
 
   const row = (label, state, content) => `<div class="funnel-row ${state}"><div class="funnel-label">${label}</div><div class="funnel-content">${content}</div></div>`;
   const waiting = '<div class="line">Waiting</div>';
-  const active = v.live ? (!v.stage0 ? 'scrape' : !v.stage1 ? 'stage0' : (v.stage1.pending || !v.stage2) ? 'stage1' : 'stage2') : '';
+  // The row being worked on: the first of the run's stages that is not done;
+  // until that stage's files exist, the row before it is still the busy one.
+  let active = '';
+  if (v.live && !v.stage0) active = 'scrape';
+  else if (v.live) {
+    const data = {remote: v.remote, stage1: v.stage1, stage2: v.stage2};
+    const next = stages.find(name => !data[name] || data[name].pending || name === 'stage2');
+    if (next) active = data[next] ? next : (stages.indexOf(next) ? stages[stages.indexOf(next) - 1] : 'stage0');
+  }
   const is = name => active === name ? 'active' : '';
+  // A stage this run does not do: say whether it can still be run on what is waiting.
+  let goneSaid = false;
+  const notRun = name => {
+    if (v.stage2Pending && STAGE_ORDER.indexOf(name) > STAGE_ORDER.indexOf(v.stoppedAfter || 'stage1')) {
+      const lead = `Not run — this run stopped after ${STAGE_LABELS[v.stoppedAfter || 'stage1']}. <b>${fmtN(v.stage2Pending)}</b> ${v.stage2Pending === 1 ? 'posting is' : 'postings are'} waiting.`;
+      if ((v.continueTo || []).includes(name)) {
+        const skips = name === 'stage2' && (v.continueTo || []).includes('stage1') ? ' <span class="muted">(skips Stage 1)</span>' : '';
+        return `<div class="line">${lead} <button class="link-btn pass" type="button" data-continue-run="${esc(v.runId)}" data-waiting="${v.stage2Pending}" data-to="${name}" data-after="${esc(v.stoppedAfter || 'stage1')}">Continue to ${STAGE_LABELS[name]}</button>${skips}</div>`;
+      }
+      if (v.canContinue || goneSaid) return `<div class="line">Not run.</div>`;
+      goneSaid = true;
+      return `<div class="line">${lead} <span class="muted">Its working files are gone, so it cannot be continued; delete the run to have these postings judged again.</span></div>`;
+    }
+    if (v.live && STAGE_ORDER.indexOf(name) > STAGE_ORDER.indexOf(last)) return `<div class="line">Will not run — this run stops after ${STAGE_LABELS[last]}.</div>`;
+    return '<div class="line empty">Not part of this run.</div>';
+  };
 
   let s0 = waiting;
   if (v.stage0) {
@@ -1411,8 +1471,16 @@ function funnelHtml(v) {
     s0 = `<div class="line">Passed <span class="n-pass">${count('s0', v.stage0.passed)}</span> — code only, no AI calls</div>
       <div class="line empty">Dropped: ${dropLine}</div>`;
   }
+  let rc = waiting;
+  if (v.remote) {
+    const link = (verdict, n, key) => n
+      ? `<button class="link-btn ${verdict === 'pass' ? 'pass' : ''}" type="button" data-remote-jobs="${esc(v.runId)}" data-verdict="${verdict}">${verdict === 'pass' ? 'Passed' : 'Failed'} ${count(key, n)} — see why</button>`
+      : `${verdict === 'pass' ? 'Passed' : 'Failed'} <span class="${verdict === 'pass' ? 'n-pass' : 'n-fail'}">${count(key, n)}</span>`;
+    rc = `<div class="line">${link('pass', v.remote.pass, 'rcp')} / ${link('fail', v.remote.fail, 'rcf')}${v.remote.pending ? ` <span class="n-open">· ${count('rco', v.remote.pending)} in progress</span>` : ''}</div>`;
+  }
   let s1 = waiting;
-  if (v.stage1) {
+  if (!has('stage1')) s1 = notRun('stage1');
+  else if (v.stage1) {
     const failed = v.stage1.fail
       ? `<button class="link-btn" type="button" data-stage1-fails="${esc(v.runId)}">Failed ${count('s1f', v.stage1.fail)} — see why</button>`
       : `Failed <span class="n-fail">0</span>`;
@@ -1422,19 +1490,15 @@ function funnelHtml(v) {
     s1 = `<div class="line">${passedS1} / ${failed}${v.stage1.pending ? ` <span class="n-open">· ${count('s1o', v.stage1.pending)} in progress</span>` : ''}</div>`;
   }
   let s2 = waiting;
-  if (v.stage2Pending) {  // a finished run that stopped after Stage 1
-    s2 = `<div class="line">Not run — this run stopped after Stage 1. <b>${fmtN(v.stage2Pending)}</b> ${v.stage2Pending === 1 ? 'posting is' : 'postings are'} waiting.
-      ${v.canContinue ? `<button class="link-btn pass" type="button" data-continue-run="${esc(v.runId)}" data-waiting="${v.stage2Pending}">Continue to Stage 2</button>`
-        : '<span class="muted">Its working files are gone, so it cannot be continued; delete the run to have these postings judged again.</span>'}</div>`;
-  } else if (v.live && (v.cs || {}).stage1_only && !v.continued) {
-    s2 = '<div class="line">Will not run — this run stops after Stage 1.</div>';
-  } else if (v.stage2) {
+  if (!has('stage2')) s2 = notRun('stage2');
+  else if (v.stage2) {
     s2 = `<div class="line">Final passed <span class="n-pass">${count('s2p', v.stage2.passed)}</span>${(v.stage2.review || v.live) ? ` / To review <b>${count('s2r', v.stage2.review)}</b>` : ''} / Failed <span class="n-fail">${count('s2f', v.stage2.fail)}</span>${v.stage2.pending ? ` <span class="n-open">· ${count('s2o', v.stage2.pending)} in progress</span>` : ''}</div>`;
   }
   return row('Scraping', is('scrape'), scrape)
     + row('Stage0', v.stage0 ? is('stage0') : 'waiting', s0)
-    + row('Stage1', v.stage1 ? is('stage1') : 'waiting', s1)
-    + row('Stage2', (v.stage2 && !v.stage2Pending) ? is('stage2') : 'waiting', s2)
+    + (has('remote') ? row('Remote', v.remote ? is('remote') : 'waiting', rc) : '')
+    + row('Stage1', (has('stage1') && v.stage1) ? is('stage1') : 'waiting', s1)
+    + row('Stage2', (has('stage2') && v.stage2) ? is('stage2') : 'waiting', s2)
     + (v.meta ? `<div class="meta-line">${v.meta}</div>` : '');
 }
 
@@ -1459,7 +1523,8 @@ function tweenCounts(root, animate) {
 }
 
 function bindFunnel(el) {
-  el.querySelectorAll('[data-continue-run]').forEach(b => b.addEventListener('click', () => openContinueRun(b.dataset.continueRun, parseInt(b.dataset.waiting, 10))));
+  el.querySelectorAll('[data-continue-run]').forEach(b => b.addEventListener('click', () => openContinueRun(b.dataset.continueRun, parseInt(b.dataset.waiting, 10), b.dataset.to || 'stage2', b.dataset.after || 'stage1')));
+  el.querySelectorAll('[data-remote-jobs]').forEach(b => b.addEventListener('click', () => openRemoteJobs(b.dataset.remoteJobs, b.dataset.verdict || 'fail')));
   el.querySelectorAll('[data-stage1-fails]').forEach(b => b.addEventListener('click', () => openStage1Fails(b.dataset.stage1Fails, b.dataset.verdict || 'fail')));
 }
 
@@ -1473,8 +1538,9 @@ function renderRunDetail() {
   el.innerHTML = funnelHtml({
     runId: run.run_id, live: false, scraped: run.scraped_count, terms: run.scraped_by_term || null, cs: run.criteria_snapshot,
     stage0: {passed: run.stage0_passed, dropped: run.stage0_dropped}, skip: run.already_seen_skipped,
+    stages: run.stages, remote: (run.stages || []).includes('remote') ? {pass: run.remote_pass, fail: run.remote_fail} : null,
     stage1: {pass: run.stage1_pass, fail: run.stage1_fail}, stage2: {passed: run.stage2_pass, review: run.stage2_review, fail: run.stage2_fail},
-    stage2Pending: run.stage2_pending || 0, canContinue: run.can_continue,
+    stage2Pending: run.stage2_pending || 0, canContinue: run.can_continue, stoppedAfter: run.stopped_after, continueTo: run.continue_to || [],
     meta: `Duration ${run.duration_seconds ? Math.round(run.duration_seconds) + 's' : '-'} · Tokens ${fmtN(run.total_tokens)}`,
   });
   shownCounts = {};
@@ -1532,7 +1598,7 @@ function renderLive() {
   const run = liveRun;
   const view = {
     runId: run.run_id, live: true, scraped: run.stage0 ? run.stage0.scraped : run.scrape.total, terms: run.scrape.terms, cs: run.criteria_snapshot,
-    stage0: run.stage0, skip: null, stage1: run.stage1, stage2: run.stage2, continued: !!run.continued_at,
+    stage0: run.stage0, skip: null, stages: run.stages, remote: run.remote, stage1: run.stage1, stage2: run.stage2, continued: !!run.continued_at,
     meta: !run.replay ? ''
       : run.replay_sample ? `Replay of a sample of the ${esc(fmtDate(run.replay_of))} run, as if each search term were capped. Verdicts are from that run; counts are scaled down and the timing is compressed.`
       : `Replay of the ${esc(fmtDate(run.replay_of))} run. Every number and verdict is from that run; the timing is compressed.`,
@@ -1566,8 +1632,10 @@ function renderLive() {
 
   const note = document.getElementById('live-note');
   if (note) {
-    const doing = !run.stage0 ? 'Scraping LinkedIn' : !run.stage1 ? 'Filtering with code'
-      : !run.stage2 ? 'Stage 1 is reading the sentences around your keywords' : '';
+    const doing = !run.stage0 ? 'Scraping LinkedIn'
+      : (run.remote && run.remote.pending) ? 'The Remote check is reading the sentences around your remote keywords'
+      : (!run.stage1 && !run.remote) ? 'Filtering with code'
+      : (run.stage1 && !run.stage2) ? 'Stage 1 is reading the sentences around your keywords' : '';
     note.textContent = doing;
     note.hidden = !doing;
   }
@@ -1723,6 +1791,69 @@ async function openStage1Fails(runId, verdict = 'fail') {
   };
   // while the run is live, pollLive calls this: new verdicts land on top of page 1
   stage1Dialog = {runId, refresh: () => load(current, false)};
+  dialog.addEventListener('close', () => { stage1Dialog = null; }, {once: true});
+  await load(1, true);
+  dialog.showModal();
+}
+
+// ---- what the Remote check made of each job ----
+// One line per category: the answer the model picked, the specifics, whether
+// that answer passes or fails by the user's rule, and the sentence behind it.
+function remoteAnswersHtml(answers, blocks) {
+  const sentence = Object.fromEntries((blocks || []).map(b => [b.sid, b.sentence]));
+  return `<table class="ra-table">${(answers || []).map(a => `
+    <tr><td>${esc(a.label)}</td>
+      <td><span class="${a.rule === 'fail' ? 'ra-fail' : a.answer === '?' ? 'ra-unknown' : ''}">${esc(a.answer_label)}</span>${a.detail ? ` — ${esc(a.detail)}` : ''}${a.rule === 'fail' ? ' <span class="ra-fail">· fails by your rule</span>' : ''}
+        ${(a.evidence_sids || []).filter(sid => sentence[sid]).map(sid => `<div class="ra-quote">${quoteText(sentence[sid])}</div>`).join('')}
+        ${a.note ? `<div class="ra-note">${esc(a.note)}</div>` : ''}</td></tr>`).join('')}</table>`;
+}
+async function openRemoteJobs(runId, verdict = 'fail') {
+  const passed = verdict === 'pass';
+  const heading = passed ? 'Passed the Remote check' : 'Stopped at the Remote check';
+  let dialog = document.getElementById('s1-dialog');
+  if (!dialog) {
+    dialog = document.createElement('dialog');
+    dialog.id = 's1-dialog';
+    dialog.className = 's1-dialog';
+    document.body.appendChild(dialog);
+    dialog.addEventListener('click', (e) => { if (e.target === dialog) dialog.close(); });
+  }
+  dialog.innerHTML = `
+    <div class="s1-head"><h3>${heading}</h3><button class="text-btn" type="button" data-close>Close</button></div>
+    <div class="s1-body">
+      <div class="s1-explain">The Remote check reads only the title and the sentences around your remote keywords. The model answers each category; your rules on the Pipeline tab decide which answers fail. These are the jobs it ${passed ? 'let through' : 'turned down'}.
+        <a href="/api/remote-jobs.csv?run_id=${encodeURIComponent(runId)}&verdict=${verdict}">Download as a table (CSV)</a></div>
+      <div id="s1-rows"></div>
+      <div class="pagination" id="s1-pages"></div>
+    </div>`;
+  dialog.querySelector('[data-close]').addEventListener('click', () => dialog.close());
+  let current = 1, total = -1;
+  const load = async (page, turned) => {
+    const data = await (await fetch(`/api/remote-jobs?run_id=${encodeURIComponent(runId)}&page=${page}&verdict=${verdict}`)).json();
+    if (!turned && data.total === total) return;  // a live refresh with nothing new
+    current = page; total = data.total;
+    dialog.querySelector('h3').textContent = `${heading} · ${fmtN(data.total)}`;
+    dialog.querySelector('#s1-rows').innerHTML = data.jobs.map(j => {
+      const keywords = [...new Set((j.blocks || []).flatMap(b => b.keywords || []))];
+      return `
+      <div class="s1-row">
+        <div class="s1-title"><a href="${esc(j.job_url)}" target="_blank">${esc(j.title)}</a> <span>— ${esc(j.company)}${j.location ? ' · ' + esc(j.location) : ''}</span></div>
+        ${!passed && j.reason ? `<div class="s1-reason">${esc(j.reason)}</div>` : ''}
+        ${j.pruned_at ? `<div class="pruned-note">The details were removed on ${esc(fmtDate(j.pruned_at))} to save space.</div>` : remoteAnswersHtml(j.answers, j.blocks)}
+        ${(j.blocks || []).length ? fold(`Everything it read · ${plural(j.blocks.length, 'sentence')}`,
+            `${keywords.length ? `<div class="s1-keywords"><span>Matched</span>${keywords.map(k => `<span class="chip">${esc(k)}</span>`).join('')}</div>` : ''}${stage1BlocksHtml(j.blocks, keywords)}`)
+          : (j.pruned_at ? '' : '<div class="s1-reason none">No remote keyword in this posting: every category is “not stated”, without a model call.</div>')}
+      </div>`; }).join('') || `<div class="empty">Nothing has ${passed ? 'passed' : 'been turned down at'} the Remote check.</div>`;
+    const pages = dialog.querySelector('#s1-pages');
+    const shown = [...new Set([1, data.total_pages, page - 2, page - 1, page, page + 1, page + 2])]
+      .filter(p => p >= 1 && p <= data.total_pages).sort((a, b) => a - b);
+    pages.innerHTML = data.total_pages <= 1 ? '' : shown.map((p, i) =>
+      (i && p - shown[i - 1] > 1 ? '<span class="page-gap">…</span>' : '')
+      + `<span class="page-btn ${p === page ? 'active' : ''}" data-page="${p}">${p}</span>`).join('');
+    pages.querySelectorAll('.page-btn').forEach(b => b.addEventListener('click', () => load(parseInt(b.dataset.page, 10), true)));
+    if (turned) dialog.scrollTop = 0;
+  };
+  stage1Dialog = {runId, refresh: () => load(current, false)};  // while the run is live, new answers land here
   dialog.addEventListener('close', () => { stage1Dialog = null; }, {once: true});
   await load(1, true);
   dialog.showModal();
@@ -1976,7 +2107,9 @@ function renderJobs(jobs) {
   const list = document.getElementById('job-list');
   if (jobs.length === 0) {
     const run = runs.find(r => r.run_id === selectedRunId) || {};
-    list.innerHTML = run.stage2_pending
+    list.innerHTML = run.stage2_pending && run.stopped_after === 'remote'
+      ? `<div class="empty">This run stopped after the Remote check, so there are no final results. Use <b>Passed ${fmtN(run.stage2_pending)} — see why</b> on the Remote line above to read each answer with the sentence behind it (and download the table), or continue to a later stage.</div>`
+      : run.stage2_pending
       ? `<div class="empty">Stage 2 has not run for this run, so there are no final results yet. Use <b>Passed ${fmtN(run.stage2_pending)} — see why</b> on the Stage 1 line above to read what got through, or <b>Continue to Stage 2</b>.</div>`
       : '<div class="empty">No matching jobs</div>';
     return;
@@ -2316,6 +2449,214 @@ function bindRubricEditor() {
   });
 }
 
+// Which judging stages are switched on. criteria.json's `stages`; a file from
+// before there were switches means Stage 1 and Stage 2 (Stage 1 alone with `stage1_only`).
+function currentStages() {
+  const c = pipelineConfig.criteria || {};
+  const st = c.stages;
+  if (st && typeof st === 'object' && !Array.isArray(st)) return {remote: !!st.remote, stage1: !!st.stage1, stage2: !!st.stage2};
+  return {remote: false, stage1: true, stage2: !c.stage1_only};
+}
+function stageOn(name) { return currentStages()[name]; }
+function stageSwitchHtml(name) {
+  const on = stageOn(name);
+  return `<label class="stage-switch ${on ? 'on' : ''}"><input type="checkbox" data-stage-switch="${name}" ${on ? 'checked' : ''}>${on ? 'On' : 'Off'}</label>`;
+}
+
+// ---- Pipeline tab: the Remote check's setup ----
+// remoteSetup = {config, saved, request: {status, answers}, listening}, from /api/remote-check.
+// The editor keeps its state in the page: structural changes (add or remove a
+// category or an answer) read the fields back into remoteSetup.config and redraw.
+let remoteSetup = null;
+let remoteWatch = null;
+let remoteAskedAt = 0;
+let remoteNote = '';
+const REMOTE_PROFILE_FIELDS = [
+  ['residence', 'Where you live', 'e.g. Paris, France'],
+  ['work_countries', 'Where you want to work', 'e.g. France, anywhere in the EU'],
+  ['time_zone', 'Your time zone', 'e.g. CET'],
+  ['work_permit', 'Your work permit', 'e.g. France only; need sponsorship elsewhere'],
+];
+async function loadRemoteSetup() {
+  try { remoteSetup = await (await fetch('/api/remote-check', {cache: 'no-store'})).json(); } catch (e) { return; }
+  renderRemoteEditor();
+  watchRemoteRequest();
+}
+function remotePending() { return remoteSetup && ['requested', 'generating'].includes((remoteSetup.request || {}).status); }
+// While a Generate request is open, ask every two seconds whether the agent has taken it up or finished.
+function watchRemoteRequest() {
+  if (remoteWatch) { clearInterval(remoteWatch); remoteWatch = null; }
+  if (!remotePending()) return;
+  remoteWatch = setInterval(async () => {
+    if (!document.getElementById('remote-editor')) { clearInterval(remoteWatch); remoteWatch = null; return; }
+    let next;
+    try { next = await (await fetch('/api/remote-check', {cache: 'no-store'})).json(); } catch (e) { return; }
+    const before = remoteSetup.request.status, lateBefore = remoteLate();
+    const edited = remoteSetup.config;
+    remoteSetup = next;
+    if (next.request.status === 'done') remoteNote = 'Written by your agent. Read it through and change what does not fit; nothing here is fixed.';
+    else if (!remotePending()) remoteNote = '';
+    else remoteSetup.config = edited;  // still waiting: keep what is on screen
+    if (next.request.status !== before || remoteLate() !== lateBefore) renderRemoteEditor(next.request.status !== 'done' && next.request.status !== 'failed');
+    if (!remotePending()) { clearInterval(remoteWatch); remoteWatch = null; }
+  }, 2000);
+}
+// Asked, a session was listening, and ten seconds on nothing has taken it up.
+function remoteLate() { return remoteSetup.request.status === 'requested' && remoteAskedAt && Date.now() - remoteAskedAt > 10000; }
+function remoteStatusHtml() {
+  const request = remoteSetup.request || {};
+  const command = `<div class="continue-cmd"><code>/ftja-remote</code><button class="storage-btn" type="button" data-rm-copy>Copy</button></div>`;
+  const cancel = `<button class="text-btn" type="button" data-rm-cancel>Cancel the request</button>`;
+  if (request.status === 'generating') {
+    return `<div class="rm-status"><div class="store-note"><span class="onboarding-spinner"></span> <span class="busy">Your agent is writing the keywords, categories and rules for where you live</span></div></div>`;
+  }
+  if (request.status === 'requested') {
+    const waited = remoteAskedAt && remoteSetup.listening && !remoteLate();
+    return waited
+      ? `<div class="rm-status"><div class="store-note"><span class="onboarding-spinner"></span> <span class="busy">Sent to your agent session</span></div></div>`
+      : `<div class="rm-status"><div class="store-note"><b>Your answers are saved.</b> ${remoteLate() ? 'Your agent session has not reacted.' : 'No agent session is waiting for this page right now.'} Type this in the agent session connected to this folder; it reads your answers from here and writes the setup:</div>${command}${cancel}</div>`;
+  }
+  if (request.status === 'failed') {
+    return `<div class="rm-status"><div class="store-note warn">${esc(request.error || 'The setup was not written.')} Type this in the agent session connected to this folder to try again:</div>${command}</div>`;
+  }
+  return remoteNote ? `<div class="rm-status"><div class="stage-off-note" style="margin:0">${esc(remoteNote)}</div></div>` : '';
+}
+function remoteCategoryHtml(c, i, open) {
+  const answers = (c.options || []).map((o, j) => `
+    <div class="rm-answer" data-option="${j}" data-id="${esc(o.id || '')}">
+      <input type="text" data-rm="option-label" value="${esc(o.label || '')}" placeholder="An answer the model may give">
+      <select data-rm="option-rule" aria-label="What this answer means"><option value="pass" ${o.rule === 'fail' ? '' : 'selected'}>passes</option><option value="fail" ${o.rule === 'fail' ? 'selected' : ''}>fails</option></select>
+      <button class="text-btn" type="button" data-rm-remove-option="${i}:${j}" title="Remove this answer">Remove</button>
+    </div>`).join('');
+  const preview = (c.options || []).map(o => `${o.label}${o.rule === 'fail' ? ' ✕' : ''}`).join(' · ');
+  return `
+    <details class="rc-item" id="rm-cat-${i}" data-category="${i}" data-id="${esc(c.id || '')}" ${open ? 'open' : ''}>
+      <summary><b>${esc(c.label || 'New category')}</b><span class="rc-preview">${esc(preview)}</span></summary>
+      <div class="rc-body">
+        <div class="field"><label>Name — what shows on each job</label><input type="text" data-rm="label" value="${esc(c.label || '')}"></div>
+        <div class="field"><label>Question — what the model answers from the sentences</label><input type="text" data-rm="question" value="${esc(c.question || '')}"></div>
+        <div class="field"><label>Keywords — a sentence with any of them, and the one before and after, is shown to the model</label>${renderChipInput('rm-kw-' + i, c.keywords)}</div>
+        <div class="field"><label>Answers the model picks from, and what each means for the posting</label>
+          <div class="rm-answers">${answers}</div>
+          <button class="text-btn rc-add" type="button" data-rm-add-option="${i}">Add an answer</button>
+        </div>
+        <div class="rm-unknown"><span>When the posting does not say (<b>?</b>), the posting</span>
+          <select data-rm="unknown"><option value="pass" ${c.unknown === 'fail' ? '' : 'selected'}>passes</option><option value="fail" ${c.unknown === 'fail' ? 'selected' : ''}>fails</option></select></div>
+        <button class="text-btn rc-add" type="button" data-rm-remove-category="${i}">Remove this category</button>
+      </div>
+    </details>`;
+}
+function renderRemoteEditor(keepFields = false) {
+  const root = document.getElementById('remote-editor');
+  if (!root || !remoteSetup) return;
+  const openIds = new Set([...root.querySelectorAll('.rc-item[open]')].map(d => d.dataset.category));
+  if (keepFields && root.querySelector('[data-rm-save]')) readRemoteEditor();
+  const cfg = remoteSetup.config;
+  const answers = {...(cfg.profile || {}), ...Object.fromEntries(Object.entries((remoteSetup.request || {}).answers || {}).filter(([, v]) => v))};
+  const generating = (remoteSetup.request || {}).status === 'generating';
+  const skeleton = `<div class="rm-skeleton">${[82, 94, 68, 90, 74].map(w => `<div class="onboarding-skeleton-line" style="width:${w}%"></div>`).join('')}</div>`;
+  root.innerHTML = `
+    <div class="rc-kind-head">Your situation</div>
+    <div class="rc-kind-intro" style="padding-bottom:10px;">Your agent writes the keywords, the categories and their rules from these four answers, in the languages you read (set under Stage0). You can change everything it writes.</div>
+    <div class="field-row">${REMOTE_PROFILE_FIELDS.slice(0, 2).map(([key, label, hint]) => `<div class="field"><label>${label}</label><input type="text" data-rm-profile="${key}" value="${esc(answers[key] || '')}" placeholder="${esc(hint)}"></div>`).join('')}</div>
+    <div class="field-row">${REMOTE_PROFILE_FIELDS.slice(2).map(([key, label, hint]) => `<div class="field"><label>${label}</label><input type="text" data-rm-profile="${key}" value="${esc(answers[key] || '')}" placeholder="${esc(hint)}"></div>`).join('')}</div>
+    <div class="save-row" style="margin:0 0 14px;"><button class="save-btn" type="button" data-rm-generate ${remotePending() ? 'disabled' : ''}>${remoteSetup.saved ? 'Write it again with my agent' : 'Write the setup with my agent'}</button><span class="danger" data-rm-error></span></div>
+    ${remoteStatusHtml()}
+    ${generating ? skeleton : `
+    <div class="rc-kind-head">Categories</div>
+    <div class="rc-kind-intro">${remoteSetup.saved ? '' : 'This is a general starting setup, not yet written for where you live. '}A posting passes when none of its answers is one you marked as “fails”.</div>
+    <div class="rc-list">${(cfg.categories || []).map((c, i) => remoteCategoryHtml(c, i, openIds.has(String(i)) || !c.label)).join('')}</div>
+    <button class="text-btn rc-add" type="button" data-rm-add-category>Add a category</button>
+    <label class="check-row"><input type="checkbox" data-rm="drop" ${cfg.drop_without_keywords === false ? '' : 'checked'}>
+      <span><b>Drop postings with no remote keyword</b> — code drops them before any model call. Unticked, they go on with every category “not stated”.</span></label>
+    <details class="fold" style="margin-top:12px;"><summary>Notes for the model</summary>
+      <div class="rc-body"><textarea data-rm="guidance" rows="3">${esc(cfg.guidance || '')}</textarea></div></details>
+    <div class="save-row"><button class="save-btn" type="button" data-rm-save>Save</button><span class="saved-note mono">Saved</span><span class="danger" data-rm-save-error></span></div>`}`;
+  (cfg.categories || []).forEach((c, i) => { if (document.getElementById('rm-kw-' + i)) initChipInput('rm-kw-' + i); });
+  bindRemoteEditor(root);
+}
+// The fields as they are on screen, back into remoteSetup.config.
+function readRemoteEditor() {
+  const root = document.getElementById('remote-editor');
+  const cfg = remoteSetup.config;
+  if (!root.querySelector('[data-rm-save]')) return cfg;
+  cfg.categories = [...root.querySelectorAll('.rc-item[data-category]')].map(item => {
+    const i = item.dataset.category;
+    return {
+      id: item.dataset.id || undefined,
+      label: item.querySelector('[data-rm="label"]').value.trim(),
+      question: item.querySelector('[data-rm="question"]').value.trim(),
+      keywords: getChipValues('rm-kw-' + i),
+      options: [...item.querySelectorAll('.rm-answer')].map(row => ({
+        id: row.dataset.id || undefined, label: row.querySelector('[data-rm="option-label"]').value.trim(),
+        rule: row.querySelector('[data-rm="option-rule"]').value})),
+      unknown: item.querySelector('[data-rm="unknown"]').value,
+    };
+  });
+  cfg.drop_without_keywords = root.querySelector('[data-rm="drop"]').checked;
+  cfg.guidance = root.querySelector('[data-rm="guidance"]').value;
+  cfg.profile = Object.fromEntries([...root.querySelectorAll('[data-rm-profile]')].map(f => [f.dataset.rmProfile, f.value.trim()]));
+  return cfg;
+}
+function bindRemoteEditor(root) {
+  const redraw = (change) => { readRemoteEditor(); change(remoteSetup.config); renderRemoteEditor(); };
+  root.querySelectorAll('[data-rm-add-category]').forEach(b => b.addEventListener('click', () => redraw(cfg => {
+    cfg.categories.push({label: '', question: '', keywords: [], options: [{label: '', rule: 'pass'}], unknown: 'pass'});
+  })));
+  root.querySelectorAll('[data-rm-remove-category]').forEach(b => b.addEventListener('click', () => redraw(cfg => {
+    cfg.categories.splice(parseInt(b.dataset.rmRemoveCategory, 10), 1);
+  })));
+  root.querySelectorAll('[data-rm-add-option]').forEach(b => b.addEventListener('click', () => redraw(cfg => {
+    cfg.categories[parseInt(b.dataset.rmAddOption, 10)].options.push({label: '', rule: 'pass'});
+  })));
+  root.querySelectorAll('[data-rm-remove-option]').forEach(b => b.addEventListener('click', () => redraw(cfg => {
+    const [i, j] = b.dataset.rmRemoveOption.split(':').map(n => parseInt(n, 10));
+    cfg.categories[i].options.splice(j, 1);
+  })));
+  const save = root.querySelector('[data-rm-save]');
+  if (save) save.addEventListener('click', async () => {
+    const error = root.querySelector('[data-rm-save-error]');
+    error.textContent = '';
+    try {
+      const saved = await postJson('/api/remote-check', {config: readRemoteEditor()});
+      remoteSetup = saved;
+      remoteNote = '';
+      renderRemoteEditor();
+      const note = document.querySelector('#remote-editor [data-rm-save] + .saved-note');
+      if (note) { note.style.display = 'inline'; setTimeout(() => { note.style.display = 'none'; }, 1500); }
+    } catch (e) { error.textContent = e.message; }
+  });
+  const generate = root.querySelector('[data-rm-generate]');
+  if (generate) generate.addEventListener('click', async () => {
+    const error = root.querySelector('[data-rm-error]');
+    error.textContent = '';
+    const answers = Object.fromEntries([...root.querySelectorAll('[data-rm-profile]')].map(f => [f.dataset.rmProfile, f.value.trim()]));
+    if (!answers.residence) { error.textContent = 'Say where you live first: the setup is written for that place.'; return; }
+    readRemoteEditor();
+    const edited = remoteSetup.config;
+    try {
+      const sent = await postJson('/api/remote-generate', {answers});
+      remoteSetup = {...sent, config: edited};
+      remoteAskedAt = sent.listening ? Date.now() : 0;  // nobody listening: show what to type at once
+      remoteNote = '';
+      renderRemoteEditor();
+      watchRemoteRequest();
+    } catch (e) { error.textContent = e.message; }
+  });
+  root.querySelectorAll('[data-rm-copy]').forEach(b => b.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText('/ftja-remote'); b.textContent = 'Copied'; }
+    catch (err) { b.textContent = 'Select the text and copy it'; }
+  }));
+  root.querySelectorAll('[data-rm-cancel]').forEach(b => b.addEventListener('click', async () => {
+    readRemoteEditor();
+    const edited = remoteSetup.config;
+    try { remoteSetup = {...await postJson('/api/remote-generate-cancel', {}), config: edited}; } catch (e) { return; }
+    remoteAskedAt = 0;
+    renderRemoteEditor();
+    watchRemoteRequest();
+  }));
+}
+
 function renderConfigSection() {
   const c = pipelineConfig.criteria;
   const el = document.getElementById('pipeline-config');
@@ -2332,8 +2673,6 @@ function renderConfigSection() {
     </div>
     <label class="check-row"><input type="checkbox" id="cfg-title-match" ${c.title_must_match ? 'checked' : ''}>
       <span><b>Title must contain the search term</b> — keeps only postings whose title includes it.</span></label>
-    <label class="check-row"><input type="checkbox" id="cfg-stage1-only" ${c.stage1_only ? 'checked' : ''}>
-      <span><b>Stop after Stage 1</b> — skips Stage 2, the expensive step.</span></label>
     <div class="save-row"><button class="save-btn" id="save-scrape">Save</button><span class="saved-note mono">Saved</span></div>
   </div>
 </div>
@@ -2341,30 +2680,47 @@ function renderConfigSection() {
 <div class="section">
   <div class="section-title"><span class="num">2</span>Stage0 — code-only filter (no AI calls)</div>
   <div class="card">
-    <div class="explain">Filters scraped postings with <b>code only, no AI calls</b>. If a posting fails any check in order, it stops here — it doesn't move on to Stage1.</div>
-    <div class="field"><label>1. Readable languages (choose by name; saved as langdetect codes — leave empty to allow all languages). A posting that plainly requires fluency in a language not listed here is also dropped.</label>${renderChipInput('cfg-languages', c.languages)}</div>
-    <div class="field"><label>2. Include keywords — at least one must be present to pass</label>${renderChipInput('cfg-tier1', (c.keywords || {}).tier1)}</div>
-    <div class="field"><label>3. Exclude words — if any is present, it fails</label>${renderChipInput('cfg-exclude', c.exclude_keywords)}</div>
+    <div class="explain">Filters scraped postings with <b>code only, no AI calls</b>, before any model reads them. A posting that fails a check stops here. The keyword checks belong to the stage that reads those keywords: they are under the Remote check and Stage1 below.</div>
+    <div class="field"><label>Readable languages (choose by name; saved as langdetect codes — leave empty to allow all languages). A posting that plainly requires fluency in a language not listed here is also dropped.</label>${renderChipInput('cfg-languages', c.languages)}</div>
+    <div class="field"><label>Exclude words — if any is present, it fails</label>${renderChipInput('cfg-exclude', c.exclude_keywords)}</div>
     <div class="save-row"><button class="save-btn" id="save-stage0">Save</button><span class="saved-note mono">Saved</span></div>
   </div>
 </div>
 
 <div class="section">
-  <div class="section-title"><span class="num">3</span>Stage1 — first pass (cheap model)</div>
-  <div class="card">
+  <div class="section-title"><span class="num">3</span>Remote check — how remote is it (cheap model)${stageSwitchHtml('remote')}</div>
+  <div class="card ${stageOn('remote') ? '' : 'stage-off'}" data-stage-card="remote">
+    ${stageOn('remote') ? '' : '<div class="stage-off-note">Off. Runs skip this stage and behave as they did before it existed.</div>'}
     <div class="explain">
-      For postings that passed Stage0, shows <b>only the sentence where the keyword appears plus the sentences right before/after it</b> to a cheap AI model (haiku).
-      The full posting is not shown — it's a first-pass filter for "does this look promising" based only on the Pass/Fail sections of rubric.md. The criteria
-      themselves are edited one by one under Stage2 (section 4) below.
+      For postings that passed Stage0, shows a cheap AI model (haiku) <b>only the title and the sentences around your remote keywords</b>.
+      The model answers each category below from a fixed list of answers, with the sentence it rests on; <b>your rule for that answer</b> decides pass or fail.
+      Only what passes goes on to the next stage that is on.
     </div>
+    <div id="remote-editor"><div class="empty">Loading</div></div>
   </div>
 </div>
 
 <div class="section">
-  <div class="section-title"><span class="num">4</span>Stage2 — final judgment (more accurate model)</div>
-  <div class="card">
+  <div class="section-title"><span class="num">4</span>Stage1 — first pass (cheap model)${stageSwitchHtml('stage1')}</div>
+  <div class="card ${stageOn('stage1') ? '' : 'stage-off'}" data-stage-card="stage1">
+    ${stageOn('stage1') ? '' : '<div class="stage-off-note">Off. Postings go from the stage before straight to the next stage that is on.</div>'}
     <div class="explain">
-      Only postings that passed Stage1 get shown to a pricier AI model (sonnet) with <b>the full posting + the entire judgment criteria below + the profile summary</b>,
+      Shows a cheap AI model (haiku) <b>only the sentence where a keyword below appears plus the sentences right before/after it</b>.
+      The full posting is not shown — it's a first-pass filter for "does this look promising" based only on the Pass/Fail sections of rubric.md. The criteria
+      themselves are edited one by one under Stage2 (section 5) below.
+    </div>
+    <div class="field"><label>Include keywords — a posting with none of them is dropped by code, before any model call</label>${renderChipInput('cfg-tier1', (c.keywords || {}).tier1)}</div>
+    <div class="save-row"><button class="save-btn" id="save-stage1">Save</button><span class="saved-note mono">Saved</span></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title"><span class="num">5</span>Stage2 — final judgment (more accurate model)${stageSwitchHtml('stage2')}</div>
+  <div class="card ${stageOn('stage2') ? '' : 'stage-off'}" data-stage-card="stage2">
+    ${stageOn('stage2') ? '' : '<div class="stage-off-note">Off. A run stops after its last stage; what passed waits there, and you can continue it from the Results tab.</div>'}
+    ${stageOn('stage2') && !stageOn('stage1') && !stageOn('remote') ? '<div class="stage-off-note">Stage2 is the only stage that is on: every posting that passes Stage0 is read in full by the pricier model.</div>' : ''}
+    <div class="explain">
+      Only postings that passed the stage before get shown to a pricier AI model (sonnet) with <b>the full posting + the entire judgment criteria below + the profile summary</b>,
       and answers each criterion below with a quote from the posting. Code turns those answers into pass / review / fail.
     </div>
     <div id="rubric-editor">${rubricEditorHtml()}</div>
@@ -2372,7 +2728,7 @@ function renderConfigSection() {
 </div>
 
 <div class="section">
-  <div class="section-title"><span class="num">5</span>Profile summary</div>
+  <div class="section-title"><span class="num">6</span>Profile summary</div>
   <div class="card">
     <div class="explain">The profile summary Stage2 reads for every single posting. Keep it concise.</div>
     <div class="field"><textarea id="cfg-profile" class="rubric-textarea" rows="12">${esc(pipelineConfig.profile_md)}</textarea></div>
@@ -2397,7 +2753,6 @@ function renderConfigSection() {
       hours_old: parseInt(document.getElementById('cfg-hours-old').value, 10) || 0,
       results_wanted: parseInt(document.getElementById('cfg-results-wanted').value, 10) || 0,
       title_must_match: document.getElementById('cfg-title-match').checked,
-      stage1_only: document.getElementById('cfg-stage1-only').checked,
     };
     delete criteria.is_remote;            // LinkedIn ignores both for logged-out searches;
     delete criteria.exact_phrase_search;  // they are no longer settings
@@ -2407,12 +2762,37 @@ function renderConfigSection() {
   document.getElementById('save-stage0').addEventListener('click', (e) => {
     const criteria = {...pipelineConfig.criteria,
       languages: getChipValues('cfg-languages'),
-      keywords: {tier1: getChipValues('cfg-tier1')},
       exclude_keywords: getChipValues('cfg-exclude'),
     };
     pipelineConfig.criteria = criteria;
     saveConfig({criteria}, e.target);
   });
+  document.getElementById('save-stage1').addEventListener('click', (e) => {
+    const criteria = {...pipelineConfig.criteria, keywords: {...(pipelineConfig.criteria.keywords || {}), tier1: getChipValues('cfg-tier1')}};
+    pipelineConfig.criteria = criteria;
+    saveConfig({criteria}, e.target);
+  });
+  // A stage's switch saves at once. One stage has to stay on.
+  el.querySelectorAll('[data-stage-switch]').forEach(box => box.addEventListener('change', async () => {
+    const stages = {...currentStages(), [box.dataset.stageSwitch]: box.checked};
+    if (!Object.values(stages).some(Boolean)) {
+      box.checked = true;
+      box.closest('.stage-switch').insertAdjacentHTML('afterend', '<span class="stage-off-note" style="margin:0 0 0 10px" data-one-on>One stage has to stay on.</span>');
+      setTimeout(() => el.querySelectorAll('[data-one-on]').forEach(n => n.remove()), 2500);
+      return;
+    }
+    const criteria = {...pipelineConfig.criteria, stages};
+    delete criteria.stage1_only;  // the switches say it now
+    pipelineConfig.criteria = criteria;
+    const res = await fetch('/api/config', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({criteria})});
+    if (!res.ok) { box.checked = !box.checked; return; }
+    const open = [...el.querySelectorAll('.rc-item[open]')].map(d => d.id);
+    const at = window.scrollY;
+    renderConfigSection();
+    open.forEach(id => { const d = id && document.getElementById(id); if (d) d.open = true; });
+    window.scrollTo(0, at);
+  }));
+  loadRemoteSetup();
   bindRubricEditor();
   document.getElementById('save-profile').addEventListener('click', (e) => {
     const profile_md = document.getElementById('cfg-profile').value;
@@ -2437,7 +2817,7 @@ async function loadPipeline() {
 function renderKeywordSection() {
   const el = document.getElementById('pipeline-keywords');
   if (keywordStats.length === 0) {
-    el.innerHTML = '<div class="section"><div class="section-title"><span class="num">6</span>Keyword effectiveness</div><div class="card"><div class="empty">No data yet — run /ftja-run once to populate this.</div></div></div>';
+    el.innerHTML = '<div class="section"><div class="section-title"><span class="num">7</span>Keyword effectiveness</div><div class="card"><div class="empty">No data yet — run /ftja-run once to populate this.</div></div></div>';
     return;
   }
   const sorted = [...keywordStats].sort((a, b) => (b[kwSortKey] || 0) - (a[kwSortKey] || 0));
@@ -2462,7 +2842,7 @@ function renderKeywordSection() {
 
   el.innerHTML = `
     <div class="section">
-      <div class="section-title"><span class="num">6</span>Keyword effectiveness</div>
+      <div class="section-title"><span class="num">7</span>Keyword effectiveness</div>
       <div class="explain">How many times each tier1 keyword actually matched, and how many of those made it all the way to a final pass — a keyword with lots of matches but zero passes is a removal candidate, while one with few matches but a high pass rate is worth weighting more.</div>
       <div class="kw-controls">
         <label class="mono">Sort by</label>
@@ -2551,9 +2931,14 @@ async function openDeleteRun(runId) {
 // The viewer cannot start the agent. A session that is still waiting after a
 // stopped run picks the request up from the folder; otherwise the user types it.
 let continueWatch = null;
-async function openContinueRun(runId, waiting) {
+async function openContinueRun(runId, waiting, to = 'stage2', after = 'stage1') {
   const dialog = storeDialog();
-  const command = `/ftja-run continue ${runId}`;
+  // from Stage 1 there is only Stage 2 to go on to; from the Remote check the command names the stage
+  const command = `/ftja-run continue ${runId}` + (after === 'stage1' ? '' : ` ${to}`);
+  const passedName = after === 'remote' ? 'the Remote check' : 'Stage 1';
+  const about = to === 'stage1'
+    ? `Stage 1 reads, for each of the <b>${plural(waiting, 'posting')}</b> that passed ${passedName}, the sentences around your Stage 1 keywords, with the cheap model, against the Pass and Fail parts of your rubric. A posting with none of those keywords fails without a model call. The run picks up where it stopped, with the rubric and keywords it started with, and stops again after Stage 1.`
+    : `Stage 2 reads each of the <b>${plural(waiting, 'posting')}</b> that passed ${passedName} in full, against your rubric and profile. It is the expensive part of a run: one model call per posting. The run picks up where it stopped, with the rubric it started with.`;
   const fallback = (lead) => `
       <div class="store-note">${lead}</div>
       <div class="continue-cmd"><code>${esc(command)}</code><button class="storage-btn" type="button" data-copy>Copy</button></div>`;
@@ -2565,12 +2950,12 @@ async function openContinueRun(runId, waiting) {
   let heard = false;
   try { const b = await (await fetch('/api/run-bridge', {cache: 'no-store'})).json(); heard = b.listening && b.run_id === runId; } catch (e) {}
   dialog.innerHTML = `
-    <div class="s1-head"><h3>Continue to Stage 2</h3><button class="text-btn" type="button" data-close>Close</button></div>
+    <div class="s1-head"><h3>Continue to ${STAGE_LABELS[to]}</h3><button class="text-btn" type="button" data-close>Close</button></div>
     <div class="s1-body">
-      <div class="store-note">Stage 2 reads each of the <b>${plural(waiting, 'posting')}</b> that passed Stage 1 in full, against your rubric and profile. It is the expensive part of a run: one model call per posting. The run picks up where it stopped, with the rubric it started with.</div>
+      <div class="store-note">${about}</div>
       <div id="continue-body">
         ${heard ? `<div class="store-note">Your agent session is waiting for this.</div>
-            <div class="store-actions"><button class="text-btn" type="button" data-close>Not now</button><button class="action-btn" type="button" data-go>Start Stage 2</button></div>`
+            <div class="store-actions"><button class="text-btn" type="button" data-close>Not now</button><button class="action-btn" type="button" data-go>Start ${STAGE_LABELS[to]}</button></div>`
           : fallback('Your agent session is not waiting for this page right now (it waits for a few minutes after a run stops). Type this in the agent session connected to this folder:')}
       </div>
     </div>`;
@@ -2581,16 +2966,16 @@ async function openContinueRun(runId, waiting) {
   if (go) go.addEventListener('click', async () => {
     const body = dialog.querySelector('#continue-body');
     let sent;
-    try { sent = await postJson('/api/continue-run', {run_id: runId}); }
+    try { sent = await postJson('/api/continue-run', {run_id: runId, to}); }
     catch (e) { body.innerHTML = `<div class="store-note warn">${esc(e.message)}</div>`; return; }
     if (!sent.listening) { body.innerHTML = fallback('Your agent session stopped waiting. Type this in the agent session connected to this folder:'); bindCopy(); return; }
-    body.innerHTML = '<div class="store-note"><span class="busy">Sent to your agent. Stage 2 is starting</span></div>';
+    body.innerHTML = `<div class="store-note"><span class="busy">Sent to your agent. ${STAGE_LABELS[to]} is starting</span></div>`;
     const asked = Date.now();
     stopWatch();
     continueWatch = setInterval(() => {
       if (liveRun && liveRun.run_id === runId) { dialog.close(); return; }  // the live view has taken over
-      if (Date.now() - asked > 25000 && !body.querySelector('.continue-cmd')) {
-        body.insertAdjacentHTML('beforeend', fallback('Stuck? Type this in the agent session connected to this folder:'));
+      if (Date.now() - asked > 10000 && !body.querySelector('.continue-cmd')) {
+        body.insertAdjacentHTML('beforeend', fallback('No reaction yet. Type this in the agent session connected to this folder:'));
         bindCopy();
       }
     }, 1000);
