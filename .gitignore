@@ -39,3 +39,5 @@ keywords-request.json
 .DS_Store
 _site/
 .vercel/
+*.docx
+*.pdf
