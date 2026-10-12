@@ -186,7 +186,9 @@ def start(project_dir: str = ".") -> dict:
     snapshot["location"] = ", ".join(snapshot["locations"])  # as one line, for anything that shows it
     snapshot["stages"] = stages
     if "remote" in stages:  # judged against the setup as it is now, like the rubric
-        _write_json(os.path.join(run_dir, remote_check.CONFIG_FILE), remote_check.config_or_default(project_dir))
+        from ftja.keywords import active_remote_config  # keywords of a language no longer read are switched off
+        _write_json(os.path.join(run_dir, remote_check.CONFIG_FILE),
+                    active_remote_config(remote_check.config_or_default(project_dir), criteria.get("languages")))
     run = {"run_id": ts_start, "ts_start": ts_start, "criteria_snapshot": snapshot}
     _write_json(os.path.join(run_dir, "run.json"), run)
     plan = searches(snapshot)

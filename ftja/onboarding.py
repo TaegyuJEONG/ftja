@@ -207,7 +207,21 @@ def validate_stage0_draft(card: dict[str, Any]) -> dict[str, list[str]]:
         raise OnboardingError("Stage 0 draft needs at least one proposed keyword")
     if not languages:
         raise OnboardingError("Stage 0 draft needs at least one readable language")
-    return {"keywords": keywords, "languages": languages, "exclude_keywords": excludes}
+    out = {"keywords": keywords, "languages": languages, "exclude_keywords": excludes}
+    marked = card.get("keyword_language")
+    if isinstance(marked, dict):  # which language each keyword is in (see ftja.keywords); optional
+        kept = {str(k): str(v).strip().lower() for k, v in marked.items() if str(k) in keywords and str(v).strip()}
+        if kept:
+            out["keyword_language"] = kept
+    return out
+
+
+def _tier1(stage0: dict) -> dict:
+    """criteria.json's keyword block for a Stage 0 card."""
+    block = {"tier1": stage0["keywords"]}
+    if stage0.get("keyword_language"):
+        block["tier1_language"] = stage0["keyword_language"]
+    return block
 
 
 def _clean_sources(value: Any) -> list[dict[str, Any]]:
@@ -289,7 +303,7 @@ def apply_action(project_dir: str, action: dict[str, Any]) -> dict[str, Any]:
             "results_wanted": _clamp_results_wanted(action.get("results_wanted"), 100),
             "languages": stage0["languages"],
             "exclude_keywords": stage0["exclude_keywords"],
-            "keywords": {"tier1": stage0["keywords"]},
+            "keywords": _tier1(stage0),
         }
         state.update(
             allowed_actions=["set_profile_draft", "confirm_profile"],
@@ -315,7 +329,7 @@ def apply_action(project_dir: str, action: dict[str, Any]) -> dict[str, Any]:
             ),
             "languages": stage0["languages"],
             "exclude_keywords": stage0["exclude_keywords"],
-            "keywords": {"tier1": stage0["keywords"]},
+            "keywords": _tier1(stage0),
         }
         profile = {**profile, "titles": titles, "criteria": criteria}
         state.update(stage="rubric", phase="stage0", allowed_actions=["confirm_stage0"], profile=profile, cards={**cards, "stage0": stage0})
@@ -327,15 +341,17 @@ def apply_action(project_dir: str, action: dict[str, Any]) -> dict[str, Any]:
             "keywords": requested.get("keywords", current.get("keywords", [])),
             "languages": requested.get("languages", current.get("languages", [])),
             "exclude_keywords": requested.get("exclude_keywords", current.get("exclude_keywords", [])),
+            "keyword_language": requested.get("keyword_language", current.get("keyword_language")),
         })
         state.update(cards={**cards, "stage0": stage0}, allowed_actions=["confirm_stage0"])
     elif kind == "confirm_stage0":
         _require(state, "rubric", "stage0")
-        stage0 = validate_stage0_draft({"keywords": action.get("keywords"), "languages": action.get("languages"), "exclude_keywords": action.get("exclude_keywords")})
+        stage0 = validate_stage0_draft({"keywords": action.get("keywords"), "languages": action.get("languages"), "exclude_keywords": action.get("exclude_keywords"),
+                                        "keyword_language": action.get("keyword_language", (cards.get("stage0") or {}).get("keyword_language"))})
         keywords = stage0["keywords"]; languages = stage0["languages"]; excludes = stage0["exclude_keywords"]
-        criteria = {**profile.get("criteria", {}), "languages": languages, "exclude_keywords": excludes, "keywords": {"tier1": keywords}}
+        criteria = {**profile.get("criteria", {}), "languages": languages, "exclude_keywords": excludes, "keywords": _tier1(stage0)}
         questions = [{**question, "answer": ""} for question in DEFAULT_RUBRIC_QUESTIONS]
-        state.update(phase="questions", allowed_actions=["answer_rubric_question"], profile={**profile, "criteria": criteria}, cards={**cards, "stage0": {"keywords": keywords, "languages": languages, "exclude_keywords": excludes}}, rubric_questions=questions)
+        state.update(phase="questions", allowed_actions=["answer_rubric_question"], profile={**profile, "criteria": criteria}, cards={**cards, "stage0": stage0}, rubric_questions=questions)
     elif kind == "answer_rubric_question":
         _require(state, "rubric", "questions")
         questions = list(state.get("rubric_questions") or [])

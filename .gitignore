@@ -28,6 +28,7 @@ run-action.json
 remote-check.json
 remote-request.json
 remote-check.draft.json
+keywords-request.json
 .ftja-update-check.json
 
 # local agent/tool folders and downloads — never part of the repository

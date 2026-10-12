@@ -30,6 +30,7 @@ from ftja.state import connect, record_criterion_feedback, update_decision, VALI
 from ftja.pipeline_view import read_config, write_config, keyword_stats
 from ftja import live, version
 from ftja import remote as remote_check
+from ftja import keywords as keyword_languages
 from ftja.verdict import DEFAULT_CRITERIA_PATH, criteria_status, load_criteria, save_criteria
 from ftja.runs_view import list_runs
 from ftja import runs_store, run_bridge
@@ -151,6 +152,16 @@ def _remote_setup(project_dir: str) -> dict:
     return {"config": saved or remote_check.default_config(), "saved": saved is not None,
             "draft": remote_check.load_draft(project_dir),  # the agent's, until the user confirms it
             "request": remote_check.read_request(project_dir),
+            "listening": run_bridge.listening(project_dir)["listening"]}
+
+
+def _keyword_languages(project_dir: str) -> dict:
+    """For the Pipeline tab: which keyword lists lack a language the user
+    reads, and where a request to have the agent write them stands."""
+    found = keyword_languages.gaps(project_dir)
+    return {"read": found["languages_the_user_reads"],
+            "missing": {"stage1": found["stage1"]["missing"], "remote": found["remote"]["missing"]},
+            "request": keyword_languages.read_request(project_dir),
             "listening": run_bridge.listening(project_dir)["listening"]}
 
 
@@ -328,6 +339,8 @@ def make_handler(db_path: str, project_dir: str):
                 self._send_json(200, live.remote_jobs(project_dir, db_path, run_id, page, verdict))
             elif path == "/api/remote-check":
                 self._send_json(200, _remote_setup(project_dir))
+            elif path == "/api/keyword-languages":
+                self._send_json(200, _keyword_languages(project_dir))
             elif path == "/api/jobs":
                 run_id = (qs.get("run_id") or [""])[0]
                 status = (qs.get("status") or ["passed"])[0]
@@ -392,6 +405,24 @@ def make_handler(db_path: str, project_dir: str):
                     return
                 remote_check.discard_draft(project_dir)  # confirmed: the draft has become the setup
                 self._send_json(200, {"ok": True, **_remote_setup(project_dir)})
+            elif self.path == "/api/keywords-request":
+                # "Add French keywords with my agent": kept for the agent, and
+                # handed to a session that is waiting, if one is.
+                try:
+                    keyword_languages.write_request(project_dir, data.get("items") or [])
+                except (TypeError, ValueError, KeyError, OSError) as e:
+                    self._send_json(409, {"error": str(e)})
+                    return
+                heard = run_bridge.request_keywords(project_dir)
+                self._send_json(200, {"ok": True, **_keyword_languages(project_dir), **heard})
+            elif self.path == "/api/keywords-confirm":
+                # the user went through the agent's keywords: add them
+                added = keyword_languages.add_keywords(project_dir, data.get("items") or [])
+                self._send_json(200, {"ok": True, "added": added, **_keyword_languages(project_dir)})
+            elif self.path == "/api/keywords-cancel":
+                if keyword_languages.read_request(project_dir)["status"] != "generating":
+                    keyword_languages.discard(project_dir)
+                self._send_json(200, {"ok": True, **_keyword_languages(project_dir)})
             elif self.path == "/api/remote-generate-cancel":
                 if remote_check.read_request(project_dir)["status"] != "generating":  # not one the agent is writing right now
                     remote_check.discard_draft(project_dir)
@@ -400,6 +431,8 @@ def make_handler(db_path: str, project_dir: str):
                 # The Generate button: keep the four answers for the agent, and
                 # hand the request to a session that is waiting, if one is.
                 try:
+                    if keyword_languages.pending(project_dir):
+                        raise ValueError("your agent is writing keywords for a new language; finish that first")
                     remote_check.write_request(project_dir, data.get("answers") or {})
                 except (TypeError, ValueError, OSError) as e:
                     self._send_json(400, {"error": str(e)})

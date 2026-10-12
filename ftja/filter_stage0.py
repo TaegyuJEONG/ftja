@@ -281,6 +281,10 @@ def filter_stage0(jobs: list[dict], criteria: dict, dropped_jobs: list[dict] | N
     languages = criteria.get("languages") or []
     exclude_keywords = criteria.get("exclude_keywords") or []
     tier1 = (criteria.get("keywords") or {}).get("tier1") or []
+    marked = (criteria.get("keywords") or {}).get("tier1_language")
+    if marked:  # a keyword of a language the candidate no longer reads is switched off (see ftja.keywords)
+        from ftja.keywords import active
+        tier1 = active(tier1, marked, languages)
     search_terms = criteria.get("search_terms") or []
     title_rule = bool(criteria.get("title_must_match")) and bool(search_terms)
 

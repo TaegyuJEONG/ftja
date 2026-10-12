@@ -84,6 +84,16 @@ def request_continue(project_dir: str, run_id: str, to: str | None = None) -> di
     return {"listening": heard}
 
 
+def request_keywords(project_dir: str) -> dict:
+    """The Pipeline tab asked for a new language's keywords (the request is
+    in keywords-request.json). -> {"listening": bool}."""
+    heard = listening(project_dir)["listening"]
+    if heard:
+        _write(project_dir, ACTION_FILE, {"type": "keywords", "requested_at": time.time(),
+                                          "at": datetime.now(timezone.utc).isoformat()})
+    return {"listening": heard}
+
+
 def request_remote(project_dir: str) -> dict:
     """The Remote check's Generate button was pressed (its answers are in
     remote-request.json). -> {"listening": bool}. Any waiting session can
@@ -97,7 +107,7 @@ def request_remote(project_dir: str) -> dict:
 
 def wait_for_continue(project_dir: str, run_id: str, timeout_seconds: int = DEFAULT_TIMEOUT_SECONDS) -> dict:
     """Block until the viewer asks to continue this run, or the time is up.
-    -> {"status": "continue" | "remote" | "timeout", "run_id"}, with `to`
+    -> {"status": "continue" | "remote" | "keywords" | "timeout", "run_id"}, with `to`
     (the stage to run next) when the button named one. "remote" is the
     Remote check's Generate button. Only a request made while this wait is
     running counts: an old one is not a go-ahead for a step that spends
@@ -116,8 +126,8 @@ def wait_for_continue(project_dir: str, run_id: str, timeout_seconds: int = DEFA
                     and float(action.get("requested_at") or 0) >= started):
                 status, to = "continue", action.get("to")
                 break
-            if action.get("type") == "remote" and float(action.get("requested_at") or 0) >= started:
-                status = "remote"
+            if action.get("type") in ("remote", "keywords") and float(action.get("requested_at") or 0) >= started:
+                status = action["type"]
                 break
             time.sleep(0.5)
     finally:
