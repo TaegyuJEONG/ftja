@@ -31,8 +31,8 @@ digests — are never touched by an update.
   and the rules. Everything it writes can be changed, added to or removed
   on the page. If no agent session reacts within about ten seconds, the
   page shows the line to type.
-- **A posting with no remote keyword at all is dropped by code**, before
-  any model call. There is a tick box to keep such postings instead.
+- **A posting with none of your remote keywords is dropped by code**,
+  before any model call: it says nothing for the check to read.
 - **The Pipeline tab follows the order things happen in:** scraping, the
   code filter (languages and exclude words), Remote check, Stage 1,
   Stage 2. The "Include keywords" moved from the code filter to Stage 1,

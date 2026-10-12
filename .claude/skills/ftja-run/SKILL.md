@@ -255,9 +255,8 @@ in a language the candidate reads (langdetect against `criteria.json`'s
 ("Fluent in German and English"), keeping anything ambiguous ("German is a
 plus") for Stage 2; requires a tier-1 keyword (only when Stage 1 is one of
 the run's stages); applies exclude keywords; when the Remote check is one
-of the run's stages, drops a posting with no remote keyword in its title
-or description (`no_remote_keyword`), unless the user unticked that on the
-Pipeline tab;
+of the run's stages, drops a posting with none of the user's remote
+keywords in its title or description (`no_remote_keyword`);
 collapses the same JD reposted under several URLs into one job; and, last,
 drops jobs an earlier run already judged (they're in `seen.db`), so no LLM
 call is spent on the same posting twice. The

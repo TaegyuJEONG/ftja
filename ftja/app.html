@@ -732,7 +732,7 @@ const ACTIONS = [
   {value: "skipped_circumstance", label: "Later"},
   {value: "expired", label: "Expired"},
 ];
-const DROP_LABELS = {title_mismatch: "title lacks the search term", language: "unreadable language", no_tier1_hit: "no keyword match", no_remote_keyword: "no remote keyword", exclude_keyword: "exclude keyword present", language_requirement: "requires another language", duplicate_content: "duplicate posting", already_seen: "already judged on an earlier run"};
+const DROP_LABELS = {title_mismatch: "title lacks the search term", language: "unreadable language", no_tier1_hit: "no keyword match", no_remote_keyword: "none of your remote keywords", exclude_keyword: "exclude keyword present", language_requirement: "requires another language", duplicate_content: "duplicate posting", already_seen: "already judged on an earlier run"};
 const RUN_PAGE_SIZE = 10;
 
 let runs = [];
@@ -2609,7 +2609,7 @@ function renderRemoteSummary() {
         <div class="rm-sum-card"><b>${esc(c.label)}</b>
           ${(c.options || []).map(o => `<div class="${o.rule === 'fail' ? 'fails' : ''}">${o.rule === 'fail' ? '✕' : '✓'} ${esc(o.label)}</div>`).join('')}
           <div class="meta">Not stated ${c.unknown === 'fail' ? 'fails' : 'passes'} · ${plural((c.keywords || []).length, 'keyword')}</div></div>`).join('')}</div>
-      <div class="store-note">${cfg.drop_without_keywords === false ? 'Postings with no remote keyword are kept, with every category “not stated”.' : 'Postings with no remote keyword are dropped by code.'}</div>
+      <div class="store-note">${plural(new Set((cfg.categories || []).flatMap(c => c.keywords || [])).size, 'keyword')}. A posting with none of them is not read.</div>
       <div class="save-row"><button class="save-btn" type="button" data-rm-open>Edit the setup</button><button class="text-btn" type="button" data-rm-start>Have my agent draft it again</button></div>`;
   }
   root.innerHTML = html;
@@ -2692,7 +2692,7 @@ function readRemoteStep() {
       unknown: root.querySelector('[data-rm="unknown"]').value,
     };
   } else {
-    w.config.drop_without_keywords = root.querySelector('[data-rm="drop"]').checked;
+    w.config.drop_without_keywords = true;  // no longer a choice: a posting with none of the keywords is never read
     w.config.guidance = root.querySelector('[data-rm="guidance"]').value;
   }
 }
@@ -2744,7 +2744,7 @@ function renderRemoteDialog() {
         : `<div class="store-note" style="margin-top:8px;"><b>No ${esc(languageLabel(code))} keywords yet</b>, so a posting written in ${esc(languageLabel(code))} would never be read. Type this in the agent session connected to this folder; it adds them and this step updates by itself. Or type them in above.</div>
            <div class="continue-cmd"><code>/ftja-remote</code><button class="storage-btn" type="button" data-rm-copy>Copy</button></div>`;
       body = `${progress}<div class="rm-step">Keywords</div>
-        <div class="rm-step-intro">The check reads a posting only where one of these appears: that sentence, and the one before and after. A posting with none of them is not read at all. They are listed for each language you read postings in${read.length ? ` (${read.map(languageLabel).map(esc).join(', ')}, set under Stage0)` : ''}. Remove what does not fit, add what is missing.</div>
+        <div class="rm-step-intro">The check reads a posting only where one of these appears: that sentence, and the one before and after. A posting with none of them is dropped without being read. They are listed for each language you read postings in${read.length ? ` (${read.map(languageLabel).map(esc).join(', ')}, set under Stage0)` : ''}. Remove what does not fit, add what is missing.</div>
         ${languages.map(code => `<div class="field"><label>${esc(languageLabel(code))} · ${groups[code].length}</label>${renderChipInput('rm-kw-' + code, groups[code])}
           ${groups[code].length ? '' : ask(code)}</div>`).join('')}
         <div class="rm-nav"><button class="text-btn" type="button" data-rm-back>Back</button><button class="save-btn" type="button" data-rm-next>Confirm</button></div>`;
@@ -2757,8 +2757,6 @@ function renderRemoteDialog() {
         <div class="rm-card rm-review"><div><b>Keywords</b><div class="rm-review-answers"><span class="meta">${plural(new Set(cats.flatMap(c => c.keywords || [])).size, 'keyword')}</span></div></div>
           <button class="text-btn" type="button" data-rm-goto="keywords">Change</button></div>
         <button class="text-btn rc-add" type="button" data-rm-add-category>Add a category</button>
-        <label class="check-row"><input type="checkbox" data-rm="drop" ${w.config.drop_without_keywords === false ? '' : 'checked'}>
-          <span><b>Drop postings with no remote keyword</b> — code drops them before any model call. Unticked, they go on with every category “not stated”.</span></label>
         <details class="fold" style="margin-top:12px;"><summary>Notes for the model</summary>
           <div class="rc-body"><textarea data-rm="guidance" rows="3">${esc(w.config.guidance || '')}</textarea></div></details>
         <div class="danger" data-rm-save-error></div>

@@ -142,7 +142,7 @@ this user:
 
 **The rule for "?"** (`unknown`): `pass` for every category. Most postings
 say nothing about most of these; the user tightens a rule after reading
-what the check found. Leave `drop_without_keywords` true.
+what the check found. Always write `drop_without_keywords` as true.
 
 **Answers.** Two to four per category, each a state a posting can plainly
 be in, none overlapping. The label is what the user reads on every job
@@ -230,8 +230,8 @@ Tell the user, in their language and briefly:
 - the situation you assumed for them, saying which parts you worked out
   yourself rather than were told;
 - the categories, and for each which answers fail;
-- that "not stated" passes everywhere for now, and that a posting with no
-  remote keyword at all is dropped (both are theirs to change);
+- that "not stated" passes everywhere for now (theirs to change), and
+  that a posting with none of the keywords is dropped without being read;
 - how many keywords, in which languages, and the coverage numbers if you
   measured;
 - that they can change any name, keyword, answer or rule while they go
