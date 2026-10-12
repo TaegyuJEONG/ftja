@@ -3007,8 +3007,8 @@ function renderRemoteSummary() {
     html = `<div class="store-note"><b>Your agent's draft is ready.</b> Go through it and confirm; it is not in use until you do.</div>
       <div class="save-row"><button class="save-btn" type="button" data-rm-open>Review and confirm</button></div>`;
   } else if (!remoteSetup.saved) {
-    html = `<div class="store-note">Not set up yet. Your agent drafts it for you from your profile; you check it, one step at a time.${status === 'failed' ? ` <b>${esc(remoteSetup.request.error || 'The last attempt did not finish.')}</b>` : ''}</div>
-      <div class="save-row"><button class="save-btn" type="button" data-rm-start>Set up the Remote check</button></div>`;
+    html = `${status === 'failed' ? `<div class="store-note"><b>${esc(remoteSetup.request.error || 'The last attempt did not finish.')}</b></div>` : ''}
+      <div class="save-row" style="margin-top:0;"><button class="save-btn" type="button" data-rm-start>Set up the Remote check</button></div>`;
   } else {
     const profile = REMOTE_PROFILE_FIELDS.map(([key]) => (cfg.profile || {})[key]).filter(Boolean).join(' · ');
     html = `${profile ? `<div class="store-note"><b>Your situation</b> — ${esc(profile)}</div>` : ''}
@@ -3469,11 +3469,6 @@ function renderConfigSection() {
   <div class="section-title"><span class="num">3</span>Remote check — how remote is it (cheap model)${stageSwitchHtml('remote')}</div>
   <div class="card ${stageOn('remote') ? '' : 'stage-off'}" data-stage-card="remote">
     ${stageOn('remote') ? '' : '<div class="stage-off-note">Off. Runs skip this stage and behave as they did before it existed.</div>'}
-    <div class="explain">
-      For postings that passed Stage0, shows a cheap AI model (haiku) <b>only the title and the sentences around your remote keywords</b>.
-      It reports what each posting says per category below (or “Not stated”), with the sentence it rests on. An answer <b>you marked ✕</b> fails the posting.
-      Otherwise the model judges the sentences against all of your answers and passes a posting only when one of them says the role is worked in a way that suits you. Only what passes goes on to the next stage that is on.
-    </div>
     <div id="remote-summary"><div class="empty">Loading</div></div>
   </div>
 </div>
