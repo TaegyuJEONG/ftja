@@ -384,6 +384,7 @@ button.save-btn {
   flex-shrink: 0;
 }
 button.save-btn:hover { background: var(--accent); }
+button.save-btn:disabled { opacity: .45; cursor: default; }
 .saved-note { font-size: 11px; color: var(--success); margin-top: 8px; display: none; }
 
 /* pagination */
@@ -2088,6 +2089,7 @@ function jobCardInner(job) {
     </div>
     <div class="link"><a href="${esc(job.job_url)}" target="_blank">${esc(job.job_url)}</a></div>
     ${(job.stage1_reason || (job.t1_blocks || []).length) ? (stage1Passed.set(job.job_url, job), `<div class="s1-pass-line"><button class="link-btn pass" type="button" data-stage1-pass="${esc(job.job_url)}">Passed Stage 1 — see why</button></div>`) : ''}
+    ${(job.remote && (job.remote.answers || []).length) ? fold(['Remote check', ...job.remote.answers.filter(a => a.answer !== '?').map(a => `${esc(a.label)}: ${esc(a.answer_label)}`)].join(' · '), remoteAnswersHtml(job.remote.answers, job.remote.blocks)) : ''}
     ${judgment}
     <div class="decide-block">
       <div class="decide-label">Application status</div>
@@ -2491,16 +2493,18 @@ function watchRemoteRequest() {
     if (!document.getElementById('remote-editor')) { clearInterval(remoteWatch); remoteWatch = null; return; }
     let next;
     try { next = await (await fetch('/api/remote-check', {cache: 'no-store'})).json(); } catch (e) { return; }
-    const before = remoteSetup.request.status, lateBefore = remoteLate();
     const edited = remoteSetup.config;
     remoteSetup = next;
     if (next.request.status === 'done') remoteNote = 'Written by your agent. Read it through and change what does not fit; nothing here is fixed.';
     else if (!remotePending()) remoteNote = '';
     else remoteSetup.config = edited;  // still waiting: keep what is on screen
-    if (next.request.status !== before || remoteLate() !== lateBefore) renderRemoteEditor(next.request.status !== 'done' && next.request.status !== 'failed');
+    if (remoteStatusKey() !== remoteShownKey) renderRemoteEditor(remotePending());
     if (!remotePending()) { clearInterval(remoteWatch); remoteWatch = null; }
   }, 2000);
 }
+// What the status line depends on; it is redrawn when this changes.
+let remoteShownKey = '';
+function remoteStatusKey() { return `${remoteSetup.request.status}|${remoteLate()}|${remoteSetup.listening}|${remoteNote}`; }
 // Asked, a session was listening, and ten seconds on nothing has taken it up.
 function remoteLate() { return remoteSetup.request.status === 'requested' && remoteAskedAt && Date.now() - remoteAskedAt > 10000; }
 function remoteStatusHtml() {
@@ -2554,6 +2558,7 @@ function renderRemoteEditor(keepFields = false) {
   const cfg = remoteSetup.config;
   const answers = {...(cfg.profile || {}), ...Object.fromEntries(Object.entries((remoteSetup.request || {}).answers || {}).filter(([, v]) => v))};
   const generating = (remoteSetup.request || {}).status === 'generating';
+  remoteShownKey = remoteStatusKey();
   const skeleton = `<div class="rm-skeleton">${[82, 94, 68, 90, 74].map(w => `<div class="onboarding-skeleton-line" style="width:${w}%"></div>`).join('')}</div>`;
   root.innerHTML = `
     <div class="rc-kind-head">Your situation</div>

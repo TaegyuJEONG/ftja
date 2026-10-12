@@ -25,6 +25,8 @@ rubric.md.bak
 .ftja-trash/
 run-bridge.json
 run-action.json
+remote-check.json
+remote-request.json
 .ftja-update-check.json
 
 # local agent/tool folders and downloads — never part of the repository

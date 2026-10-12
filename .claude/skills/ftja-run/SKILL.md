@@ -1,6 +1,6 @@
 ---
 name: ftja-run
-description: Run the daily FTJA job-search pipeline (scrape LinkedIn -> deterministic filter -> cheap-model sentence-block judgment -> mid-model resume/portfolio judgment -> digest + notification). Invoke when the user says "run job search", "run FTJA", "check today's postings", or on the scheduled launchd trigger. Also invoke for "/ftja-run continue" or "continue to Stage 2", which finishes a run that was stopped after Stage 1.
+description: Run the daily FTJA job-search pipeline (scrape LinkedIn -> deterministic filter -> cheap-model sentence-block judgment -> mid-model resume/portfolio judgment -> digest + notification). Invoke when the user says "run job search", "run FTJA", "check today's postings", or on the scheduled launchd trigger. Also invoke for "/ftja-run continue" or "continue to Stage 1 / Stage 2", which takes a run that stopped early through one more stage.
 ---
 
 # FTJA run
@@ -10,9 +10,20 @@ these steps in order. Every python call below uses `venv/bin/python` — if
 `venv/` doesn't exist yet, run `python3 -m venv venv && venv/bin/pip install -r requirements.txt` first.
 
 **If the user asked to continue a run** ("/ftja-run continue", with or
-without a run id, or "continue to Stage 2"): do step 0a, then go straight
-to "Continuing a run that stopped after Stage 1" at the end of this file.
-Do not start a new run.
+without a run id and a stage, or "continue to Stage 1 / Stage 2"): do step
+0a, then go straight to "Continuing a run that stopped early" at the end
+of this file. Do not start a new run.
+
+**Which stages a run does.** A run judges postings in up to three stages,
+always in this order: the **Remote check** (`remote`), **Stage 1**
+(`stage1`), **Stage 2** (`stage2`). The user switches each on or off on the
+Pipeline tab. `ftja.live start` prints the run's `stages`: do the steps
+for exactly those, and skip the others. A stage judges what the stage
+before it let through. A command for a stage that is not in the list
+refuses and says so; that is the guard against spending by mistake, not
+something to work around. With the Remote check off (`stages` is
+`["stage1", "stage2"]`), a run is exactly what it was before that stage
+existed.
 
 ## 0a. Reattach the existing workspace and viewer
 
@@ -73,6 +84,8 @@ language, with the numbers you have:
   chain all of them into one long command that stays silent until the
   end.
 - **After Stage 0**: scraped, passed, and the biggest drop reasons.
+- **When the Remote check starts and ends** (runs that have it): how many
+  jobs in how many batches, then how many passed and failed.
 - **When Stage 1 starts and ends**: how many jobs in how many batches, then
   how many passed.
 - **When Stage 2 starts and ends**: how many jobs, then pass / review / fail.
@@ -197,7 +210,9 @@ search settings and `rubric-criteria.json` for this run:
 venv/bin/python -m ftja.live start
 ```
 
-It prints `{"run_id": ..., "run_dir": ".ftja-run/<id>", ...}`. Every later
+It prints `{"run_id": ..., "run_dir": ".ftja-run/<id>", "stages": [...], ...}`.
+`stages` is the list of judging stages this run does (see "Which stages a
+run does" above); tell the user which ones in your first line. Every later
 command takes that `run_dir` as `--dir`; every file of this run lives in it
 (nothing goes to /tmp). From this moment the run is visible in the viewer's
 Results tab, and it advances there by itself as the files below appear —
@@ -238,23 +253,74 @@ that found it; drops a JD not written
 in a language the candidate reads (langdetect against `criteria.json`'s
 `languages`); drops a JD that plainly requires a language outside that list
 ("Fluent in German and English"), keeping anything ambiguous ("German is a
-plus") for Stage 2; requires a tier-1 keyword; applies exclude keywords;
+plus") for Stage 2; requires a tier-1 keyword (only when Stage 1 is one of
+the run's stages); applies exclude keywords; when the Remote check is one
+of the run's stages, drops a posting with no remote keyword in its title
+or description (`no_remote_keyword`), unless the user unticked that on the
+Pipeline tab;
 collapses the same JD reposted under several URLs into one job; and, last,
 drops jobs an earlier run already judged (they're in `seen.db`), so no LLM
 call is spent on the same posting twice. The
 language-requirement drops are listed in the rejected file with the
 sentence that triggered each, and are not recorded as seen.
 
+## 2b. Remote check — cheap-model reading of the remote sentences
+
+**Only when `remote` is in the run's `stages`.** Otherwise skip to step 3.
+
+```
+venv/bin/python -m ftja.live prepare-remote --dir <run_dir>
+```
+
+Writes one filled prompt per Stage 0 survivor that has a remote keyword to
+`<run_dir>/rc/<n>.txt` (template: `remote_prompt.md`; the job's title, the
+sentences around its remote keywords, and the categories of the user's
+`remote-check.json` with the answers each allows). It prints `jobs`: they
+are numbered `0 .. jobs-1`. (`without_remote_keywords` counts postings kept
+without any remote keyword; code settles those, there is no prompt for
+them.)
+
+Call the `Agent` tool with `model: "haiku"`, in **batches of up to 10 job
+numbers** per subagent, exactly as Stage 1 below does it (read all prompts
+in one step, write all answers in one step, at most 20 calls per message,
+record each call's tokens). Each subagent reads `<run_dir>/rc/<n>.txt` and
+writes its answer to `<run_dir>/rc/<n>.out.json`. The answer is ONLY:
+
+```json
+{"answers": [{"id": "<category id>", "answer": "<one of that category's answer ids, or ?>",
+              "detail": "<12 words max>", "evidence_sids": ["S3"]}, ...]}
+```
+
+The model does not say pass or fail. Code reads each answer and applies
+the rule the user set for it; an answer that points at no sentence it was
+shown is read as `?`. Do not judge, edit or complete an answer yourself.
+
+Then check the answers:
+
+```
+venv/bin/python -m ftja.live check-remote --dir <run_dir>
+```
+
+`rerun` lists jobs with no usable answer file, or an answer that is not
+one of the category's listed ones: rerun exactly those job numbers once.
+The next step refuses while any is missing.
+
 ## 3. Stage 1 — cheap-model sentence-block judgment
+
+**Only when `stage1` is in the run's `stages`.** Otherwise skip to step 4.
 
 ```
 venv/bin/python -m ftja.live prepare-stage1 --dir <run_dir>
 ```
 
-Writes one filled prompt per Stage 0 survivor to `<run_dir>/s1/<n>.txt`
-(template: `stage1_prompt.md`; the job's keyword sentences with their
-neighbours, plus `rubric.md`'s Pass/Fail sections). It prints how many jobs
-there are; they are numbered `0 .. jobs-1`.
+Writes one filled prompt per job Stage 1 judges to `<run_dir>/s1/<n>.txt`:
+the Stage 0 survivors, or only the Remote check's passes when that stage
+ran first (template: `stage1_prompt.md`; the job's keyword sentences with
+their neighbours, plus `rubric.md`'s Pass/Fail sections). It prints how
+many jobs there are; they are numbered `0 .. jobs-1`.
+(`failed_by_code_no_keyword`, on a run continued from the Remote check,
+counts postings with none of the Stage 1 keywords: code fails those, there
+is no prompt for them.)
 
 Call the `Agent` tool with `model: "haiku"`, giving **each subagent a batch
 of up to 10 job numbers**: it reads `<run_dir>/s1/<n>.txt` for each, judges
@@ -307,13 +373,12 @@ leave; they show as an empty reading under that sentence.
 
 ## 4. Stage 2 — mid-model resume/portfolio judgment
 
-**Stop here when the run is set to stop after Stage 1.** `start` printed
-the run's `criteria_snapshot`; if it has `"stage1_only": true` (the
-"Stop after Stage 1" box on the Pipeline tab), skip this whole step: do
-NOT run `prepare-stage2` and do NOT call any Stage 2 subagent. Go to step
-5. `results` records the Stage 1 passes as waiting, and the run can be
-continued later. Then follow "After a run that stopped after Stage 1"
-at the end of this file instead of ending your turn.
+**Only when `stage2` is in the run's `stages`.** When it is not (Stage 2
+is switched off on the Pipeline tab), skip this whole step: do NOT run
+`prepare-stage2` and do NOT call any Stage 2 subagent. Go to step 5.
+`results` records what passed the run's last stage as waiting, and the run
+can be continued later. Then follow "After a run that stopped early" at
+the end of this file instead of ending your turn.
 
 If `profile/summary.md` doesn't exist, STOP and tell the user to run
 `/ftja-setup` — don't fall back to reading the raw CV/portfolio, that
@@ -326,7 +391,8 @@ venv/bin/python -m ftja.live prepare-stage2 --dir <run_dir>
 Run it once Stage 1 is complete; Stage 2 starts only then, so the stages
 run and show one after another. It refuses, naming the job numbers, while
 any Stage 1 answer is missing or unreadable — fix those first. Otherwise
-it writes one filled prompt per Stage 1 pass to `<run_dir>/s2/<n>.txt` (template: `stage2_prompt.md`, with
+it writes one filled prompt per Stage 1 pass (per Remote check pass, on a
+run without Stage 1) to `<run_dir>/s2/<n>.txt` (template: `stage2_prompt.md`, with
 the run's criteria list and the full JD) and prints how many there are,
 numbered `0 .. jobs-1`. A job whose description is empty is left out and
 recorded as a Stage 1 fail with a note.
@@ -368,9 +434,9 @@ Record each call's tokens with `record-tokens`, as in the preflight.
 venv/bin/python -m ftja.live results --dir <run_dir>
 ```
 
-It refuses, naming the job numbers, while any Stage 1 or Stage 2 answer is
-missing or isn't valid JSON with a `criteria` list — rerun those jobs and
-call it again. Otherwise it writes the run's `results.json` and
+It refuses, naming the job numbers, while any answer of a stage this run
+does is missing (for Stage 2: isn't valid JSON with a `criteria` list) —
+rerun those jobs and call it again. Otherwise it writes the run's `results.json` and
 `stats.json`. Then:
 
 ```
@@ -400,60 +466,74 @@ digest path, the pass and review counts (`finalize` prints both; "review"
 means the posting was ambiguous on a deciding point and the user should
 read it), and that the run is in the viewer's Results tab.
 
-## After a run that stopped after Stage 1
+## After a run that stopped early
 
+A run whose `stages` do not include `stage2` stops after its last stage.
 Do steps 5 and 6 as usual (finalize, release the lock). In your report,
-say that the run stopped after Stage 1 on purpose, how many postings
-passed Stage 1 and are waiting, and that they can look at them in the
-Results tab and press **Continue to Stage 2** there when they want Stage 2
-to run.
+say that the run stopped there on purpose, how many postings passed that
+stage, and that they can read them in the Results tab ("Passed N — see
+why" on that stage's line; for the Remote check that popup also downloads
+the table) and press **Continue to Stage 1** or **Continue to Stage 2**
+there when they want another stage to run.
 
 On an **unattended** run, stop here.
 
 On an **interactive** run, do not end your turn yet: stay available for
-that button, the way the setup chat waits for the web view. Tell the user
-you are waiting for about nine minutes, then run (shell timeout 600000 ms):
+those buttons, the way the setup chat waits for the web view. Tell the
+user you are waiting for about nine minutes, then run (shell timeout
+600000 ms):
 
 ```
 venv/bin/python -m ftja.run_bridge wait --run-id <run id>
 ```
 
-- `{"status": "continue"}`: the user pressed the button. Go on with
-  "Continuing a run that stopped after Stage 1" below, for this run id.
-- `{"status": "timeout"}`: nobody pressed it. End your turn, and say that
-  the run can still be continued any time by typing
-  `/ftja-run continue <run id>` in this chat (the button shows that line
-  when no session is waiting).
+- `{"status": "continue", "to": "stage1" | "stage2"}`: the user pressed a
+  Continue button. Go on with "Continuing a run that stopped early" below,
+  for this run id and that stage (`to` missing means `stage2`).
+- `{"status": "remote"}`: the user pressed the Remote check's button on
+  the Pipeline tab. Follow the `ftja-remote` skill
+  (`.claude/skills/ftja-remote/SKILL.md`) from its step 1, then start this
+  wait again.
+- `{"status": "timeout"}`: nobody pressed anything. End your turn, and say
+  that the run can still be continued any time by typing
+  `/ftja-run continue <run id>` in this chat (the button shows the exact
+  line when no session is waiting).
 
 If the user writes to you while you wait, answer them; the wait can be
 started again afterwards.
 
-## Continuing a run that stopped after Stage 1
+## Continuing a run that stopped early
 
-For "/ftja-run continue [run id]" or "continue to Stage 2". Stage 2 is the
-expensive step (one `sonnet` subagent per posting), so the user stopped the
-run before it on purpose and is now asking for it.
+For "/ftja-run continue [run id] [stage1|stage2]" or "continue to Stage 1 /
+Stage 2". The user stopped the run before this stage on purpose and is now
+asking for it. Stage 2 is the expensive one (one `sonnet` subagent per
+posting). The stage named is the one to run; with none named it is Stage 2.
+Stage 1 can only be asked for on a run that stopped after the Remote check.
 
-1. Check `profile/summary.md` exists, as in step 4.
+1. For Stage 2, check `profile/summary.md` exists, as in step 4.
 2. Take the lock exactly as in the preflight (`ftja.lock check`, then
    `acquire`). If it is locked, a run is in progress: say so and stop.
 3. Reopen the run:
 
    ```
-   venv/bin/python -m ftja.live continue --run-id <run id>
+   venv/bin/python -m ftja.live continue --run-id <run id> --to <stage1 or stage2>
    ```
 
-   Leave `--run-id` out to take the latest run that is waiting. It prints
-   the `run_dir` and how many Stage 1 passes there are. If it refuses (the
-   run is not waiting, or its working files are gone), release the lock,
-   tell the user what it said, and stop. Before going on, tell the user
-   how many postings Stage 2 will read.
-4. Do step 4 (Stage 2) for that `run_dir`, from `prepare-stage2` on. The
-   run judges against the rubric and criteria list it was started with,
-   not today's.
+   Leave `--run-id` out to take the latest run that is waiting; leave
+   `--to` out for Stage 2. It prints the `run_dir` and how many postings
+   are waiting. If it refuses (the run is not waiting, it cannot go on to
+   that stage, or its working files are gone), release the lock, tell the
+   user what it said, and stop. Before going on, tell the user how many
+   postings the stage will read.
+4. Do that stage's step for that `run_dir`: step 3 from `prepare-stage1`
+   on, or step 4 from `prepare-stage2` on. Do only that one stage. The run
+   judges against the rubric, keywords and criteria list it was started
+   with, not today's.
 5. Do step 5 (Finalize) and step 6 (release the lock and report). The run
-   keeps its place and its id in the Results tab; its Stage 1 passes now
-   carry their final verdict.
+   keeps its place and its id in the Results tab. After Stage 2 its
+   postings carry their final verdict. After Stage 1 the run has stopped
+   early again, with the Stage 1 passes waiting: follow "After a run that
+   stopped early" above.
 
-Do not scrape, do not run Stage 0 or Stage 1 again, and do not run the
-version check or the pending-review preflight for a continue.
+Do not scrape, do not run Stage 0 or an earlier stage again, and do not
+run the version check or the pending-review preflight for a continue.

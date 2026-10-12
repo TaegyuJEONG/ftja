@@ -789,6 +789,10 @@ def state(project_dir: str = ".") -> dict | None:
         descriptions = {j["job_url"]: j.get("description") or "" for j in _read_json(os.path.join(run_dir, "stage0.json"), [])}
         s1_by_url = {e["job_url"]: e for e in _stage1_results(run_dir)[0]}
         jobs = [_live_card(run_dir, e, definitions, descriptions, s1_by_url) for e in manifest]
+        if out["remote"]:  # what the Remote check read stays on the card
+            remote_by_url = {e["job_url"]: {"answers": e["answers"], "blocks": e["remote_blocks"]}
+                             for e in _remote_results(run_dir)[0]}
+            jobs = [{**j, "remote": remote_by_url.get(j["job_url"])} for j in jobs]
         tally = {s: sum(j["status"] == s for j in jobs) for s in ("judging", "passed", "review", "stage2_fail")}
         out["stage2"] = {"total": len(jobs), "pending": tally["judging"], "passed": tally["passed"],
                          "review": tally["review"], "fail": tally["stage2_fail"]}

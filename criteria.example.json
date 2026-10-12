@@ -4,7 +4,7 @@
   "hours_old": 72,
   "results_wanted": 100,
   "title_must_match": false,
-  "stage1_only": false,
+  "stages": {"remote": false, "stage1": true, "stage2": true},
   "exclude_keywords": [],
   "languages": ["en"],
   "keywords": {
