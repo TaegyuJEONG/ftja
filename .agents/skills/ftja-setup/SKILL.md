@@ -289,8 +289,8 @@ Only after that action returns `status: confirmed`, read the confirmed profile
 summary and create **one structured proposal covering both upcoming deterministic
 screens**:
 
-1. scraping/search settings: titles, location, remote-only, published-within,
-   and results wanted;
+1. scraping/search settings: titles, location, published-within, and results
+   wanted;
 2. Stage 0: matching keywords, readable languages, and hard-exclude words.
 
 Do not show either screen until this combined proposal has been written to
@@ -312,7 +312,7 @@ Write the complete combined proposal in a single command **before** instructing
 the user to review search settings:
 
 ```bash
-venv/bin/python -m ftja.onboarding . set-state --stage profile --phase title_proposal --status waiting --json '{"profile":{"titles":["Product Builder","AI Product Manager","Founding Product Manager"],"criteria":{"search_terms":["Product Builder","AI Product Manager","Founding Product Manager"],"location":"France","is_remote":false,"hours_old":24,"results_wanted":100,"keywords":{"tier1":["AI product","LLM","Product Builder"]},"languages":["en","fr"],"exclude_keywords":["pure sales"]}},"cards":{"stage0":{"keywords":["AI product","LLM","Product Builder"],"languages":["en","fr"],"exclude_keywords":["pure sales"]}}}'
+venv/bin/python -m ftja.onboarding . set-state --stage profile --phase title_proposal --status waiting --json '{"profile":{"titles":["Product Builder","AI Product Manager","Founding Product Manager"],"criteria":{"search_terms":["Product Builder","AI Product Manager","Founding Product Manager"],"location":"France","hours_old":24,"results_wanted":100,"keywords":{"tier1":["AI product","LLM","Product Builder"]},"languages":["en","fr"],"exclude_keywords":["pure sales"]}},"cards":{"stage0":{"keywords":["AI product","LLM","Product Builder"],"languages":["en","fr"],"exclude_keywords":["pure sales"]}}}'
 ```
 
 The `set-state` helper records drafts only. It must leave the state at
@@ -360,8 +360,12 @@ my search settings, continue the setup`) and do not claim that the chat resumed.
 **For `criteria.json` (Rubric stage, after Profile — Stage 0 deterministic, used by `ftja/scrape.py` and
 `ftja/filter_stage0.py`):**
 - `search_terms`: list of LinkedIn search strings (e.g. `["Product Manager", "Founding PM"]`)
-- `location`, `is_remote`, `hours_old` — this is the ONLY place location is
-  controlled. If the candidate wants roles in more than one region (e.g.
+- `location`, `hours_old` — this is the ONLY place location is
+  controlled. There is no remote-only setting: LinkedIn ignores its
+  workplace filter for logged-out searches, so a candidate who wants remote
+  roles gets them through tier1 keywords ("remote", "hybrid", "on-site", ...)
+  and a rubric criterion, judged from each posting's text. Do not write
+  `is_remote` to `criteria.json`. If the candidate wants roles in more than one region (e.g.
   "Europe, or Singapore/Dubai if visa-sponsored"), that needs multiple
   scrape locations (a loop over `location` values in `/ftja-run`, or a
   `search_terms` x `locations` cross product) — say so explicitly if the
@@ -429,7 +433,6 @@ my search settings, continue the setup`) and do not claim that the chat resumed.
 {
   "search_terms": ["..."],
   "location": "...",
-  "is_remote": true,
   "hours_old": 72,
   "results_wanted": 100,
   "exact_phrase_search": true,

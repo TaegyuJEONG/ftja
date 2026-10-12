@@ -21,7 +21,7 @@ def quote_search_term(term: str) -> str:
     return term
 
 
-def scrape(search_term: str, location: str, is_remote: bool = False,
+def scrape(search_term: str, location: str,
            results_wanted: int = 100, hours_old: int = 72, job_type: str = "",
            exact_phrase: bool = True, on_batch=None) -> list[dict]:
     """Scrape up to `results_wanted` LinkedIn listings for one search term.
@@ -34,8 +34,11 @@ def scrape(search_term: str, location: str, is_remote: bool = False,
     only has the words scattered apart) vs sent as-is (broader, OR-ish
     matching). Controlled by criteria.json's exact_phrase_search.
 
-    is_remote=True asks LinkedIn for remote-only postings (jobspy sends it
-    as the f_WT=2 filter); False applies no workplace filter at all.
+    There is no remote-only option. LinkedIn ignores its workplace filter
+    (f_WT) for requests that are not logged in, which is what this scraper
+    sends: measured, the same search returned the same postings with the
+    filter set to remote, hybrid, on-site or left out. Whether a role is
+    remote is judged from the posting's text, by the keywords and the rubric.
 
     on_batch(count_so_far), if given, is called after every batch — the
     live view's "scraped so far" number.
@@ -53,7 +56,6 @@ def scrape(search_term: str, location: str, is_remote: bool = False,
             "results_wanted": num_to_fetch,
             "hours_old": hours_old,
             "offset": offset,
-            "is_remote": is_remote,
             "linkedin_fetch_description": True,
             "verbose": 1,
         }
@@ -92,8 +94,6 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--search-term", required=True)
     ap.add_argument("--location", default="")
-    ap.add_argument("--is-remote", action=argparse.BooleanOptionalAction, default=False,
-                    help="remote-only postings (default: no workplace filter)")
     ap.add_argument("--results-wanted", type=int, default=100)
     ap.add_argument("--hours-old", type=int, default=72)
     ap.add_argument("--job-type", default="")
@@ -104,7 +104,6 @@ def main():
     jobs = scrape(
         search_term=args.search_term,
         location=args.location,
-        is_remote=args.is_remote,
         results_wanted=args.results_wanted,
         hours_old=args.hours_old,
         job_type=args.job_type,

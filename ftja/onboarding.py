@@ -282,10 +282,9 @@ def apply_action(project_dir: str, action: dict[str, Any]) -> dict[str, Any]:
             raise OnboardingError("search settings draft needs at least one title and a location")
         stage0 = validate_stage0_draft(action.get("stage0") or {})
         criteria = {
-            **profile.get("criteria", {}),
+            **{k: v for k, v in profile.get("criteria", {}).items() if k != "is_remote"},  # a filter LinkedIn ignores
             "search_terms": titles,
             "location": location,
-            "is_remote": bool(action.get("is_remote", False)),
             "hours_old": int(action.get("hours_old", 24)),
             "results_wanted": _clamp_results_wanted(action.get("results_wanted"), 100),
             "exact_phrase_search": True,
@@ -308,10 +307,9 @@ def apply_action(project_dir: str, action: dict[str, Any]) -> dict[str, Any]:
         if not titles or not location:
             raise OnboardingError("at least one title and a location are required")
         criteria = {
-            **profile.get("criteria", {}),
+            **{k: v for k, v in profile.get("criteria", {}).items() if k != "is_remote"},  # a filter LinkedIn ignores
             "search_terms": titles,
             "location": location,
-            "is_remote": bool(action.get("is_remote", False)),
             "hours_old": int(action.get("hours_old", 24)),
             "results_wanted": _clamp_results_wanted(
                 action.get("results_wanted", profile.get("criteria", {}).get("results_wanted")), 100
@@ -617,7 +615,6 @@ def main() -> None:
                 "type": "set_profile_draft",
                 "titles": profile.get("titles") or criteria.get("search_terms"),
                 "location": criteria.get("location"),
-                "is_remote": criteria.get("is_remote", False),
                 "hours_old": criteria.get("hours_old", 24),
                 "results_wanted": criteria.get("results_wanted", 100),
                 "stage0": stage0,
