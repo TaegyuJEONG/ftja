@@ -75,6 +75,28 @@ you stop, so the page does not wait for you.
   as one of the five below (they added it), and keep the `id` of every
   category and answer that still exists, even if you reword it.
 
+## 2b. Only a language is missing? Add its keywords and stop
+
+`show` also prints `draft` (a draft the user is going through on the page,
+if there is one) and `languages_without_keywords`: languages the user
+reads postings in that the draft (or, with no draft, the saved setup) has
+no keyword for. This happens when they added a language under Stage0
+after the setup was written, and the page then sends them here.
+
+If that list is not empty, and the request is not a fresh `requested` one
+carrying answers that differ from the setup's `profile`, do only this:
+
+1. Take the draft (or the saved setup) exactly as it is: every category,
+   answer, rule, id, keyword, `profile` and `guidance` unchanged.
+2. Add keywords for each missing language, following the keyword rules in
+   step 3, into the categories they inform; add each to
+   `keyword_language` with that language's code, and the code to
+   `languages`.
+3. Do steps 4 to 6. In your report say only which languages you added
+   keywords for and how many; the page shows them in its Keywords step.
+
+Otherwise go on with step 3 and write the whole setup.
+
 ## 3. Write the setup
 
 Write it as JSON to `.ftja-run/remote-check.draft.json` (create `.ftja-run/`

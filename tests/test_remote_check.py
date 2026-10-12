@@ -438,3 +438,15 @@ def test_the_page_asks_for_a_draft_and_the_draft_becomes_the_setup_only_when_con
 
     remote.discard_draft(root)
     assert remote.load_draft(root) is None and remote.read_request(root)["status"] == "none"
+
+
+def test_a_language_the_user_reads_but_the_setup_has_no_keyword_for_is_named(tmp_path):
+    cfg = config()  # the built-in setup: English, no keyword marked
+    assert remote.languages_without_keywords(cfg, ["en"]) == []
+    assert remote.languages_without_keywords(cfg, ["en", "fr", "FR"]) == ["fr"]  # French was added to the readable languages later
+    cfg["categories"][0]["keywords"] += ["télétravail", "présentiel"]
+    cfg["keyword_language"] = {"télétravail": "fr", "présentiel": "fr", "not a keyword": "de"}
+    saved = remote.save_config(str(tmp_path), cfg)
+    assert saved["languages"] == ["en", "fr"] and saved["keyword_language"] == {"télétravail": "fr", "présentiel": "fr"}
+    assert remote.languages_without_keywords(saved, ["en", "fr"]) == []
+    assert remote.languages_without_keywords(saved, ["en", "fr", "de"]) == ["de"]

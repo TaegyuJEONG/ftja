@@ -214,6 +214,18 @@ def all_keywords(config: dict) -> list[str]:
     return list(dict.fromkeys(k for c in config.get("categories") or [] for k in c.get("keywords") or []))
 
 
+def languages_without_keywords(config: dict, read_languages: list[str]) -> list[str]:
+    """The languages the user reads postings in that the setup has no
+    keyword for: a posting in one of them would never be read. A keyword
+    with no language recorded counts for the setup's first language."""
+    marked = config.get("keyword_language") or {}
+    covered = set(marked.values())
+    first = (config.get("languages") or ["en"])[0]
+    if any(k not in marked for k in all_keywords(config)):
+        covered.add(first)
+    return [code for code in dict.fromkeys(str(x).strip().lower() for x in read_languages or []) if code and code not in covered]
+
+
 def blocks_for(job: dict, config: dict) -> list[dict]:
     """The sentences containing any category's keyword, each with the
     sentence before and after it, and the job's title on top as `T`. Empty
@@ -403,7 +415,12 @@ def main():
 
     if args.cmd == "show":
         saved = load_config(os.path.join(args.project_dir, CONFIG_FILE))
-        out = {"saved": saved is not None, "config": saved or default_config()}
+        draft = load_draft(args.project_dir)
+        read = (_read(os.path.join(args.project_dir, "criteria.json")) or {}).get("languages") or []
+        out = {"saved": saved is not None, "config": saved or default_config(), "draft": draft,
+               "languages_the_user_reads": read,
+               # of the draft when there is one (it is what the user is going through), else of the saved setup
+               "languages_without_keywords": languages_without_keywords(draft or saved, read) if (draft or saved) else []}
     elif args.cmd == "request":
         out = read_request(args.project_dir)
     elif args.cmd == "begin":

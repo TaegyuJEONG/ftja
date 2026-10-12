@@ -2544,6 +2544,24 @@ async function pollRemote() {
   let next;
   try { next = await (await fetch('/api/remote-check', {cache: 'no-store'})).json(); } catch (e) { return; }
   const status = (next.request || {}).status;
+  // The user is on the Keywords step with a language that has none, and was told
+  // to type /ftja-remote: follow the agent, and take its keywords in when they land.
+  const w = remoteWizard;
+  if (w && w.step === 'keywords' && w.awaiting && remoteDialog()) {
+    const filled = next.draft && remoteKeywordGroups(next.draft);
+    if (status === 'drafted' && filled && w.awaiting.every(code => (filled.groups[code] || []).length)) {
+      readRemoteStep();
+      remoteSetup = next;
+      remoteWizard = {...w, config: {...JSON.parse(JSON.stringify(next.draft)), profile: w.config.profile}, origin: 'draft', awaiting: null, writing: false};
+      remoteAutoOpened = `drafted|${next.request.began_at || next.request.requested_at || ''}`;
+      renderRemoteDialog();
+    } else if ((status === 'generating') !== !!w.writing) {
+      readRemoteStep();
+      w.writing = status === 'generating';
+      renderRemoteDialog();
+    }
+    return;
+  }
   const moment = status === 'generating' ? 'generating' : next.draft ? 'drafted' : '';
   const key = moment && `${moment}|${next.request.began_at || next.request.requested_at || ''}`;
   if (remoteSetup && !key) return;
@@ -2688,8 +2706,11 @@ function renderRemoteDialog() {
   const skeleton = `<div class="rm-skeleton">${[82, 94, 68, 90, 74].map(w => `<div class="onboarding-skeleton-line" style="width:${w}%"></div>`).join('')}</div>`;
   const general = remoteSetup.saved ? '' : `<button class="text-btn rc-add" type="button" data-rm-general>Or start from a general setup and edit it yourself</button>`;
   let title = 'Remote check setup', body;
+  const following = remoteWizard && remoteWizard.step === 'keywords' && remoteWizard.awaiting;  // stays on its step while the agent adds keywords
 
-  if (status === 'generating') {
+  if (following) {
+    body = '';
+  } else if (status === 'generating') {
     body = `<div class="store-note"><span class="onboarding-spinner"></span> <span class="busy">Your agent is drafting your situation and the categories</span></div>${skeleton}`;
   } else if (status === 'requested' && !remoteLate()) {
     body = `<div class="store-note"><span class="onboarding-spinner"></span> <span class="busy">Asking your agent session</span></div>${skeleton}`;
@@ -2697,7 +2718,8 @@ function renderRemoteDialog() {
   } else if (status === 'requested' || status === 'failed') {
     body = `<div class="store-note">${status === 'failed' ? `<b>${esc(remoteSetup.request.error || 'The draft was not written.')}</b> ` : '<b>No agent session picked this up.</b> '}Type this in the agent session connected to this folder. This page goes on by itself when the draft is ready.</div>
       ${command}<div><button class="text-btn rc-add" type="button" data-rm-cancel>Cancel</button></div>${general}`;
-  } else {
+  }
+  if (following || !body) {
     if (!remoteWizard) {
       const source = remoteSetup.draft || remoteSetup.config;
       remoteWizard = {config: JSON.parse(JSON.stringify(source)), step: 'situation',
@@ -2715,10 +2737,16 @@ function renderRemoteDialog() {
         <div class="rm-nav"><span></span><button class="save-btn" type="button" data-rm-next>Confirm</button></div>`;
     } else if (w.step === 'keywords') {
       const {languages, groups, read} = remoteKeywordGroups(w.config);
+      const empty = languages.filter(code => !groups[code].length);
+      w.awaiting = empty.length ? empty : null;
+      const ask = code => w.writing
+        ? `<div class="store-note" style="margin-top:8px;"><span class="onboarding-spinner"></span> <span class="busy">Your agent is writing the ${esc(languageLabel(code))} keywords</span></div>`
+        : `<div class="store-note" style="margin-top:8px;"><b>No ${esc(languageLabel(code))} keywords yet</b>, so a posting written in ${esc(languageLabel(code))} would never be read. Type this in the agent session connected to this folder; it adds them and this step updates by itself. Or type them in above.</div>
+           <div class="continue-cmd"><code>/ftja-remote</code><button class="storage-btn" type="button" data-rm-copy>Copy</button></div>`;
       body = `${progress}<div class="rm-step">Keywords</div>
         <div class="rm-step-intro">The check reads a posting only where one of these appears: that sentence, and the one before and after. A posting with none of them is not read at all. They are listed for each language you read postings in${read.length ? ` (${read.map(languageLabel).map(esc).join(', ')}, set under Stage0)` : ''}. Remove what does not fit, add what is missing.</div>
         ${languages.map(code => `<div class="field"><label>${esc(languageLabel(code))} · ${groups[code].length}</label>${renderChipInput('rm-kw-' + code, groups[code])}
-          ${groups[code].length ? '' : `<div class="rm-step-intro" style="margin:6px 0 0;">No keywords in ${esc(languageLabel(code))} yet. Add them here, or have your agent draft the setup again now that you read this language.</div>`}</div>`).join('')}
+          ${groups[code].length ? '' : ask(code)}</div>`).join('')}
         <div class="rm-nav"><button class="text-btn" type="button" data-rm-back>Back</button><button class="save-btn" type="button" data-rm-next>Confirm</button></div>`;
     } else if (w.step === 'review') {
       body = `${progress}<div class="rm-step">Confirm your setup</div>
