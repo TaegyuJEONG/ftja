@@ -84,6 +84,19 @@ h1.serif { font-size: 38px; font-weight: 400; line-height: 1; margin-bottom: 8px
 .stage-switch.on { color: var(--accent-text); }
 .card.stage-off > *:not(.stage-off-note) { opacity: .45; }
 .stage-off-note { font-size: 12px; color: var(--warn-text); background: var(--warn-bg); padding: 8px 10px; margin-bottom: 12px; }
+.rm-card { border: 1px solid var(--border); border-radius: 4px; background: var(--surface); padding: 0 14px; margin-bottom: 10px; }
+.rm-card[open] { border-color: var(--border2); }
+.rm-card > summary { padding: 11px 0; }
+.rm-step { display: flex; align-items: baseline; gap: 9px; margin: 22px 0 4px; font-size: 13px; font-weight: 600; color: var(--text); }
+.rm-step:first-child { margin-top: 4px; }
+.rm-step .num { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--on-accent); background: var(--accent-strong); border-radius: 50%; width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.rm-step-intro { font-size: 12.5px; color: var(--text2); line-height: 1.55; margin: 0 0 12px 27px; }
+.rm-sum-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; margin: 12px 0; }
+.rm-sum-card { border: 1px solid var(--border); border-radius: 4px; background: var(--surface); padding: 10px 12px; font-size: 12.5px; }
+.rm-sum-card b { display: block; margin-bottom: 5px; color: var(--text); }
+.rm-sum-card div { color: var(--text2); line-height: 1.5; }
+.rm-sum-card .fails { color: var(--danger-text); }
+.rm-sum-card .meta { color: var(--text3); font-size: 11.5px; margin-top: 5px; }
 .rm-answers { margin: 4px 0 2px; }
 .rm-answer { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
 .rm-answer input[type="text"] { flex: 1; }
@@ -2481,8 +2494,57 @@ const REMOTE_PROFILE_FIELDS = [
 ];
 async function loadRemoteSetup() {
   try { remoteSetup = await (await fetch('/api/remote-check', {cache: 'no-store'})).json(); } catch (e) { return; }
+  renderRemoteSummary();
   renderRemoteEditor();
   watchRemoteRequest();
+}
+// What the Pipeline tab shows of the setup: a button to start it, or, once
+// there is one, each category as a small card. Editing happens in the dialog.
+let remoteShowGeneral = false;
+function renderRemoteSummary() {
+  const root = document.getElementById('remote-summary');
+  if (!root || !remoteSetup) return;
+  const cfg = remoteSetup.config, status = (remoteSetup.request || {}).status;
+  let html;
+  if (status === 'generating') {
+    html = `<div class="store-note"><span class="onboarding-spinner"></span> <span class="busy">Your agent is writing your setup</span></div>
+      <div class="save-row"><button class="save-btn" type="button" data-rm-open>Open the setup</button></div>`;
+  } else if (status === 'requested') {
+    html = `<div class="store-note"><b>Your answers are saved</b> and waiting for your agent.</div>
+      <div class="save-row"><button class="save-btn" type="button" data-rm-open>Open the setup</button></div>`;
+  } else if (!remoteSetup.saved) {
+    html = `<div class="store-note">Not set up yet. Tell FTJA where you live and where you want to work, and your agent writes the keywords and rules for you. Until then the check uses a general setup.</div>
+      <div class="save-row"><button class="save-btn" type="button" data-rm-open>Set up the Remote check</button></div>`;
+  } else {
+    const profile = REMOTE_PROFILE_FIELDS.map(([key]) => (cfg.profile || {})[key]).filter(Boolean).join(' · ');
+    html = `${profile ? `<div class="store-note"><b>Your situation</b> — ${esc(profile)}</div>` : ''}
+      <div class="rm-sum-grid">${(cfg.categories || []).map(c => `
+        <div class="rm-sum-card"><b>${esc(c.label)}</b>
+          ${(c.options || []).map(o => `<div class="${o.rule === 'fail' ? 'fails' : ''}">${o.rule === 'fail' ? '✕' : '✓'} ${esc(o.label)}</div>`).join('')}
+          <div class="meta">Not stated ${c.unknown === 'fail' ? 'fails' : 'passes'} · ${plural((c.keywords || []).length, 'keyword')}</div></div>`).join('')}</div>
+      <div class="store-note">${cfg.drop_without_keywords === false ? 'Postings with no remote keyword are kept, with every category “not stated”.' : 'Postings with no remote keyword are dropped by code.'}</div>
+      <div class="save-row"><button class="save-btn" type="button" data-rm-open>Edit the setup</button></div>`;
+  }
+  root.innerHTML = html;
+  root.querySelectorAll('[data-rm-open]').forEach(b => b.addEventListener('click', openRemoteSetup));
+}
+function openRemoteSetup() {
+  let dialog = document.getElementById('remote-dialog');
+  if (!dialog) {
+    dialog = document.createElement('dialog');
+    dialog.id = 'remote-dialog';
+    dialog.className = 's1-dialog';
+    document.body.appendChild(dialog);
+    dialog.addEventListener('click', (e) => { if (e.target === dialog) dialog.close(); });
+    dialog.addEventListener('close', () => { dialog.innerHTML = ''; loadRemoteSetup(); });  // unsaved edits are dropped
+  }
+  dialog.innerHTML = `
+    <div class="s1-head"><h3>Remote check setup</h3><button class="text-btn" type="button" data-close>Close</button></div>
+    <div class="s1-body"><div id="remote-editor"></div></div>`;
+  dialog.querySelector('[data-close]').addEventListener('click', () => dialog.close());
+  remoteShowGeneral = false;
+  renderRemoteEditor();
+  dialog.showModal();
 }
 function remotePending() { return remoteSetup && ['requested', 'generating'].includes((remoteSetup.request || {}).status); }
 // While a Generate request is open, ask every two seconds whether the agent has taken it up or finished.
@@ -2490,7 +2552,7 @@ function watchRemoteRequest() {
   if (remoteWatch) { clearInterval(remoteWatch); remoteWatch = null; }
   if (!remotePending()) return;
   remoteWatch = setInterval(async () => {
-    if (!document.getElementById('remote-editor')) { clearInterval(remoteWatch); remoteWatch = null; return; }
+    if (!document.getElementById('remote-summary')) { clearInterval(remoteWatch); remoteWatch = null; return; }
     let next;
     try { next = await (await fetch('/api/remote-check', {cache: 'no-store'})).json(); } catch (e) { return; }
     const edited = remoteSetup.config;
@@ -2499,6 +2561,7 @@ function watchRemoteRequest() {
     else if (!remotePending()) remoteNote = '';
     else remoteSetup.config = edited;  // still waiting: keep what is on screen
     if (remoteStatusKey() !== remoteShownKey) renderRemoteEditor(remotePending());
+    renderRemoteSummary();
     if (!remotePending()) { clearInterval(remoteWatch); remoteWatch = null; }
   }, 2000);
 }
@@ -2534,7 +2597,7 @@ function remoteCategoryHtml(c, i, open) {
     </div>`).join('');
   const preview = (c.options || []).map(o => `${o.label}${o.rule === 'fail' ? ' ✕' : ''}`).join(' · ');
   return `
-    <details class="rc-item" id="rm-cat-${i}" data-category="${i}" data-id="${esc(c.id || '')}" ${open ? 'open' : ''}>
+    <details class="rc-item rm-card" id="rm-cat-${i}" data-category="${i}" data-id="${esc(c.id || '')}" ${open ? 'open' : ''}>
       <summary><b>${esc(c.label || 'New category')}</b><span class="rc-preview">${esc(preview)}</span></summary>
       <div class="rc-body">
         <div class="field"><label>Name — what shows on each job</label><input type="text" data-rm="label" value="${esc(c.label || '')}"></div>
@@ -2560,23 +2623,31 @@ function renderRemoteEditor(keepFields = false) {
   const generating = (remoteSetup.request || {}).status === 'generating';
   remoteShownKey = remoteStatusKey();
   const skeleton = `<div class="rm-skeleton">${[82, 94, 68, 90, 74].map(w => `<div class="onboarding-skeleton-line" style="width:${w}%"></div>`).join('')}</div>`;
-  root.innerHTML = `
-    <div class="rc-kind-head">Your situation</div>
-    <div class="rc-kind-intro" style="padding-bottom:10px;">Your agent writes the keywords, the categories and their rules from these four answers, in the languages you read (set under Stage0). You can change everything it writes.</div>
-    <div class="field-row">${REMOTE_PROFILE_FIELDS.slice(0, 2).map(([key, label, hint]) => `<div class="field"><label>${label}</label><input type="text" data-rm-profile="${key}" value="${esc(answers[key] || '')}" placeholder="${esc(hint)}"></div>`).join('')}</div>
-    <div class="field-row">${REMOTE_PROFILE_FIELDS.slice(2).map(([key, label, hint]) => `<div class="field"><label>${label}</label><input type="text" data-rm-profile="${key}" value="${esc(answers[key] || '')}" placeholder="${esc(hint)}"></div>`).join('')}</div>
-    <div class="save-row" style="margin:0 0 14px;"><button class="save-btn" type="button" data-rm-generate ${remotePending() ? 'disabled' : ''}>${remoteSetup.saved ? 'Write it again with my agent' : 'Write the setup with my agent'}</button><span class="danger" data-rm-error></span></div>
-    ${remoteStatusHtml()}
-    ${generating ? skeleton : `
-    <div class="rc-kind-head">Categories</div>
-    <div class="rc-kind-intro">${remoteSetup.saved ? '' : 'This is a general starting setup, not yet written for where you live. '}A posting passes when none of its answers is one you marked as “fails”.</div>
+  // nothing saved and nothing asked for yet: where the searches look is a first guess at where the user wants to work
+  const searched = ((pipelineConfig.criteria || {}).locations || []).filter(Boolean).join(', ') || (pipelineConfig.criteria || {}).location || '';
+  if (!answers.work_countries && !remoteSetup.saved) answers.work_countries = searched;
+  const field = ([key, label, hint]) => `<div class="field"><label>${label}</label><input type="text" data-rm-profile="${key}" value="${esc(answers[key] || '')}" placeholder="${esc(hint)}"></div>`;
+  const showCategories = remoteSetup.saved || remoteShowGeneral;
+  const categories = generating ? skeleton : !showCategories ? `
+    <div class="rm-step-intro">Your agent fills this step in from your answers above: the questions it asks of each posting, the answers that pass or fail, and the keywords. You can change all of it afterwards.
+      <br><button class="text-btn rc-add" type="button" data-rm-general>Or start from the general setup and edit it yourself</button></div>` : `
+    <div class="rm-step-intro">${remoteSetup.saved ? '' : 'This is the general setup, not yet written for where you live. '}Each box is one question the model answers about a posting. A posting passes when none of its answers is one you marked as “fails”. Open a box to change it.</div>
     <div class="rc-list">${(cfg.categories || []).map((c, i) => remoteCategoryHtml(c, i, openIds.has(String(i)) || !c.label)).join('')}</div>
     <button class="text-btn rc-add" type="button" data-rm-add-category>Add a category</button>
     <label class="check-row"><input type="checkbox" data-rm="drop" ${cfg.drop_without_keywords === false ? '' : 'checked'}>
       <span><b>Drop postings with no remote keyword</b> — code drops them before any model call. Unticked, they go on with every category “not stated”.</span></label>
     <details class="fold" style="margin-top:12px;"><summary>Notes for the model</summary>
       <div class="rc-body"><textarea data-rm="guidance" rows="3">${esc(cfg.guidance || '')}</textarea></div></details>
-    <div class="save-row"><button class="save-btn" type="button" data-rm-save>Save</button><span class="saved-note mono">Saved</span><span class="danger" data-rm-save-error></span></div>`}`;
+    <div class="save-row"><button class="save-btn" type="button" data-rm-save>Save</button><span class="saved-note mono">Saved</span><span class="danger" data-rm-save-error></span></div>`;
+  root.innerHTML = `
+    <div class="rm-step"><span class="num">1</span>Your situation</div>
+    <div class="rm-step-intro">Four short answers. Only the first is required.</div>
+    <div class="field-row">${REMOTE_PROFILE_FIELDS.slice(0, 2).map(field).join('')}</div>
+    <div class="field-row">${REMOTE_PROFILE_FIELDS.slice(2).map(field).join('')}</div>
+    <div class="save-row" style="margin:0 0 14px;"><button class="save-btn" type="button" data-rm-generate ${remotePending() ? 'disabled' : ''}>${remoteSetup.saved ? 'Write it again with my agent' : 'Write my setup with my agent'}</button><span class="danger" data-rm-error></span></div>
+    ${remoteStatusHtml()}
+    <div class="rm-step"><span class="num">2</span>Categories</div>
+    ${categories}`;
   (cfg.categories || []).forEach((c, i) => { if (document.getElementById('rm-kw-' + i)) initChipInput('rm-kw-' + i); });
   bindRemoteEditor(root);
 }
@@ -2618,6 +2689,7 @@ function bindRemoteEditor(root) {
     const [i, j] = b.dataset.rmRemoveOption.split(':').map(n => parseInt(n, 10));
     cfg.categories[i].options.splice(j, 1);
   })));
+  root.querySelectorAll('[data-rm-general]').forEach(b => b.addEventListener('click', () => { remoteShowGeneral = true; renderRemoteEditor(); }));
   const save = root.querySelector('[data-rm-save]');
   if (save) save.addEventListener('click', async () => {
     const error = root.querySelector('[data-rm-save-error]');
@@ -2627,6 +2699,7 @@ function bindRemoteEditor(root) {
       remoteSetup = saved;
       remoteNote = '';
       renderRemoteEditor();
+      renderRemoteSummary();
       const note = document.querySelector('#remote-editor [data-rm-save] + .saved-note');
       if (note) { note.style.display = 'inline'; setTimeout(() => { note.style.display = 'none'; }, 1500); }
     } catch (e) { error.textContent = e.message; }
@@ -2701,7 +2774,7 @@ function renderConfigSection() {
       The model answers each category below from a fixed list of answers, with the sentence it rests on; <b>your rule for that answer</b> decides pass or fail.
       Only what passes goes on to the next stage that is on.
     </div>
-    <div id="remote-editor"><div class="empty">Loading</div></div>
+    <div id="remote-summary"><div class="empty">Loading</div></div>
   </div>
 </div>
 
