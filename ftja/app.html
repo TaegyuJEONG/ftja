@@ -1439,7 +1439,7 @@ async function maybeStartOnboarding() {
   onboardingState = {...(data.state || {stage:'profile', phase:'sources'}), bridge: data.bridge || {status: 'offline'}};
   onboardingChecklist = data.checklist || [];
   // set up already: open on Results, where runs are (and where a run in progress shows)
-  if (onboardingIsComplete(onboardingState)) { openMainView(location.hash === '#pipeline' ? 'pipeline' : 'results'); return true; }
+  if (onboardingIsComplete(onboardingState)) { openMainView('results'); return true; }
   document.body.classList.add('onboarding-active'); document.querySelectorAll('.main-tab, .view:not(#view-onboarding)').forEach(x => x.style.display = 'none'); document.getElementById('view-onboarding').classList.add('active');
   await refreshOnboarding(true); onboardingRefreshTimer = setInterval(() => refreshOnboarding(false).catch(() => {}), 1200); return true;
 }
@@ -3554,7 +3554,9 @@ document.addEventListener('click', (e) => {
 });
 
 // ---- init ----
-(async () => { const onboarding = await maybeStartOnboarding(); if (!onboarding) openMainView(location.hash === '#pipeline' ? 'pipeline' : 'results'); setInterval(pollLive, 1500); pollLive(); setInterval(pollRemote, 2500); pollRemote(); })();
+// The tab named in the address when the page loaded is the one to open: a refresh stays where it was.
+const startTab = location.hash === '#pipeline' ? 'pipeline' : 'results';
+(async () => { const onboarding = await maybeStartOnboarding(); if (!document.body.classList.contains('onboarding-active')) openMainView(startTab); setInterval(pollLive, 1500); pollLive(); setInterval(pollRemote, 2500); pollRemote(); })();
 // A clone only changes when its owner pulls; say so when there is something to pull.
 fetch('/api/version').then(r => r.json()).then(v => {
   // two clones share the port: say which folder's data this is
