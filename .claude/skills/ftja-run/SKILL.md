@@ -227,7 +227,9 @@ LinkedIn's own search UI shows for the same term — that's the Acceptance
 Criteria #2 check, not something to automate here). Location is not part
 of Stage 0 — it's already deterministic at scrape time.
 
-What the filter does, all in code with no LLM call: drops a JD not written
+What the filter does, all in code with no LLM call: with `title_must_match`
+set, first drops a posting whose title does not contain the search term
+that found it; drops a JD not written
 in a language the candidate reads (langdetect against `criteria.json`'s
 `languages`); drops a JD that plainly requires a language outside that list
 ("Fluent in German and English"), keeping anything ambiguous ("German is a

@@ -46,3 +46,26 @@ def test_reposts_of_one_posting_are_grouped_and_keep_their_places():
     assert [j["job_url"] for j in unique] == ["u1", "u3"] and merged == 2
     assert unique[0]["_duplicate_job_urls"] == ["u2", "u4"] and unique[0]["_duplicate_locations"] == ["Madrid"]
 
+
+
+def test_a_title_has_to_contain_the_search_term_that_found_the_job():
+    from ftja.filter_stage0 import filter_stage0, title_matches_search
+    terms = ["Product Manager", "AI Specialist"]
+    job = lambda title, found_by: {"job_url": title, "title": title, "company": title, "_search_terms": found_by,
+                                   "description": "This role is remote. " + title}
+    jobs = [job("Lead Product Manager", ["Product Manager"]), job("Senior Product Managers (m/f/d)", ["Product Manager"]),
+            job("Senior AI specialist", ["AI Specialist"]), job("AI Specialist Consultant", ["AI Specialist"]),
+            job("Strategy Lead", ["Product Manager"]), job("Product Owner", ["Product Manager"]),
+            job("AI Specialist", ["Product Manager"]),  # right title for another search, not for the one that found it
+            job("Product Manager, AI", ["Product Manager", "AI Specialist"])]  # found by both: either term will do
+    criteria = {"languages": [], "search_terms": terms, "keywords": {"tier1": ["remote"]}}
+    passed, dropped = filter_stage0(jobs, criteria)
+    assert len(passed) == 8 and "title_mismatch" not in dropped  # off unless asked for
+    passed, dropped = filter_stage0(jobs, {**criteria, "title_must_match": True})
+    assert [j["title"] for j in passed] == ["Lead Product Manager", "Senior Product Managers (m/f/d)", "Senior AI specialist",
+                                            "AI Specialist Consultant", "Product Manager, AI"]
+    assert dropped["title_mismatch"] == 3
+    # quote marks typed around a term are not part of what the title has to contain
+    assert title_matches_search({"title": "Entrepreneur in Residence (FD77540)"}, ['"Entrepreneur In Residence"'])
+    assert title_matches_search({"title": "Entrepreneur in Residence"}, ["“Entrepreneur In Residence”"])
+    assert not title_matches_search({"title": "Founder in Residence"}, ["Entrepreneur In Residence"])

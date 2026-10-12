@@ -8,6 +8,9 @@ guaranteed. (Caveat: if criteria.json's `location` is a single string like
 passed to scrape.py — e.g. Singapore, Dubai — are never scraped in the
 first place. That's a scrape-config gap, not something this filter can fix.)
 
+With `title_must_match` set in criteria.json, a job is first dropped unless
+its title contains the search term that found it (see title_matches_search).
+
 Keeps a scraped job only if, in order:
   1. the JD's own written language is one the candidate reads (criteria.languages)
   2. at least one tier1 keyword appears in the description
@@ -60,7 +63,7 @@ from collections import OrderedDict
 
 from langdetect import detect, LangDetectException
 
-from ftja.text_blocks import blocks_for_job, block_signature
+from ftja.text_blocks import blocks_for_job, block_signature, keyword_matcher, stem, tokenize
 
 
 def passes_language(job: dict, languages: list[str]) -> bool:
@@ -236,16 +239,45 @@ def dedupe_by_content(jobs: list[dict]) -> tuple[list[dict], int]:
     return unique, merged_count
 
 
+def title_matches_search(job: dict, search_terms: list[str]) -> bool:
+    """Does the job's title contain the search term that found it?
+
+    LinkedIn's search matches by meaning, so a search for "Entrepreneur In
+    Residence" also returns "Co-Founder" and "Strategy Lead". This is the
+    check LinkedIn does not do. A job is held to the term or terms whose
+    search returned it (`_search_terms`, set when the scrapes are merged):
+    one found by "AI Specialist" has to say that in its title, however well
+    it would have matched "Product Manager". Matching is the tier1 keywords'
+    (whole words, word forms, any case), so "Product Manager" accepts
+    "Senior Product Managers"; quote marks around a term are ignored."""
+    terms = job.get("_search_terms") or search_terms
+    title = job.get("title") or ""
+    tokens = tokenize(title)
+    stems = [stem(t) for t in tokens]
+    for term in terms:
+        match = keyword_matcher(str(term).strip().strip('"\u201c\u201d\u2018\u2019\''))
+        if match and match(title, tokens, stems):
+            return True
+    return False
+
+
 def filter_stage0(jobs: list[dict], criteria: dict, dropped_jobs: list[dict] | None = None) -> tuple[list[dict], dict]:
     """`dropped_jobs`, when given, collects the rule-4 drops with the sentence
     that triggered each one (the other rules are plain counts)."""
     languages = criteria.get("languages") or []
     exclude_keywords = criteria.get("exclude_keywords") or []
     tier1 = (criteria.get("keywords") or {}).get("tier1") or []
+    search_terms = criteria.get("search_terms") or []
+    title_rule = bool(criteria.get("title_must_match")) and bool(search_terms)
 
     passed = []
     dropped = {"language": 0, "no_tier1_hit": 0, "exclude_keyword": 0, "language_requirement": 0}
+    if title_rule:
+        dropped = {"title_mismatch": 0, **dropped}
     for job in jobs:
+        if title_rule and not title_matches_search(job, search_terms):
+            dropped["title_mismatch"] += 1
+            continue
         if not passes_language(job, languages):
             dropped["language"] += 1
             continue
