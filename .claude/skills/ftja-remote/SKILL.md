@@ -185,9 +185,9 @@ It checks the setup and stores it as a **draft**. If it prints `Not
 saved: ...`, fix what it names and run it again. Then delete the file you
 wrote. Nothing is in use yet: the Pipeline tab now walks the user through
 the draft one step at a time (their situation first, then each category),
-and it becomes their setup when they confirm at the end. If they correct
-their situation there and ask for a rewrite, the page sends a new request
-with their answers and this skill runs again.
+and it becomes their setup when they confirm at the end. What they correct
+there is kept as they typed it; the categories are theirs to adjust in the
+steps that follow.
 
 ## 6. Report
 

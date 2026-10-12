@@ -2675,7 +2675,6 @@ function renderRemoteDialog() {
       const source = remoteSetup.draft || remoteSetup.config;
       remoteWizard = {config: JSON.parse(JSON.stringify(source)), step: 'situation',
                       origin: remoteSetup.draft ? 'draft' : remoteSetup.saved ? 'saved' : 'general'};
-      remoteWizard.before = JSON.stringify(remoteWizard.config.profile || {});
     }
     const w = remoteWizard, cats = w.config.categories;
     const total = cats.length + 2;
@@ -2686,7 +2685,6 @@ function renderRemoteDialog() {
       body = `${progress}<div class="rm-step">Your situation</div>
         <div class="rm-step-intro">${w.origin === 'draft' ? 'Your agent filled this in from your profile. Correct anything that is wrong.' : 'The categories are written for this.'}</div>
         ${REMOTE_PROFILE_FIELDS.map(([key, label, hint]) => `<div class="field"><label>${label}</label><input type="text" data-rm-profile="${key}" value="${esc(p[key] || '')}" placeholder="${esc(hint)}"></div>`).join('')}
-        <div data-rm-changed></div>
         <div class="rm-nav"><span></span><button class="save-btn" type="button" data-rm-next>Confirm</button></div>`;
     } else if (w.step === 'review') {
       body = `${progress}<div class="rm-step">Confirm your setup</div>
@@ -2749,16 +2747,6 @@ function bindRemoteDialog(root) {
   on('[data-rm-next]', () => {
     readRemoteStep();
     if (w.step === 'situation') {
-      const changed = JSON.stringify(w.config.profile || {}) !== w.before;
-      const slot = root.querySelector('[data-rm-changed]');
-      if (changed && w.origin !== 'general' && !slot.innerHTML) {  // the categories were written for the old answers
-        slot.innerHTML = `<div class="store-note warn">You changed your situation. The categories were written for what it said before.</div>
-          <div class="rm-nav"><button class="text-btn" type="button" data-rm-keep>Keep the categories as they are</button><button class="save-btn" type="button" data-rm-rewrite>Have my agent rewrite them</button></div>`;
-        root.querySelector('[data-rm-next]').closest('.rm-nav').remove();
-        slot.querySelector('[data-rm-keep]').addEventListener('click', () => { readRemoteStep(); w.before = JSON.stringify(w.config.profile); w.step = w.config.categories.length ? 0 : 'review'; renderRemoteDialog(); });
-        slot.querySelector('[data-rm-rewrite]').addEventListener('click', () => { readRemoteStep(); askRemoteDraft(w.config.profile); });
-        return;
-      }
       if (!w.config.profile.residence && w.origin !== 'general') { root.querySelector('[data-rm-profile="residence"]').focus(); return; }
       w.step = w.config.categories.length ? 0 : 'review';
     } else {
