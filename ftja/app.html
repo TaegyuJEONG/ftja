@@ -77,7 +77,6 @@ h1.serif { font-size: 38px; font-weight: 400; line-height: 1; margin-bottom: 8px
 .check-row { display: flex; gap: 10px; align-items: flex-start; margin: 14px 0 4px; font-size: 12.5px; color: var(--text2); line-height: 1.5; cursor: pointer; }
 .check-row input { margin-top: 3px; accent-color: var(--accent-strong); }
 .check-row b { color: var(--text); }
-.hint-mark { display: inline-block; width: 14px; height: 14px; line-height: 14px; margin-left: 2px; border: 1px solid var(--border2); border-radius: 50%; font-size: 9.5px; text-align: center; color: var(--text3); cursor: help; }
 .continue-cmd { display: flex; gap: 10px; align-items: center; margin: 12px 0; padding: 10px 12px; background: var(--accent-dim); border-left: 3px solid var(--accent); font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; }
 .continue-cmd code { flex: 1; user-select: all; }
 .run-item .wait-badge { color: var(--accent-text); font-weight: 600; }
@@ -2322,17 +2321,17 @@ function renderConfigSection() {
 <div class="section">
   <div class="section-title"><span class="num">1</span>Scraping criteria</div>
   <div class="card">
-    <div class="explain">Searches LinkedIn directly with these terms. Location is set here only. <span class="hint-mark" title="Stage0 does not filter location again. There is no remote-only switch: LinkedIn ignores its Remote filter for searches that are not logged in. To find remote roles, add &quot;remote&quot; to a search term and judge remote from the posting itself, with Stage0 keywords and a rubric criterion. A search term is sent as you type it. LinkedIn matches by meaning, not by exact words (a search for &quot;founder in residence&quot; also returns &quot;Entrepreneur In Residence&quot;), with or without quotes; a phrase that must be in the posting belongs in Stage0 keywords.">?</span></div>
+    <div class="explain">Searches LinkedIn directly with these terms. Location is set here only.</div>
     <div class="field"><label>Search terms</label>${renderChipInput('cfg-search-terms', c.search_terms)}</div>
     <div class="field-row">
       <div class="field"><label>Location</label><input type="text" id="cfg-location" value="${esc(c.location)}"></div>
       <div class="field"><label>Posted within (hours)</label><input type="number" id="cfg-hours-old" value="${esc(c.hours_old)}"></div>
       <div class="field"><label>Max results per search term</label><input type="number" id="cfg-results-wanted" value="${esc(c.results_wanted)}"></div>
     </div>
-    <label class="check-row" title="LinkedIn also returns postings it considers related: a search for &quot;Entrepreneur In Residence&quot; brings back &quot;Co-Founder&quot; and &quot;Strategy Lead&quot;. With this on, Stage0 keeps a posting only if its title contains the search term that found it, in any word form (&quot;Product Manager&quot; keeps &quot;Senior Product Managers&quot;). Each search term is checked against its own results. To accept another title, add it as a search term."><input type="checkbox" id="cfg-title-match" ${c.title_must_match ? 'checked' : ''}>
-      <span><b>Title must contain the search term</b> — keeps only postings whose title includes it. <span class="hint-mark">?</span></span></label>
-    <label class="check-row" title="A run scrapes, filters and reads the keyword sentences, then stops before Stage 2, the expensive step that reads every remaining posting in full. Use it while you tune keywords and the rubric. You can continue a stopped run to Stage 2 from the Results tab."><input type="checkbox" id="cfg-stage1-only" ${c.stage1_only ? 'checked' : ''}>
-      <span><b>Stop after Stage 1</b> — skips Stage 2, the expensive step. <span class="hint-mark">?</span></span></label>
+    <label class="check-row"><input type="checkbox" id="cfg-title-match" ${c.title_must_match ? 'checked' : ''}>
+      <span><b>Title must contain the search term</b> — keeps only postings whose title includes it.</span></label>
+    <label class="check-row"><input type="checkbox" id="cfg-stage1-only" ${c.stage1_only ? 'checked' : ''}>
+      <span><b>Stop after Stage 1</b> — skips Stage 2, the expensive step.</span></label>
     <div class="save-row"><button class="save-btn" id="save-scrape">Save</button><span class="saved-note mono">Saved</span></div>
   </div>
 </div>
