@@ -16,6 +16,8 @@ Binds to 127.0.0.1 only — never exposed beyond the local machine.
 Run: venv/bin/python -m ftja.server [--port 8765] [--db seen.db] [--project-dir .]
 """
 import argparse
+import csv
+import io
 import json
 import os
 import subprocess
@@ -27,6 +29,8 @@ from urllib.parse import urlparse, parse_qs
 from ftja.state import connect, record_criterion_feedback, update_decision, VALID_FEEDBACK_VOTES, VALID_USER_ACTIONS
 from ftja.pipeline_view import read_config, write_config, keyword_stats
 from ftja import live, version
+from ftja import remote as remote_check
+from ftja import keywords as keyword_languages
 from ftja.verdict import DEFAULT_CRITERIA_PATH, criteria_status, load_criteria, save_criteria
 from ftja.runs_view import list_runs
 from ftja import runs_store, run_bridge
@@ -100,7 +104,7 @@ def _fetch_jobs(db_path: str, run_id: str, status: str, page: int) -> dict:
                       reasoning, evidence_sentences, t1_matched_keywords,
                       user_action, user_reason, last_seen_at,
                       criteria, criteria_feedback, company_line, employer, notes,
-                      t1_blocks, stage1_reason, pruned_at
+                      t1_blocks, stage1_reason, pruned_at, remote
                FROM seen_jobs
                WHERE stage_reached = 2 AND run_id = ? AND (status = ? OR ? = 'all')
                ORDER BY CASE status WHEN 'passed' THEN 0 WHEN 'review' THEN 1 ELSE 2 END, last_seen_at DESC""",
@@ -110,7 +114,7 @@ def _fetch_jobs(db_path: str, run_id: str, status: str, page: int) -> dict:
             "reasoning", "evidence_sentences", "t1_matched_keywords",
             "user_action", "user_reason", "last_seen_at",
             "criteria", "criteria_feedback", "company_line", "employer", "notes",
-            "t1_blocks", "stage1_reason", "pruned_at"]
+            "t1_blocks", "stage1_reason", "pruned_at", "remote"]
     seen_groups: dict[tuple, dict] = {}
     for row in rows:
         job = dict(zip(cols, row))
@@ -120,7 +124,7 @@ def _fetch_jobs(db_path: str, run_id: str, status: str, page: int) -> dict:
             except (TypeError, json.JSONDecodeError):
                 job[key] = []
         for key, empty in (("criteria", None), ("criteria_feedback", {}), ("employer", []), ("notes", []),
-                           ("t1_blocks", [])):
+                           ("t1_blocks", []), ("remote", None)):
             try:
                 job[key] = json.loads(job[key]) if job[key] else empty
             except (TypeError, json.JSONDecodeError):
@@ -138,6 +142,49 @@ def _fetch_jobs(db_path: str, run_id: str, status: str, page: int) -> dict:
     page = max(1, min(page, total_pages))
     start = (page - 1) * PAGE_SIZE
     return {"jobs": jobs[start:start + PAGE_SIZE], "page": page, "total_pages": total_pages, "total": total}
+
+
+def _remote_setup(project_dir: str) -> dict:
+    """The Remote check's setup for the Pipeline tab: the saved one, or the
+    built-in one until the user has their own; plus where the Generate
+    button's request stands."""
+    saved = remote_check.load_config(os.path.join(project_dir, remote_check.CONFIG_FILE))
+    return {"config": saved or remote_check.default_config(), "saved": saved is not None,
+            "draft": remote_check.load_draft(project_dir),  # the agent's, until the user confirms it
+            "request": remote_check.read_request(project_dir),
+            "listening": run_bridge.listening(project_dir)["listening"]}
+
+
+def _keyword_languages(project_dir: str) -> dict:
+    """For the Pipeline tab: which keyword lists lack a language the user
+    reads, and where a request to have the agent write them stands."""
+    found = keyword_languages.gaps(project_dir)
+    return {"read": found["languages_the_user_reads"],
+            "missing": {"stage1": found["stage1"]["missing"], "remote": found["remote"]["missing"]},
+            "request": keyword_languages.read_request(project_dir),
+            "listening": run_bridge.listening(project_dir)["listening"]}
+
+
+def _remote_table(rows: list[dict]) -> str:
+    """The Remote check's readings as a CSV table: one row per posting, one
+    pair of columns per category (the answer, and the specifics), then the
+    sentences the answers rest on."""
+    labels = list(dict.fromkeys(a["label"] for row in rows for a in row.get("answers") or []))
+    out = io.StringIO()
+    writer = csv.writer(out)
+    writer.writerow(["Title", "Company", "Location", "URL", "Why", *[x for label in labels for x in (label, f"{label}: details")],
+                     "Evidence sentences"])
+    for row in rows:
+        by_label = {a["label"]: a for a in row.get("answers") or []}
+        sentences = {b.get("sid"): b.get("sentence") for b in row.get("blocks") or []}
+        cited = list(dict.fromkeys(sentences[sid] for sid in [*(row.get("evidence_sids") or []),
+                                                              *(sid for a in row.get("answers") or [] for sid in a.get("evidence_sids") or [])]
+                                   if sentences.get(sid)))
+        writer.writerow([row.get("title") or "", row.get("company") or "", row.get("location") or "", row.get("job_url") or "",
+                         row.get("reason") or "", *[x for label in labels for x in ((by_label.get(label) or {}).get("answer_label", ""),
+                                                           (by_label.get(label) or {}).get("detail", ""))],
+                         " | ".join(cited)])
+    return out.getvalue()
 
 
 def make_handler(db_path: str, project_dir: str):
@@ -239,9 +286,12 @@ def make_handler(db_path: str, project_dir: str):
                 self.wfile.write(body)
             elif path == "/api/runs":
                 records = list_runs(project_dir)
-                for record in records:  # stopped after Stage 1, and its working files are still there to go on from
+                for record in records:  # stopped before Stage 2, and its working files are still there to go on from
                     record["can_continue"] = bool(record.get("stage2_pending")) and live.awaiting_stage2(
                         live.run_dir_for(project_dir, record.get("run_id") or ""))
+                    last = record.get("stopped_after")
+                    record["continue_to"] = list(live.STAGES[live.STAGES.index(last) + 1:]) \
+                        if record["can_continue"] and last in live.STAGES else []
                 self._send_json(200, records)
             elif path == "/api/version":
                 # project_dir: which FTJA folder this viewer is showing. /ftja-run
@@ -268,6 +318,30 @@ def make_handler(db_path: str, project_dir: str):
                     return
                 verdict = "pass" if (qs.get("verdict") or ["fail"])[0] == "pass" else "fail"
                 self._send_json(200, live.stage1_fails(project_dir, db_path, run_id, page, verdict))
+            elif path in ("/api/remote-jobs", "/api/remote-jobs.csv"):
+                run_id = (qs.get("run_id") or [""])[0]
+                if not run_id:
+                    self._send_json(400, {"error": "run_id required"})
+                    return
+                verdict = "pass" if (qs.get("verdict") or ["fail"])[0] == "pass" else "fail"
+                if path.endswith(".csv"):
+                    rows = live.remote_jobs(project_dir, db_path, run_id, 1, verdict, page_size=None)["jobs"]
+                    body = ("\ufeff" + _remote_table(rows)).encode("utf-8")  # the mark makes Excel read it as UTF-8
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/csv; charset=utf-8")
+                    self.send_header("Content-Disposition",
+                                     f'attachment; filename="remote-{verdict}-{runs_store.run_stamp(run_id)}.csv"')
+                    self.send_header("Content-Length", str(len(body)))
+                    self.send_header("Cache-Control", "no-store")
+                    self.end_headers()
+                    self.wfile.write(body)
+                    return
+                page = int((qs.get("page") or ["1"])[0])
+                self._send_json(200, live.remote_jobs(project_dir, db_path, run_id, page, verdict))
+            elif path == "/api/remote-check":
+                self._send_json(200, _remote_setup(project_dir))
+            elif path == "/api/keyword-languages":
+                self._send_json(200, _keyword_languages(project_dir))
             elif path == "/api/jobs":
                 run_id = (qs.get("run_id") or [""])[0]
                 status = (qs.get("status") or ["passed"])[0]
@@ -313,10 +387,59 @@ def make_handler(db_path: str, project_dir: str):
                 self._pick_profile_source(kind)
             elif self.path == "/api/continue-run":
                 run_id = str(data.get("run_id") or "")
-                if not live.awaiting_stage2(live.run_dir_for(project_dir, run_id)):
-                    self._send_json(400, {"error": "this run is not waiting for Stage 2"})
+                run_dir = live.run_dir_for(project_dir, run_id)
+                if not live.awaiting_stage2(run_dir):
+                    self._send_json(400, {"error": "this run is not waiting for another stage"})
                     return
-                self._send_json(200, {"ok": True, **run_bridge.request_continue(project_dir, run_id)})
+                to = str(data.get("to") or "stage2")
+                last = live.stops_after(run_dir)
+                if to not in live.STAGES or last not in live.STAGES or live.STAGES.index(to) <= live.STAGES.index(last):
+                    self._send_json(400, {"error": "this run cannot go on to that stage"})
+                    return
+                self._send_json(200, {"ok": True, **run_bridge.request_continue(project_dir, run_id, to)})
+            elif self.path == "/api/remote-check":
+                # Pipeline tab's Remote check editor: the whole setup at once.
+                try:
+                    remote_check.save_config(project_dir, data.get("config"))
+                except (TypeError, ValueError, OSError) as e:
+                    self._send_json(400, {"error": str(e)})
+                    return
+                remote_check.discard_draft(project_dir)  # confirmed: the draft has become the setup
+                self._send_json(200, {"ok": True, **_remote_setup(project_dir)})
+            elif self.path == "/api/keywords-request":
+                # "Add French keywords with my agent": kept for the agent, and
+                # handed to a session that is waiting, if one is.
+                try:
+                    keyword_languages.write_request(project_dir, data.get("items") or [])
+                except (TypeError, ValueError, KeyError, OSError) as e:
+                    self._send_json(409, {"error": str(e)})
+                    return
+                heard = run_bridge.request_keywords(project_dir)
+                self._send_json(200, {"ok": True, **_keyword_languages(project_dir), **heard})
+            elif self.path == "/api/keywords-confirm":
+                # the user went through the agent's keywords: add them
+                added = keyword_languages.add_keywords(project_dir, data.get("items") or [])
+                self._send_json(200, {"ok": True, "added": added, **_keyword_languages(project_dir)})
+            elif self.path == "/api/keywords-cancel":
+                if keyword_languages.read_request(project_dir)["status"] != "generating":
+                    keyword_languages.discard(project_dir)
+                self._send_json(200, {"ok": True, **_keyword_languages(project_dir)})
+            elif self.path == "/api/remote-generate-cancel":
+                if remote_check.read_request(project_dir)["status"] != "generating":  # not one the agent is writing right now
+                    remote_check.discard_draft(project_dir)
+                self._send_json(200, {"ok": True, **_remote_setup(project_dir)})
+            elif self.path == "/api/remote-generate":
+                # The Generate button: keep the four answers for the agent, and
+                # hand the request to a session that is waiting, if one is.
+                try:
+                    if keyword_languages.pending(project_dir):
+                        raise ValueError("your agent is writing keywords for a new language; finish that first")
+                    remote_check.write_request(project_dir, data.get("answers") or {})
+                except (TypeError, ValueError, OSError) as e:
+                    self._send_json(400, {"error": str(e)})
+                    return
+                heard = run_bridge.request_remote(project_dir)
+                self._send_json(200, {"ok": True, **_remote_setup(project_dir), **heard})
             elif self.path == "/api/open-folder":
                 # Opens this viewer's own folder in Finder. The path is never
                 # taken from the request, so nothing else can be opened.

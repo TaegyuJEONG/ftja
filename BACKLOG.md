@@ -369,3 +369,87 @@ code or the test is wrong, and deciding which needs a person.
 
 One developer, MVP stage, no other users yet. Revisit when someone else
 contributes or when a change ships broken because the tests were not run.
+
+## Remote check: sentences that name a place, for postings already found remote
+
+### Problem
+
+The Remote check reads only the sentences around remote keywords. Where a
+role may be done from is usually said there ("remote within the EU"), but
+not always: a posting can say "fully remote" in one place and "candidates
+must be based in Spain" three paragraphs later, with no remote keyword
+near it. The location category is then "not stated" although the posting
+states it.
+
+Place names were deliberately left out of the keywords (decided
+2026-10-12): a country or city name matches nearly every posting, so as a
+keyword it would send everything to the model and filter nothing.
+
+### Proposed design
+
+For postings the check has already found remote, and only those, have code
+pull the sentences that name a place (the user's country and city, plus
+region words) and show them to the model in a second, small call that
+fills in the location category. Postings that fail the remote level never
+get this call, so the cost is bounded by the number of remote passes.
+
+### Why it is parked
+
+An edge case at this stage. A run with Stage 2 on already covers it, since
+Stage 2 reads the whole posting. Take it up when real runs show the
+location as "not stated" for postings whose text does say it.
+
+## Remote check: apply changed rules to a finished run
+
+### Problem
+
+The model's answers are stored per posting (`seen_jobs.remote`), and pass
+or fail is computed from them by the user's rules. So after the user
+changes a rule ("not stated" fails for the remote level), a finished run
+could be re-sorted without any model call. Today it is not: a finished run
+keeps the verdicts of the rules it ran with, and the new rules apply from
+the next run on.
+
+### Proposed design
+
+A "Re-apply my rules" action on a run that stopped after the Remote check:
+recompute `remote_pass` / `remote_fail` for its rows from the stored
+answers and the current `remote-check.json`, and rewrite the run's counts.
+Runs that went on to Stage 1 or 2 are harder (a posting that now passes
+was never judged further) and would need a continue step for the newly
+passing ones.
+
+### Why it is parked
+
+Not needed to ship the stage. The popup already shows every answer with
+its rule, so the effect of a rule can be read off before changing it.
+
+## Word forms in languages other than English
+
+### Problem
+
+A keyword matches whole words and their forms: "prototype" also finds
+"prototyping" and "prototypes". The folding of forms is the English Porter
+stemmer, applied to every keyword whatever its language. In French, German
+or Korean it folds little or nothing useful: "basé" does not find "basée"
+or "basés", and Korean particles attached to a word are not separated at
+all.
+
+### What is done instead
+
+`/ftja-keywords`, `/ftja-remote` and onboarding are told to list the forms
+themselves (singular and plural, masculine and feminine). That works for
+the common forms and misses the rest.
+
+### Proposed design
+
+Pick the stemmer by the keyword's recorded language (`tier1_language`,
+`keyword_language`), and stem each sentence with the stemmer of the
+posting's detected language. Snowball covers the European languages;
+Korean needs a morphological analyser, a much heavier dependency.
+
+### Why it is parked
+
+Decided 2026-10-12: listing the forms is enough to start with. Take it up
+when a run shows postings in a second language being dropped for a missing
+word form.

@@ -44,7 +44,12 @@ jobs are not written to seen.db, so changing criteria.languages takes effect
 on the next run; --dropped-out saves them with the sentence that triggered
 the drop, so the rule can be audited.
 
-After the four rules, reposts are grouped the way JobSpyProject's
+When the Remote check is part of the run, a fifth rule follows: a job with
+no remote keyword in its title or description is dropped (the check reads
+only the sentences around those keywords), unless its setup says to keep
+such jobs. And a run without Stage 1 skips rule 2.
+
+After the rules, reposts are grouped the way JobSpyProject's
 job_dedup.find_duplicate_groups does it, on two signals:
   - same company, same normalized title, and JD word overlap (Jaccard) of
     at least 0.85 — the same posting listed again, often for another city
@@ -261,17 +266,36 @@ def title_matches_search(job: dict, search_terms: list[str]) -> bool:
     return False
 
 
-def filter_stage0(jobs: list[dict], criteria: dict, dropped_jobs: list[dict] | None = None) -> tuple[list[dict], dict]:
+def filter_stage0(jobs: list[dict], criteria: dict, dropped_jobs: list[dict] | None = None,
+                  remote: dict | None = None, stage1: bool = True) -> tuple[list[dict], dict]:
     """`dropped_jobs`, when given, collects the rule-4 drops with the sentence
-    that triggered each one (the other rules are plain counts)."""
+    that triggered each one (the other rules are plain counts).
+
+    `remote` is the Remote check's setup when that stage is part of the run
+    (see ftja.remote): each kept job then carries `_remote_blocks`, the
+    sentences around its remote keywords, and a job with none is dropped
+    here unless the setup says to keep it. `stage1=False` is a run without
+    Stage 1: a job no longer needs a tier-1 keyword (rule 2), though its
+    tier-1 sentences are still worked out, for a run that is continued into
+    Stage 1 later. With neither argument this is the filter as it always was."""
     languages = criteria.get("languages") or []
     exclude_keywords = criteria.get("exclude_keywords") or []
     tier1 = (criteria.get("keywords") or {}).get("tier1") or []
+    marked = (criteria.get("keywords") or {}).get("tier1_language")
+    if marked:  # a keyword of a language the candidate no longer reads is switched off (see ftja.keywords)
+        from ftja.keywords import active
+        tier1 = active(tier1, marked, languages)
     search_terms = criteria.get("search_terms") or []
     title_rule = bool(criteria.get("title_must_match")) and bool(search_terms)
 
     passed = []
     dropped = {"language": 0, "no_tier1_hit": 0, "exclude_keyword": 0, "language_requirement": 0}
+    if not stage1:
+        del dropped["no_tier1_hit"]
+    if remote is not None:
+        from ftja.remote import blocks_for as remote_blocks_for
+        if remote.get("drop_without_keywords", True):
+            dropped["no_remote_keyword"] = 0
     if title_rule:
         dropped = {"title_mismatch": 0, **dropped}
     for job in jobs:
@@ -282,7 +306,7 @@ def filter_stage0(jobs: list[dict], criteria: dict, dropped_jobs: list[dict] | N
             dropped["language"] += 1
             continue
         blocks = blocks_for_job(job.get("description", ""), tier1)
-        if not blocks:
+        if stage1 and not blocks:
             dropped["no_tier1_hit"] += 1
             continue  # no tier1 hit -> auto-fail, no LLM call
         if not passes_exclude(job, exclude_keywords):
@@ -298,9 +322,17 @@ def filter_stage0(jobs: list[dict], criteria: dict, dropped_jobs: list[dict] | N
                     "reason": "language_requirement", "evidence": requirement,
                 })
             continue
+        remote_blocks = remote_blocks_for(job, remote) if remote is not None else None
+        if remote is not None and not remote_blocks and "no_remote_keyword" in dropped:
+            dropped["no_remote_keyword"] += 1
+            continue  # nothing about remote work anywhere in it: not sent to the model
         job = dict(job)
         job["_t1_blocks"] = blocks
         job["_content_hash"] = block_signature(blocks)
+        if remote is not None:
+            job["_remote_blocks"] = remote_blocks
+            if not blocks:  # a run without Stage 1 keywords still groups reposts by what the model will read
+                job["_content_hash"] = block_signature(remote_blocks)
         passed.append(job)
 
     passed, merged_duplicates = dedupe_by_content(passed)

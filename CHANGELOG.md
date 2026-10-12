@@ -5,6 +5,61 @@ What changed in each version, newest first. If you cloned FTJA earlier, run
 these. Your own files — `criteria.json`, `rubric.md`, `profile/`, `seen.db`,
 digests — are never touched by an update.
 
+## 0.3.0 — 2026-10-12
+
+### What changes for you after updating
+
+- **Nothing changes until you switch something.** A run with the new
+  Remote check off does exactly what it did before.
+- **Each judging stage has an on/off switch** on the Pipeline tab: Remote
+  check, Stage 1, Stage 2. A run does the ones that are on, in that order,
+  each judging what the one before let through. The "Stop after Stage 1"
+  box is gone; switching Stage 2 off does the same, and a setting you had
+  saved is read as that.
+- **A new optional stage, the Remote check**, sits before Stage 1. For
+  each posting a cheap model reads only the title and the sentences around
+  your remote keywords, and reports what the posting says per topic
+  ("categories": how remote, from where, which hours, which on-site
+  duties), each with the sentence it rests on, or "Not stated". You mark
+  which answers rule a posting out; a posting that gives one fails.
+  Otherwise the model judges the sentences against all of your answers and
+  passes a posting only when one of them says the role is worked in a way
+  that suits you, showing that sentence. A posting that says nothing about
+  remote work does not pass.
+- **Your agent writes the setup for you.** On the Pipeline tab, fill in
+  where you live, where you want to work, your time zone and your work
+  permit, and press the button; or type `/ftja-remote` in the chat. The
+  agent writes the keywords (in the languages you read), the categories
+  and the rules. Everything it writes can be changed, added to or removed
+  on the page. If no agent session reacts within about ten seconds, the
+  page shows the line to type.
+- **A posting with none of your remote keywords is dropped by code**,
+  before any model call: it says nothing for the check to read.
+- **The Pipeline tab follows the order things happen in:** scraping, the
+  code filter (languages and exclude words), Remote check, Stage 1,
+  Stage 2. The "Include keywords" moved from the code filter to Stage 1,
+  the stage that reads them. With Stage 1 off, they are not required.
+- **Keywords are kept per language.** A posting written in French is only
+  caught by French keywords, so Stage 1's keywords and the Remote check's
+  now show one list for each language you read postings in. Onboarding
+  proposes keywords in every one of your languages. When you add a
+  language later, its list is empty and offers "Add French keywords with
+  my agent" (or type `/ftja-keywords`): the agent writes them from the
+  keywords you already have, and you confirm them on the page before they
+  are added. Take a language off your readable languages and its keywords
+  are switched off, not deleted; they come back with the language. Your
+  existing keywords count for your first language and work as before.
+- **Results:** a run with the Remote check shows a Remote line with
+  "Passed N — see why" and "Failed N — see why". Each posting lists every
+  category with its answer, the detail, whether that fails by your rule,
+  and the sentence. Both lists download as a table (CSV), one row per
+  posting.
+- **Continue goes one stage at a time.** A run that stopped after the
+  Remote check offers "Continue to Stage 1" and "Continue to Stage 2"; one
+  that stopped after Stage 1 offers "Continue to Stage 2" as before. The
+  button now gives up waiting for the agent after 10 seconds instead of 25
+  and shows the line to type.
+
 ## 0.2.18 — 2026-10-12
 
 ### What changes for you after updating

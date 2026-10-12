@@ -28,9 +28,17 @@ def _read_json(path, default=None):
 
 _DEFAULT_CRITERIA = {
     "search_terms": [], "location": "", "locations": [], "hours_old": 72,
-    "results_wanted": 100, "title_must_match": False, "stage1_only": False, "languages": [],
+    "results_wanted": 100, "title_must_match": False, "languages": [],
     "exclude_keywords": [], "keywords": {"tier1": []},
 }
+
+
+def _stages(criteria: dict) -> dict:
+    """Which judging stages are switched on, for a criteria.json from before
+    there were switches too (see ftja.live.stages_of)."""
+    from ftja.live import STAGES, stages_of
+    on = stages_of(criteria)
+    return {stage: stage in on for stage in STAGES}
 
 
 def _profile_sources(project_dir: str) -> list[dict]:
@@ -64,6 +72,7 @@ def read_config(project_dir: str = ".") -> dict:
     """Raw config for the Pipeline tab: criteria, shared rubric, profile
     summary, and a non-destructive registry of source files."""
     criteria = {**_DEFAULT_CRITERIA, **(_read_json(f"{project_dir}/criteria.json", {}) or {})}
+    criteria["stages"] = _stages(criteria)
     return {
         "criteria": criteria,
         "rubric_md": _read(f"{project_dir}/rubric.md", ""),

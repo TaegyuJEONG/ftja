@@ -138,7 +138,22 @@ def _job_block(job: dict) -> list[str]:
     return lines
 
 
-def write_digest(passed: list[dict], out_dir: str = ".", review: list[dict] | None = None, run_id: str = "") -> str:
+def _remote_lines(job: dict) -> list[str]:
+    """The Remote check's answers for one job, each with the sentence it rests on."""
+    stored = job.get("remote") or {}
+    sentences = {b.get("sid"): b.get("sentence") for b in stored.get("blocks") or []}
+    lines = []
+    if stored.get("reason"):
+        lines.append(f"*{stored['reason']}*")
+        lines += [f"  > {sentences[sid]}" for sid in stored.get("evidence_sids") or [] if sentences.get(sid)]
+    for a in stored.get("answers") or []:
+        lines.append(f"- {a['label']}: {a['answer_label']}" + (f" — {a['detail']}" if a.get("detail") else ""))
+        lines += [f"  > {sentences[sid]}" for sid in a.get("evidence_sids") or [] if sentences.get(sid)]
+    return lines
+
+
+def write_digest(passed: list[dict], out_dir: str = ".", review: list[dict] | None = None, run_id: str = "",
+                 remote_passed: list[dict] | None = None) -> str:
     """Named after the run (its start time, to the second), not the day: a
     second run on the same day used to overwrite the first one's file, and a
     file that names its run can be moved to the trash with it."""
@@ -149,6 +164,12 @@ def write_digest(passed: list[dict], out_dir: str = ".", review: list[dict] | No
     lines = [f"# FTJA digest — {date_str}", "", count, "", _REVIEW_NOTE, ""]
     for job in passed:
         lines += _job_block(job)
+    if remote_passed:  # a run that stopped after the Remote check: its passes are the result
+        lines += [f"# Passed the Remote check ({len(remote_passed)})", "",
+                  "This run stopped after the Remote check. No later stage has judged these.", ""]
+        for job in remote_passed:
+            lines += [f"## {job.get('title', '(no title)')} — {job.get('company', '')}", f"{job.get('job_url', '')}", ""]
+            lines += _remote_lines(job) + [""]
     if review:
         lines += [f"# To review ({len(review)})", "",
                   "The posting is ambiguous on a point that decides the verdict. Read these yourself.", ""]
@@ -172,7 +193,8 @@ def write_rejected(rejected: list[dict], out_dir: str = ".", stage0_dropped: lis
     for job in rejected:
         stage = job.get("stage_reached", "?")
         dup_note = f", same posting reposted {len(job['duplicate_job_urls'])}x" if job.get("duplicate_job_urls") else ""
-        lines.append(f"## {job.get('title', '(no title)')} — {job.get('company', '')} (failed at Stage{stage}{dup_note})")
+        where = "the Remote check" if job.get("status") == "remote_fail" else f"Stage{stage}"
+        lines.append(f"## {job.get('title', '(no title)')} — {job.get('company', '')} (failed at {where}{dup_note})")
         lines.append(f"{job.get('job_url', '')}")
         lines.append("")
         if job.get("criteria"):
@@ -210,6 +232,8 @@ def append_run_record(results: list[dict], stats: dict, run_id: str, out_dir: st
         by_status[r.get("status", "unknown")] = by_status.get(r.get("status", "unknown"), 0) + 1
 
     stage1_fail = by_status.get("stage1_fail", 0)
+    remote_fail = by_status.get("remote_fail", 0)
+    remote_waiting = by_status.get("remote_pass", 0)
     stage2_fail = by_status.get("stage2_fail", 0)
     passed = by_status.get("passed", 0)
     review = by_status.get("review", 0)
@@ -227,10 +251,12 @@ def append_run_record(results: list[dict], stats: dict, run_id: str, out_dir: st
         "by_status": by_status,
         # derived stage-level breakdown, so the review server doesn't recompute it
         "stage0_passed": stage0_passed,
-        "stage1_pass": total_evaluated - stage1_fail,
-        # > 0: the run stopped after Stage 1 and these Stage 1 passes are waiting
-        "stage2_pending": by_status.get("stage1_pass", 0),
+        "stage1_pass": total_evaluated - stage1_fail - remote_fail - remote_waiting,
+        # > 0: the run stopped before Stage 2 and these passes of its last stage are waiting
+        "stage2_pending": by_status.get("stage1_pass", 0) + remote_waiting,
         "stage1_fail": stage1_fail,
+        "remote_pass": total_evaluated - remote_fail,
+        "remote_fail": remote_fail,
         "stage2_pass": passed,
         "stage2_review": review,
         "stage2_fail": stage2_fail,
@@ -304,7 +330,8 @@ def finalize(results: list[dict], db_path: str = DEFAULT_DB, out_dir: str = ".",
                   "Pass filter_stage0's output as --jobs.", file=sys.stderr)
     passed = [r for r in results if r.get("status") == "passed"]
     review = [r for r in results if r.get("status") == "review"]
-    rejected = [r for r in results if r.get("status") in ("stage1_fail", "stage2_fail")]
+    rejected = [r for r in results if r.get("status") in ("remote_fail", "stage1_fail", "stage2_fail")]
+    remote_only = [r for r in results if r.get("status") == "remote_pass"]
     rv = get_rubric_version(rubric_path or f"{out_dir}/rubric.md")
     # ts_start is already unique+sortable per run; fall back to "now" if the
     # orchestrating skill didn't measure it (stats is best-effort throughout).
@@ -335,9 +362,11 @@ def finalize(results: list[dict], db_path: str = DEFAULT_DB, out_dir: str = ".",
                     notes=r.get("notes"),
                     t1_blocks=r.get("t1_blocks"),
                     stage1_reason=r.get("stage1_reason"),
+                    remote=r.get("remote"),
                 )
 
-    digest_path = write_digest(passed, out_dir=out_dir, review=review, run_id=run_id)  # always write, even 0 passed -> no silent gaps
+    digest_path = write_digest(passed, out_dir=out_dir, review=review, run_id=run_id,  # always write, even 0 passed -> no silent gaps
+                               remote_passed=remote_only)
     rejected_path = write_rejected(rejected, out_dir=out_dir, stage0_dropped=stage0_dropped, run_id=run_id)
     summary = f"run complete: {len(results)} evaluated, {len(passed)} passed, {len(review)} to review -> {digest_path} ({len(rejected)} rejected -> {rejected_path})"
     if unchecked:
@@ -347,9 +376,11 @@ def finalize(results: list[dict], db_path: str = DEFAULT_DB, out_dir: str = ".",
         summary += f", {stats['total_tokens']} tokens)" if "total_tokens" in stats else ")"
     append_log(summary, log_path=f"{out_dir}/run.log")
     append_run_record(results, stats, run_id, out_dir=out_dir)
-    waiting = sum(1 for r in results if r.get("status") == "stage1_pass")
+    waiting = sum(1 for r in results if r.get("status") in ("stage1_pass", "remote_pass"))
     if waiting:
-        notify("FTJA", f"Stopped after Stage 1: {waiting} postings are waiting for Stage 2")
+        stopped = "the Remote check" if remote_only else "Stage 1"
+        notify("FTJA", f"Stopped after {stopped}: {waiting} postings passed it"
+                       + ("" if remote_only else " and are waiting for Stage 2"))
     elif passed or review:
         notify("FTJA", f"{len(passed)} new postings" + (f", {len(review)} to review" if review else ""))
     else:

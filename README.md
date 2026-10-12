@@ -55,6 +55,15 @@ your judgment rubric.
   rubric. Nothing changes until you approve it.
 - **Change your mind in plain words:** say "I'm not interested in pure sales
   roles" in the chat and the agent offers to add it to your rubric.
+- **Choose which stages run:** each judging stage has an on/off switch on
+  the Pipeline tab. A run that stops before Stage 2 keeps what passed, and
+  *Continue* on the Results tab takes it through one more stage.
+- **Check how remote a job really is:** switch on the *Remote check*. It
+  answers a few questions per posting (how remote, from where, which
+  hours, which on-site duties) from the sentences around remote keywords,
+  and your rule for each answer decides. Type `/ftja-remote` and your
+  agent writes the keywords and rules for where you live; the results
+  download as a table.
 - **Remove a run you don't want to keep:** in the web view, use *Delete* at
   the top right of a run in the list. It goes to the trash and its postings
   are judged again next time. Click the size next to the folder path at the
@@ -146,6 +155,8 @@ Skills are the instructions your agent follows. You only need the first two.
 |---|---|---|
 | `/ftja-setup` | Onboarding: profile, search settings, rubric | Once, or to start over |
 | `/ftja-run` | Scrape, filter, judge, show results | Whenever you want a search |
+| `/ftja-remote` | Writes the Remote check's keywords, categories and rules for where you live | When you switch the Remote check on, or move |
+| `/ftja-keywords` | Writes the keywords for a language you started reading postings in | When you add a language |
 | `/ftja-tune` | Adds a preference you state in chat to your rubric | When you say one |
 | `/ftja-review` | Turns your apply/skip reasons into proposed rubric changes | Automatically at the start of a run |
 | `/ftja-update` | Updates FTJA and tells you what changed | When a run tells you an update exists |
@@ -216,6 +227,7 @@ Then open the folder in Claude Code and run `/ftja-setup`.
 criteria.example.json, rubric.example.md  # public templates
 criteria.json, rubric.md   # your search settings and rubric — gitignored
 rubric-criteria.json       # the rubric as a list of single criteria, edited in the Pipeline tab — gitignored
+remote-check.json          # the Remote check's keywords, categories and rules — gitignored
 profile/                   # your resume and profile summary — gitignored
 seen.db                    # which jobs were already judged (SQLite) — gitignored
 digest-*.md, rejected-*.md # results of each run — gitignored

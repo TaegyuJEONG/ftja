@@ -161,7 +161,8 @@ def render_rubric_md(data: dict) -> str:
 
     def bullet(c: dict, indent: str = "") -> str:
         text = " ".join(str(c.get("text") or "").split())
-        return f"{indent}- **{c['label'].strip()}**" + (f" — {text}" if text else "")
+        same = text.strip().rstrip(".").lower() == c["label"].strip().rstrip(".").lower()
+        return f"{indent}- **{c['label'].strip()}**" + (f" — {text}" if text and not same else "")
 
     lines = ["# FTJA judgment rubric", ""]
     for kind, title, intro in _SECTIONS:
@@ -360,7 +361,8 @@ def render_criteria_list(definitions: list[dict]) -> str:
     lines = []
     for d in definitions:
         text = " ".join(str(d.get("text") or "").split())
-        lines.append(f"- {d['id']} ({d['kind']}) {d['label']}" + (f": {text}" if text else ""))
+        same = text.strip().rstrip(".").lower() == str(d["label"]).strip().rstrip(".").lower()
+        lines.append(f"- {d['id']} ({d['kind']}) {d['label']}" + (f": {text}" if text and not same else ""))
     return "\n".join(lines)
 
 
