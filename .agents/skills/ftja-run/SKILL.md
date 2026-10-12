@@ -60,16 +60,17 @@ looking at a silent chat wondering whether anything is happening. Say one
 short, plain line in the chat at each of these moments, in the user's
 language, with the numbers you have:
 
-- **Before scraping**: that the run has started, how many search terms and
-  up to how many results each, roughly how long that will take (LinkedIn
-  yields about 70 postings a minute, so 4 terms × 1000 is up to an hour;
-  4 × 100 is about 6 minutes), and that they can watch it at
+- **Before scraping**: that the run has started, how many searches it has
+  (every search term in every location: 3 terms × 4 locations is 12
+  searches) and up to how many results each, roughly how long that will
+  take (LinkedIn yields about 70 postings a minute, so 4 searches × 1000 is
+  up to an hour; 4 × 100 is about 6 minutes), and that they can watch it at
   `http://127.0.0.1:8765` (Results tab). If the estimate is over 15
-  minutes, add that lowering "Max results per search term" in the Pipeline
-  tab makes it shorter.
-- **After each search term**: how many it found and how many terms remain.
-  Run the scrape one search term per command so you can say this; do not
-  chain all the terms into one long command that stays silent until the
+  minutes, add that lowering "Max results per search" in the Pipeline
+  tab, or searching fewer locations, makes it shorter.
+- **After each search**: how many it found and how many searches remain.
+  Run the scrape one search per command so you can say this; do not
+  chain all of them into one long command that stays silent until the
   end.
 - **After Stage 0**: scraped, passed, and the biggest drop reasons.
 - **When Stage 1 starts and ends**: how many jobs in how many batches, then
@@ -202,17 +203,21 @@ command takes that `run_dir` as `--dir`; every file of this run lives in it
 Results tab, and it advances there by itself as the files below appear —
 you never report progress, and you never write these files by hand.
 
-Then scrape each search term in `criteria.json`'s `search_terms`, by its
-index (0, 1, 2, ...), one after another — a separate command per term,
-with a line to the user between them (see "Keep the user informed"):
+`start` also prints `searches`: the run's searches in order, one for
+every search term in every location (`criteria.json`'s `search_terms` ×
+`locations`; 3 terms and 4 locations make 12). Scrape each of them by its
+number in that list (0, 1, 2, ...), one after another — a separate command
+per search, with a line to the user between them (see "Keep the user
+informed"):
 
 ```
-venv/bin/python -m ftja.live scrape --dir <run_dir> --term <index>
+venv/bin/python -m ftja.live scrape --dir <run_dir> --search <number>
 ```
 
-Each call reads the term, location, time window and cap per
-term from the run's own snapshot, scrapes in
-batches of 10, and updates that term's count after every batch.
+Each call reads its term, its location, the time window and the cap per
+search from the run's own snapshot, scrapes in batches of 10, and updates
+that search's count after every batch. Do all of them: a search you skip
+is a term that was never looked for in that location.
 
 ## 2. Deterministic filter (Stage 0b)
 

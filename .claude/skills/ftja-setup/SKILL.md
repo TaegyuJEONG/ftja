@@ -365,12 +365,16 @@ my search settings, continue the setup`) and do not claim that the chat resumed.
   workplace filter for logged-out searches, so a candidate who wants remote
   roles gets them through tier1 keywords ("remote", "hybrid", "on-site", ...)
   and a rubric criterion, judged from each posting's text. Do not write
-  `is_remote` to `criteria.json`. If the candidate wants roles in more than one region (e.g.
-  "Europe, or Singapore/Dubai if visa-sponsored"), that needs multiple
-  scrape locations (a loop over `location` values in `/ftja-run`, or a
-  `search_terms` x `locations` cross product) — say so explicitly if the
-  candidate mentions more than one region, don't silently scope to just the
-  first one they said.
+  `is_remote` to `criteria.json`.
+- `locations` (optional list, e.g. `["France", "Germany", "Switzerland"]`):
+  for a candidate who wants more than one place. `/ftja-run` then searches
+  every search term in every location (3 titles × 3 locations = 9
+  searches, each up to `results_wanted`), so say what that does to the
+  length of a run. When `locations` is set it is used instead of
+  `location`. The setup card takes one location; add the others to
+  `criteria.json` after setup, or tell the user they can add them under
+  Locations on the Pipeline tab. If the candidate mentions more than one
+  region, don't silently scope to just the first one they said.
 - `results_wanted`: the max results scraped per search title (the
   "Max results per title" field on the search-settings card, 1-1000,
   default 100). `/ftja-run` scrapes every title up to this cap, merges all

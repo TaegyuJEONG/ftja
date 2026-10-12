@@ -1378,15 +1378,16 @@ function funnelHtml(v) {
     scrape += `<div class="term-list">${v.terms.map((t, i) => {
       const cap = t.wanted || wanted || 0;
       const pct = cap ? Math.min(100, Math.round(100 * (t.count || 0) / cap)) : (t.done ? 100 : 0);
-      return `<span class="term">${esc(t.term)}</span><span class="bar"><i style="width:${pct}%"></i></span>
+      const where = (cs.locations || []).length > 1 && t.location ? ` <small>· ${esc(t.location)}</small>` : '';  // several locations: say which
+      return `<span class="term">${esc(t.term)}${where}</span><span class="bar"><i style="width:${pct}%"></i></span>
         <span class="count">${count('term' + i, t.count)}${cap ? ` <small>/ ${fmtN(cap)}</small>` : ''}</span>`;
     }).join('')}</div>`;
   } else if (cs.search_terms) {
     scrape += `<div class="chips">${cs.search_terms.map(t => `<span class="chip">${esc(t)}</span>`).join('')}</div>`;
   }
   if (v.cs) {
-    const parts = [`Location <b>${esc(cs.location || 'anywhere')}</b>`,
-      `Posted within <b>${esc(cs.hours_old)} hours</b>`, `Up to <b>${fmtN(wanted)}</b> per search term`];
+    const parts = [`Location <b>${esc((cs.locations || []).filter(Boolean).join(', ') || cs.location || 'anywhere')}</b>`,
+      `Posted within <b>${esc(cs.hours_old)} hours</b>`, `Up to <b>${fmtN(wanted)}</b> per search${(cs.locations || []).length > 1 ? ' (each term in each location)' : ' term'}`];
     if (cs.title_must_match) parts.push(`<b>Title must contain the search term</b>`);
     if (cs.stage1_only) parts.push(`<b>Stops after Stage 1</b>`);
     scrape += `<div class="conditions">${parts.join(' · ')}</div>`;
@@ -2126,7 +2127,8 @@ function initChipInput(id) {
       }
       return;
     }
-    if (e.key === 'Enter' || e.key === ',') {
+    // a comma ends an entry, except in a location, where it is part of the name ("Paris, France")
+    if (e.key === 'Enter' || (e.key === ',' && id !== 'cfg-locations')) {
       e.preventDefault();
       const v = input.value.trim();
       if (v) input.insertAdjacentHTML('beforebegin', chipTagHtml(v));
@@ -2321,12 +2323,12 @@ function renderConfigSection() {
 <div class="section">
   <div class="section-title"><span class="num">1</span>Scraping criteria</div>
   <div class="card">
-    <div class="explain">Searches LinkedIn directly with these terms. Location is set here only.</div>
+    <div class="explain">Searches LinkedIn directly: every search term in every location.</div>
     <div class="field"><label>Search terms</label>${renderChipInput('cfg-search-terms', c.search_terms)}</div>
+    <div class="field"><label>Locations</label>${renderChipInput('cfg-locations', (c.locations || []).length ? c.locations : (c.location ? [c.location] : []))}</div>
     <div class="field-row">
-      <div class="field"><label>Location</label><input type="text" id="cfg-location" value="${esc(c.location)}"></div>
       <div class="field"><label>Posted within (hours)</label><input type="number" id="cfg-hours-old" value="${esc(c.hours_old)}"></div>
-      <div class="field"><label>Max results per search term</label><input type="number" id="cfg-results-wanted" value="${esc(c.results_wanted)}"></div>
+      <div class="field"><label>Max results per search (term × location)</label><input type="number" id="cfg-results-wanted" value="${esc(c.results_wanted)}"></div>
     </div>
     <label class="check-row"><input type="checkbox" id="cfg-title-match" ${c.title_must_match ? 'checked' : ''}>
       <span><b>Title must contain the search term</b> — keeps only postings whose title includes it.</span></label>
@@ -2381,6 +2383,7 @@ function renderConfigSection() {
 `;
 
   initChipInput('cfg-search-terms');
+  initChipInput('cfg-locations');
   initChipInput('cfg-languages');
   initChipInput('cfg-tier1');
   initChipInput('cfg-exclude');
@@ -2389,7 +2392,8 @@ function renderConfigSection() {
   document.getElementById('save-scrape').addEventListener('click', (e) => {
     const criteria = {...pipelineConfig.criteria,
       search_terms: getChipValues('cfg-search-terms'),
-      location: document.getElementById('cfg-location').value,
+      locations: getChipValues('cfg-locations'),
+      location: getChipValues('cfg-locations').join(', '),  // as one line, for anything that still reads it
       hours_old: parseInt(document.getElementById('cfg-hours-old').value, 10) || 0,
       results_wanted: parseInt(document.getElementById('cfg-results-wanted').value, 10) || 0,
       title_must_match: document.getElementById('cfg-title-match').checked,

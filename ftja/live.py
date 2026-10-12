@@ -42,7 +42,8 @@ from ftja.verdict import (DEFAULT_CRITERIA_PATH, STATUS_FOR_VERDICT, clean_extra
 
 RUNS_DIR = ".ftja-run"
 KEEP_RUNS = 5
-SNAPSHOT_KEYS = ("search_terms", "location", "hours_old", "results_wanted", "title_must_match", "stage1_only")
+SNAPSHOT_KEYS = ("search_terms", "location", "locations", "hours_old", "results_wanted", "title_must_match",
+                 "stage1_only")
 PAGE_SIZE = 10
 # A replay has no lock to say it is alive; it counts as running while it keeps writing.
 REPLAY_STALE_SECONDS = 120
@@ -113,6 +114,21 @@ def _run_dirs(project_dir: str) -> list[str]:
 
 # ---- the run's steps ---------------------------------------------------------
 
+def locations_of(criteria: dict) -> list[str]:
+    """Where to search: criteria.json's `locations` list, or the single
+    `location` it had before there could be several. One empty entry means
+    "no location", so there is always at least one search per term."""
+    listed = [str(x).strip() for x in (criteria.get("locations") or []) if str(x).strip()]
+    return listed or [str(criteria.get("location") or "").strip()]
+
+
+def searches(snapshot: dict) -> list[dict]:
+    """Every search of a run, in order: each search term in each location
+    (3 terms x 4 locations = 12 searches). scrape/<n>.json is search n."""
+    return [{"term": term, "location": location}
+            for term in (snapshot.get("search_terms") or []) for location in locations_of(snapshot)]
+
+
 def start(project_dir: str = ".") -> dict:
     """Step 0: fix the run id and create the directory. From this moment the
     run shows in the viewer's Results tab."""
@@ -129,27 +145,32 @@ def start(project_dir: str = ".") -> dict:
     for name in (DEFAULT_CRITERIA_PATH, "rubric.md"):
         shutil.copyfile(os.path.join(project_dir, name), os.path.join(run_dir, name))
     snapshot = {k: criteria.get(k) for k in SNAPSHOT_KEYS if k in criteria}
+    snapshot["locations"] = locations_of(criteria)
+    snapshot["location"] = ", ".join(snapshot["locations"])  # as one line, for anything that shows it
     run = {"run_id": ts_start, "ts_start": ts_start, "criteria_snapshot": snapshot}
     _write_json(os.path.join(run_dir, "run.json"), run)
-    for n, term in enumerate(snapshot.get("search_terms") or []):
+    plan = searches(snapshot)
+    for n, search in enumerate(plan):
         _write_json(os.path.join(run_dir, "scrape", f"{n}.progress.json"),
-                    {"term": term, "count": 0, "wanted": snapshot.get("results_wanted"), "done": False})
-    return {**run, "run_dir": run_dir}
+                    {**search, "count": 0, "wanted": snapshot.get("results_wanted"), "done": False})
+    return {**run, "run_dir": run_dir, "searches": plan}
 
 
 def scrape_term(run_dir: str, n: int) -> int:
-    """Step 1, one search term: scrape it, reporting the count after every batch."""
+    """Step 1, one search (a search term in one location): scrape it,
+    reporting the count after every batch."""
     from ftja.scrape import clean_jobs, scrape  # jobspy is slow to import; only here
 
     snapshot = _read_json(os.path.join(run_dir, "run.json"))["criteria_snapshot"]
-    term = snapshot["search_terms"][n]
+    search = searches(snapshot)[n]
+    term = search["term"]
     wanted = int(snapshot.get("results_wanted") or 100)
     progress_path = os.path.join(run_dir, "scrape", f"{n}.progress.json")
 
     def report(count: int, done: bool = False):
-        _write_json(progress_path, {"term": term, "count": count, "wanted": wanted, "done": done})
+        _write_json(progress_path, {**search, "count": count, "wanted": wanted, "done": done})
 
-    jobs = scrape(search_term=term, location=snapshot.get("location") or "",
+    jobs = scrape(search_term=term, location=search["location"],
                   results_wanted=wanted,
                   hours_old=int(snapshot.get("hours_old") or 72),
                   on_batch=report)
@@ -166,11 +187,11 @@ def stage0(run_dir: str, project_dir: str = ".", db_path: str = "seen.db") -> di
 
     merged: dict[str, dict] = {}
     scrape_dir = os.path.join(run_dir, "scrape")
-    terms = ((_read_json(os.path.join(run_dir, "run.json"), {}) or {}).get("criteria_snapshot") or {}).get("search_terms") or []
+    terms = [search["term"] for search in searches((_read_json(os.path.join(run_dir, "run.json"), {}) or {}).get("criteria_snapshot") or {})]
     for name in sorted(os.listdir(scrape_dir), key=lambda s: (len(s), s)):
         if name.endswith(".json") and not name.endswith(".progress.json"):
             n = name[:-len(".json")]
-            term = terms[int(n)] if n.isdigit() and int(n) < len(terms) else None  # scrape/<n>.json is search term n
+            term = terms[int(n)] if n.isdigit() and int(n) < len(terms) else None  # scrape/<n>.json is search n
             for job in _read_json(os.path.join(scrape_dir, name), []):
                 if job.get("job_url"):
                     kept = merged.setdefault(job["job_url"], job)
@@ -450,7 +471,8 @@ def assemble_results(run_dir: str) -> dict:
     stats = {"ts_start": run.get("ts_start"), "criteria_snapshot": run.get("criteria_snapshot"),
              "stage2_pending": len(passed) if stop else 0, "continued_at": run.get("continued_at"),
              "scraped_count": counts.get("scraped"), "stage0_dropped": counts.get("dropped"),
-             "scraped_by_term": [{"term": p["term"], "count": p["count"]} for p in _scrape_progress(run_dir)],
+             "scraped_by_term": [{"term": p["term"], "location": p.get("location") or "", "count": p["count"]}
+                                 for p in _scrape_progress(run_dir)],
              "already_seen_skipped": (counts.get("dropped") or {}).get("already_seen")}
     _write_json(os.path.join(run_dir, "stats.json"), stats)
     return {"results": len(results), "stage1_fail": len(failed), "stage2": len(s2_manifest),
@@ -636,11 +658,13 @@ def replay(project_dir: str, db_path: str, run_id: str | None = None, seconds: f
     while os.path.exists(run_dir):  # two replays started within the same second
         run_dir += "-again"
     snapshot = record.get("criteria_snapshot") or {}
-    terms = snapshot.get("search_terms") or ["(search)"]
-    by_term = {t["term"]: t["count"] for t in record.get("scraped_by_term") or []}
+    terms = searches(snapshot) or [{"term": "(search)", "location": ""}]
+    by_term = {(t["term"], t.get("location") or ""): t["count"] for t in record.get("scraped_by_term") or []}
+    if len(locations_of(snapshot)) == 1:  # recorded before a run could have several locations
+        by_term = {(term, terms[0]["location"]): count for (term, _), count in by_term.items()}
     scraped = record.get("scraped_count") or 0
     weights = [rng.uniform(0.5, 1.5) for _ in terms]
-    targets = [by_term.get(t, round(scraped * w / sum(weights))) for t, w in zip(terms, weights)]
+    targets = [by_term.get((t["term"], t["location"]), round(scraped * w / sum(weights))) for t, w in zip(terms, weights)]
     ratio = 1.0
     if per_term and scraped:
         targets = [min(t, per_term) for t in targets]
@@ -666,7 +690,7 @@ def replay(project_dir: str, db_path: str, run_id: str | None = None, seconds: f
 
     def progress(n, count, done=False):
         _write_json(os.path.join(run_dir, "scrape", f"{n}.progress.json"),
-                    {"term": terms[n], "count": count, "wanted": snapshot.get("results_wanted"), "done": done})
+                    {**terms[n], "count": count, "wanted": snapshot.get("results_wanted"), "done": done})
 
     for n in range(len(terms)):
         progress(n, 0)
@@ -741,7 +765,9 @@ def main():
             p.add_argument("--partial", action="store_true",
                            help="add prompts for the Stage 1 passes so far, without waiting for all of Stage 1")
         if name == "scrape":
-            p.add_argument("--term", type=int, required=True, help="index into criteria.json's search_terms")
+            p.add_argument("--term", "--search", dest="term", type=int, required=True,
+                           help="which search, by its number in the `searches` list that `start` printed "
+                                "(each search term in each location)")
     co = sub.add_parser("continue", help="reopen a run that stopped after Stage 1, so Stage 2 can judge its passes")
     co.add_argument("--run-id", default="", help="default: the latest run that is waiting for Stage 2")
     cp = sub.add_parser("check-stage1", help="list Stage 1 answers that cite sentences the prompt never had, or pass with no evidence")

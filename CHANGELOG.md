@@ -5,6 +5,19 @@ What changed in each version, newest first. If you cloned FTJA earlier, run
 these. Your own files — `criteria.json`, `rubric.md`, `profile/`, `seen.db`,
 digests — are never touched by an update.
 
+## 0.2.18 — 2026-10-12
+
+### What changes for you after updating
+
+- You can search several locations. Under Scraping criteria on the
+  Pipeline tab, Locations takes a list, like Search terms. A run searches
+  every search term in every location: 3 terms and 3 locations make 9
+  searches, each up to your maximum results.
+- More searches make a longer run. The Results tab shows a line per search
+  (term and location) with its own count.
+- A location can contain a comma ("Paris, France"): press Enter to add it.
+- Your existing single location keeps working and shows as one entry.
+
 ## 0.2.17 — 2026-10-12
 
 ### What changes for you after updating
