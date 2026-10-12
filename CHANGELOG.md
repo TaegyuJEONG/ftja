@@ -5,6 +5,25 @@ What changed in each version, newest first. If you cloned FTJA earlier, run
 these. Your own files — `criteria.json`, `rubric.md`, `profile/`, `seen.db`,
 digests — are never touched by an update.
 
+## 0.2.14 — 2026-10-12
+
+### What changes for you after updating
+
+- The "Exact phrase" setting is gone. It put each search term in quotes,
+  but LinkedIn's search for people who are not logged in matches by
+  meaning either way: tested on 20 postings per search, "venture builder"
+  in quotes returned none that contain that phrase, and "founder in
+  residence" returned 3, next to titles like "Entrepreneur In Residence".
+- Search terms are now sent as you type them. If yours were quoted by the
+  old setting, the postings a search returns may shift a little. To keep
+  the quotes, type them into the search term yourself.
+- A phrase that has to be in the posting belongs in the Stage 0 keywords,
+  which check the posting's text.
+- A search term that contains quote marks is kept when you save the
+  Pipeline tab. It used to be saved as an empty term.
+- Nothing to change in your files: an `exact_phrase_search` line left in
+  `criteria.json` is ignored.
+
 ## 0.2.13 — 2026-10-12
 
 ### What changes for you after updating
