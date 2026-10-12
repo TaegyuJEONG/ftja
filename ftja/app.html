@@ -2627,8 +2627,33 @@ function remoteCategoryFields(c) {
       <button class="text-btn rc-add" type="button" data-rm-add-option>Add an answer</button>
     </div>
     <div class="rm-unknown"><span>When the posting does not say, the posting</span>
-      <select data-rm="unknown"><option value="pass" ${c.unknown === 'fail' ? '' : 'selected'}>passes</option><option value="fail" ${c.unknown === 'fail' ? 'selected' : ''}>fails</option></select></div>
-    <div class="field"><label>Keywords — a sentence with any of them, and the one before and after, is shown to the model</label>${renderChipInput('rm-kw', c.keywords)}</div>`;
+      <select data-rm="unknown"><option value="pass" ${c.unknown === 'fail' ? '' : 'selected'}>passes</option><option value="fail" ${c.unknown === 'fail' ? 'selected' : ''}>fails</option></select></div>`;
+}
+// The keywords are confirmed in one step, shown by language. Matching does not
+// care which category or language a keyword belongs to: any of them gets a
+// posting read. So the step shows one list per language.
+function remoteKeywordGroups(cfg) {
+  const read = ((pipelineConfig || {}).criteria || {}).languages || [];
+  const languages = [...new Set([...(cfg.languages || []), ...read])];
+  if (!languages.length) languages.push('en');
+  const map = cfg.keyword_language || {};
+  const groups = Object.fromEntries(languages.map(code => [code, []]));
+  [...new Set((cfg.categories || []).flatMap(c => c.keywords || []))].forEach(k => {
+    const code = groups[map[k]] ? map[k] : languages[0];  // one not marked is taken as the first language
+    groups[code].push(k);
+  });
+  return {languages, groups, read};
+}
+function readRemoteKeywords(cfg) {
+  const {languages} = remoteKeywordGroups(cfg);
+  const map = {}, all = [];
+  languages.forEach(code => getChipValues('rm-kw-' + code).forEach(k => { if (!all.includes(k)) { all.push(k); map[k] = code; } }));
+  const placed = new Set();
+  cfg.categories.forEach(c => { c.keywords = (c.keywords || []).filter(k => all.includes(k) && !placed.has(k) && placed.add(k)); });
+  const fresh = all.filter(k => !placed.has(k));  // typed here: which category it sits in changes nothing
+  if (cfg.categories.length) cfg.categories[0].keywords.push(...fresh);
+  cfg.keyword_language = map;
+  cfg.languages = languages.filter(code => all.some(k => map[k] === code) || (cfg.languages || []).includes(code));
 }
 // The fields of the step on screen, back into the wizard's copy of the setup.
 function readRemoteStep() {
@@ -2636,11 +2661,13 @@ function readRemoteStep() {
   if (!w || !root) return;
   if (w.step === 'situation') {
     w.config.profile = Object.fromEntries([...root.querySelectorAll('[data-rm-profile]')].map(f => [f.dataset.rmProfile, f.value.trim()]));
+  } else if (w.step === 'keywords') {
+    readRemoteKeywords(w.config);
   } else if (typeof w.step === 'number') {
     const old = w.config.categories[w.step] || {};
     w.config.categories[w.step] = {
       id: old.id, label: root.querySelector('[data-rm="label"]').value.trim(),
-      question: root.querySelector('[data-rm="question"]').value.trim(), keywords: getChipValues('rm-kw'),
+      question: root.querySelector('[data-rm="question"]').value.trim(), keywords: old.keywords || [],
       options: [...root.querySelectorAll('.rm-answer')].map(row => ({
         id: row.dataset.id || undefined, label: row.querySelector('[data-rm="option-label"]').value.trim(),
         rule: row.querySelector('[data-rm="option-rule"]').value})),
@@ -2677,8 +2704,8 @@ function renderRemoteDialog() {
                       origin: remoteSetup.draft ? 'draft' : remoteSetup.saved ? 'saved' : 'general'};
     }
     const w = remoteWizard, cats = w.config.categories;
-    const total = cats.length + 2;
-    const at = w.step === 'situation' ? 1 : w.step === 'review' ? total : w.step + 2;
+    const total = cats.length + 3;
+    const at = w.step === 'situation' ? 1 : w.step === 'keywords' ? 2 : w.step === 'review' ? total : w.step + 3;
     const progress = `<div class="rm-progress">Step ${at} of ${total}</div>`;
     if (w.step === 'situation') {
       const p = w.config.profile || {};
@@ -2686,12 +2713,21 @@ function renderRemoteDialog() {
         <div class="rm-step-intro">${w.origin === 'draft' ? 'Your agent filled this in from your profile. Correct anything that is wrong.' : 'The categories are written for this.'}</div>
         ${REMOTE_PROFILE_FIELDS.map(([key, label, hint]) => `<div class="field"><label>${label}</label><input type="text" data-rm-profile="${key}" value="${esc(p[key] || '')}" placeholder="${esc(hint)}"></div>`).join('')}
         <div class="rm-nav"><span></span><button class="save-btn" type="button" data-rm-next>Confirm</button></div>`;
+    } else if (w.step === 'keywords') {
+      const {languages, groups, read} = remoteKeywordGroups(w.config);
+      body = `${progress}<div class="rm-step">Keywords</div>
+        <div class="rm-step-intro">The check reads a posting only where one of these appears: that sentence, and the one before and after. A posting with none of them is not read at all. They are listed for each language you read postings in${read.length ? ` (${read.map(languageLabel).map(esc).join(', ')}, set under Stage0)` : ''}. Remove what does not fit, add what is missing.</div>
+        ${languages.map(code => `<div class="field"><label>${esc(languageLabel(code))} · ${groups[code].length}</label>${renderChipInput('rm-kw-' + code, groups[code])}
+          ${groups[code].length ? '' : `<div class="rm-step-intro" style="margin:6px 0 0;">No keywords in ${esc(languageLabel(code))} yet. Add them here, or have your agent draft the setup again now that you read this language.</div>`}</div>`).join('')}
+        <div class="rm-nav"><button class="text-btn" type="button" data-rm-back>Back</button><button class="save-btn" type="button" data-rm-next>Confirm</button></div>`;
     } else if (w.step === 'review') {
       body = `${progress}<div class="rm-step">Confirm your setup</div>
         <div class="rm-step-intro">A posting passes when none of its answers is one marked ✕.</div>
         ${cats.map((c, i) => `<div class="rm-card rm-review"><div><b>${esc(c.label || 'Unnamed')}</b>
           <div class="rm-review-answers">${(c.options || []).map(o => `<span class="${o.rule === 'fail' ? 'fails' : ''}">${o.rule === 'fail' ? '✕' : '✓'} ${esc(o.label)}</span>`).join('')}<span class="meta">Not stated ${c.unknown === 'fail' ? 'fails' : 'passes'}</span></div></div>
           <button class="text-btn" type="button" data-rm-goto="${i}">Change</button></div>`).join('')}
+        <div class="rm-card rm-review"><div><b>Keywords</b><div class="rm-review-answers"><span class="meta">${plural(new Set(cats.flatMap(c => c.keywords || [])).size, 'keyword')}</span></div></div>
+          <button class="text-btn" type="button" data-rm-goto="keywords">Change</button></div>
         <button class="text-btn rc-add" type="button" data-rm-add-category>Add a category</button>
         <label class="check-row"><input type="checkbox" data-rm="drop" ${w.config.drop_without_keywords === false ? '' : 'checked'}>
           <span><b>Drop postings with no remote keyword</b> — code drops them before any model call. Unticked, they go on with every category “not stated”.</span></label>
@@ -2713,7 +2749,7 @@ function renderRemoteDialog() {
     <div class="s1-head"><h3>${title}</h3><button class="text-btn" type="button" data-close>Close</button></div>
     <div class="s1-body"><div id="remote-editor">${body}</div></div>`;
   dialog.querySelector('[data-close]').addEventListener('click', () => dialog.close());
-  if (document.getElementById('rm-kw')) initChipInput('rm-kw');
+  dialog.querySelectorAll('.chip-input[id^="rm-kw-"]').forEach(el => initChipInput(el.id));
   bindRemoteDialog(dialog);
 }
 
@@ -2735,8 +2771,8 @@ function bindRemoteDialog(root) {
     renderRemoteDialog();
   });
   if (!w) return;
-  on('[data-rm-back]', () => go(() => { w.step = w.step === 'review' ? (w.config.categories.length ? w.config.categories.length - 1 : 'situation') : w.step === 0 ? 'situation' : w.step - 1; }));
-  on('[data-rm-goto]', b => go(() => { w.step = parseInt(b.dataset.rmGoto, 10); w.fromReview = true; }));
+  on('[data-rm-back]', () => go(() => { w.step = w.step === 'review' ? (w.config.categories.length ? w.config.categories.length - 1 : 'keywords') : w.step === 'keywords' ? 'situation' : w.step === 0 ? 'keywords' : w.step - 1; }));
+  on('[data-rm-goto]', b => go(() => { w.step = b.dataset.rmGoto === 'keywords' ? 'keywords' : parseInt(b.dataset.rmGoto, 10); w.fromReview = true; }));
   on('[data-rm-add-category]', () => go(() => {
     w.config.categories.push({label: '', question: '', keywords: [], options: [{label: '', rule: 'pass'}], unknown: 'pass'});
     w.step = w.config.categories.length - 1; w.fromReview = true;
@@ -2748,7 +2784,10 @@ function bindRemoteDialog(root) {
     readRemoteStep();
     if (w.step === 'situation') {
       if (!w.config.profile.residence && w.origin !== 'general') { root.querySelector('[data-rm-profile="residence"]').focus(); return; }
-      w.step = w.config.categories.length ? 0 : 'review';
+      w.step = 'keywords';
+    } else if (w.step === 'keywords') {
+      w.step = w.fromReview || !w.config.categories.length ? 'review' : 0;
+      w.fromReview = false;
     } else {
       w.step = w.fromReview || w.step + 1 >= w.config.categories.length ? 'review' : w.step + 1;
       w.fromReview = false;

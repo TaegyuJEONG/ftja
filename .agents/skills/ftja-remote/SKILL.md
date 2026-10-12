@@ -81,7 +81,9 @@ Write it as JSON to `.ftja-run/remote-check.draft.json` (create `.ftja-run/`
 if it is missing):
 
 ```json
-{"drop_without_keywords": true,
+{"languages": ["en", "fr"],
+ "keyword_language": {"remote": "en", "télétravail": "fr", "à distance": "fr"},
+ "drop_without_keywords": true,
  "guidance": "<two or three sentences for the model, see below>",
  "profile": {"residence": "...", "work_countries": "...", "time_zone": "...", "work_permit": "..."},
  "categories": [
@@ -134,9 +136,15 @@ with none of them is dropped without a model call. So:
   anywhere, relocation, work permit, visa, sponsorship. A sentence like
   "you can work where you feel at home" has to be caught by something:
   add the phrases people actually write.
-- Write each of them in every language the user reads (French:
+- Write each of them in **every** language the user reads, not only
+  English: someone who reads English and French gets both sets (French:
   télétravail, à distance, présentiel, sur site, déplacements, fuseau
-  horaire, ...).
+  horaire, ...). Use the wording postings in that language really use,
+  not a word-for-word translation.
+- `languages` lists those language codes, and `keyword_language` says
+  which language every keyword is in (an abbreviation used in all of them,
+  like EU or CET, goes under the first). The page shows the user the
+  keywords one language at a time, to confirm before the categories.
 - **No place names**: no countries, cities or regions (not France, Paris,
   Europe). Where a role may be done from is said in the sentence around a
   remote keyword, and a place name would match nearly every posting.

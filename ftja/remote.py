@@ -11,7 +11,9 @@ and every verdict can be traced to an answer and the sentences behind it.
 The setup lives in `remote-check.json` (the user's own file, like
 criteria.json):
 
-  {"drop_without_keywords": true,       # no remote keyword at all -> dropped by code
+  {"languages": ["en", "fr"],           # the languages the keywords are written in
+   "keyword_language": {"télétravail": "fr", ...},   # which language each keyword is in (for the page only)
+   "drop_without_keywords": true,       # no remote keyword at all -> dropped by code
    "guidance": "...",                   # shown to the model above the questions
    "profile": {"residence", "work_countries", "time_zone", "work_permit"},
    "categories": [
@@ -61,6 +63,7 @@ GENERATING_STALE_SECONDS = 600
 # sent 82% of all postings to the model. Without them it is 67%, and every
 # posting a person had marked as remote in that set is still caught.
 DEFAULT_CONFIG = {
+    "languages": ["en"],
     "drop_without_keywords": True,
     "guidance": ("Judge the role itself, not the company. Travel, an onboarding week and occasional team "
                  "gatherings are not office days. Steps of the hiring process, such as an on-site interview, say "
@@ -155,7 +158,12 @@ def validate_config(data) -> dict:
     if not any(c["keywords"] for c in clean):
         raise ValueError("the remote check needs at least one keyword: it reads only the sentences around them")
     profile = data.get("profile") if isinstance(data.get("profile"), dict) else {}
-    return {"drop_without_keywords": data.get("drop_without_keywords", True) is not False,
+    # which language each keyword is in, so the page can show them by language; matching does not use it
+    kept = {k for c in clean for k in c["keywords"]}
+    by_keyword = data.get("keyword_language") if isinstance(data.get("keyword_language"), dict) else {}
+    keyword_language = {str(k): str(v).strip().lower() for k, v in by_keyword.items() if str(k) in kept and str(v).strip()}
+    languages = list(dict.fromkeys([*(x.lower() for x in _strings(data.get("languages"))), *keyword_language.values()]))
+    return {"languages": languages, "keyword_language": keyword_language, "drop_without_keywords": data.get("drop_without_keywords", True) is not False,
             "guidance": str(data.get("guidance") or "").strip(),
             "profile": {k: str(profile.get(k) or "").strip() for k in PROFILE_KEYS if str(profile.get(k) or "").strip()},
             "categories": clean}
