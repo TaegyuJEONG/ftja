@@ -284,8 +284,8 @@ of freedom matters.
 ### Proposed design
 
 1. **A pipeline profile per search.** Each search term (or group of terms)
-   can own its own set: scrape settings (location, hours_old, results_wanted,
-   exact phrase), tier1/exclude keywords, rubric, and an optional profile
+   can own its own set: scrape settings (location, hours_old, results_wanted),
+   tier1/exclude keywords, rubric, and an optional profile
    variant. Stages 0–2 for a job use the set of the search that found it.
 2. **Duplicate and edit, not start from scratch.** Creating a new search
    offers "copy from an existing search" so the user only changes what

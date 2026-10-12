@@ -14,25 +14,21 @@ SITES = ["linkedin"]
 BATCH_SIZE = 10
 
 
-def quote_search_term(term: str) -> str:
-    term = term.strip()
-    if term and not (term.startswith('"') and term.endswith('"')):
-        term = f'"{term}"'
-    return term
-
-
 def scrape(search_term: str, location: str,
            results_wanted: int = 100, hours_old: int = 72, job_type: str = "",
-           exact_phrase: bool = True, on_batch=None) -> list[dict]:
+           on_batch=None) -> list[dict]:
     """Scrape up to `results_wanted` LinkedIn listings for one search term.
 
     Batches in groups of BATCH_SIZE with an offset loop (throttle, not a
     jobspy requirement) and stops early if a batch comes back empty.
 
-    exact_phrase controls whether search_term is quoted for LinkedIn (forces
-    exact-phrase matching, e.g. "Founder in Residence" won't match a JD that
-    only has the words scattered apart) vs sent as-is (broader, OR-ish
-    matching). Controlled by criteria.json's exact_phrase_search.
+    The search term is sent as typed. There is no exact-phrase option:
+    quoting a term does not make LinkedIn's logged-out search match the
+    phrase. Measured on 20 postings per search, `"venture builder"` in
+    quotes returned none that contain that phrase, and `"founder in
+    residence"` returned 3, next to titles like "Entrepreneur In Residence".
+    Its search matches by meaning. A phrase that has to be in the posting is
+    enforced by Stage 0's tier1 keywords, which read the text.
 
     There is no remote-only option. LinkedIn ignores its workplace filter
     (f_WT) for requests that are not logged in, which is what this scraper
@@ -43,8 +39,7 @@ def scrape(search_term: str, location: str,
     on_batch(count_so_far), if given, is called after every batch — the
     live view's "scraped so far" number.
     """
-    if exact_phrase:
-        search_term = quote_search_term(search_term)
+    search_term = search_term.strip()
     jobs: list[dict] = []
 
     for offset in range(0, results_wanted, BATCH_SIZE):
@@ -97,7 +92,6 @@ def main():
     ap.add_argument("--results-wanted", type=int, default=100)
     ap.add_argument("--hours-old", type=int, default=72)
     ap.add_argument("--job-type", default="")
-    ap.add_argument("--exact-phrase", action=argparse.BooleanOptionalAction, default=True)
     ap.add_argument("--out", default="")
     args = ap.parse_args()
 
@@ -107,7 +101,6 @@ def main():
         results_wanted=args.results_wanted,
         hours_old=args.hours_old,
         job_type=args.job_type,
-        exact_phrase=args.exact_phrase,
     )
 
     cleaned = clean_jobs(jobs)

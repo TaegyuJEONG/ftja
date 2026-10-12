@@ -3,7 +3,6 @@
   "location": "",
   "hours_old": 72,
   "results_wanted": 100,
-  "exact_phrase_search": true,
   "stage1_only": false,
   "exclude_keywords": [],
   "languages": ["en"],

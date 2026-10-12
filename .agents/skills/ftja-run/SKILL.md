@@ -210,8 +210,8 @@ with a line to the user between them (see "Keep the user informed"):
 venv/bin/python -m ftja.live scrape --dir <run_dir> --term <index>
 ```
 
-Each call reads the term, location, time window, cap per
-term and exact-phrase setting from the run's own snapshot, scrapes in
+Each call reads the term, location, time window and cap per
+term from the run's own snapshot, scrapes in
 batches of 10, and updates that term's count after every batch.
 
 ## 2. Deterministic filter (Stage 0b)

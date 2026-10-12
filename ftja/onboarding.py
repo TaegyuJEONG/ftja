@@ -282,12 +282,11 @@ def apply_action(project_dir: str, action: dict[str, Any]) -> dict[str, Any]:
             raise OnboardingError("search settings draft needs at least one title and a location")
         stage0 = validate_stage0_draft(action.get("stage0") or {})
         criteria = {
-            **{k: v for k, v in profile.get("criteria", {}).items() if k != "is_remote"},  # a filter LinkedIn ignores
+            **{k: v for k, v in profile.get("criteria", {}).items() if k not in ("is_remote", "exact_phrase_search")},  # settings LinkedIn ignores
             "search_terms": titles,
             "location": location,
             "hours_old": int(action.get("hours_old", 24)),
             "results_wanted": _clamp_results_wanted(action.get("results_wanted"), 100),
-            "exact_phrase_search": True,
             "languages": stage0["languages"],
             "exclude_keywords": stage0["exclude_keywords"],
             "keywords": {"tier1": stage0["keywords"]},
@@ -307,14 +306,13 @@ def apply_action(project_dir: str, action: dict[str, Any]) -> dict[str, Any]:
         if not titles or not location:
             raise OnboardingError("at least one title and a location are required")
         criteria = {
-            **{k: v for k, v in profile.get("criteria", {}).items() if k != "is_remote"},  # a filter LinkedIn ignores
+            **{k: v for k, v in profile.get("criteria", {}).items() if k not in ("is_remote", "exact_phrase_search")},  # settings LinkedIn ignores
             "search_terms": titles,
             "location": location,
             "hours_old": int(action.get("hours_old", 24)),
             "results_wanted": _clamp_results_wanted(
                 action.get("results_wanted", profile.get("criteria", {}).get("results_wanted")), 100
             ),
-            "exact_phrase_search": True,
             "languages": stage0["languages"],
             "exclude_keywords": stage0["exclude_keywords"],
             "keywords": {"tier1": stage0["keywords"]},

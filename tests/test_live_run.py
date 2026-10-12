@@ -30,7 +30,7 @@ def project(tmp_path, monkeypatch):
         shutil.copy(os.path.join(REPO, name), tmp_path / name)
     (tmp_path / "criteria.json").write_text(json.dumps({
         "search_terms": ["Product Builder", "Product Manager"], "location": "France", "is_remote": False,
-        "hours_old": 24, "results_wanted": 50, "exact_phrase_search": True, "languages": ["en"],
+        "hours_old": 24, "results_wanted": 50, "exact_phrase_search": True, "languages": ["en"],  # an old setting: ignored
         "keywords": {"tier1": ["prototype"]}, "exclude_keywords": []}))
     save_criteria(str(tmp_path), [
         {"id": "builds", "kind": "pass", "label": "Builds personally", "text": "Builds it personally."},

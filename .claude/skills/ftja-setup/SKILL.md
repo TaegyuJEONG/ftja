@@ -435,18 +435,18 @@ my search settings, continue the setup`) and do not claim that the chat resumed.
   "location": "...",
   "hours_old": 72,
   "results_wanted": 100,
-  "exact_phrase_search": true,
   "exclude_keywords": ["..."],
   "languages": ["en", "fr", "ko"],
   "keywords": {"tier1": ["...", "..."]}
 }
 ```
 
-`exact_phrase_search` (default `true`): whether each `search_terms` entry is
-sent to LinkedIn as an exact quoted phrase (e.g. `"Founder in Residence"` —
-narrower, won't match a JD where those words appear scattered apart) or
-as-is (broader). Don't ask about this unless the candidate brings up
-search-result volume/coverage — `true` is the sane default.
+Search terms are sent to LinkedIn as written. There is no exact-phrase
+setting and quoting a term does not enforce it: LinkedIn's logged-out
+search matches by meaning ("founder in residence" also returns
+"Entrepreneur In Residence"). A phrase that has to appear in the posting
+goes in `keywords.tier1`, which Stage 0 checks against the text. Do not
+write `exact_phrase_search` to `criteria.json`.
 
 `rubric.md` — free-form markdown, written in the user's own words as much as
 possible (this is what the Stage 2 subagent reads verbatim — write it as

@@ -28,7 +28,7 @@ def _read_json(path, default=None):
 
 _DEFAULT_CRITERIA = {
     "search_terms": [], "location": "", "hours_old": 72,
-    "results_wanted": 100, "exact_phrase_search": True, "stage1_only": False, "languages": [],
+    "results_wanted": 100, "stage1_only": False, "languages": [],
     "exclude_keywords": [], "keywords": {"tier1": []},
 }
 

@@ -702,7 +702,9 @@ let currentJobPage = 1;
 function esc(s) {
   const d = document.createElement('div');
   d.textContent = s || '';
-  return d.innerHTML;
+  // also the quote marks: esc() output goes into attributes (data-value="..."), where a
+  // double quote in a search term such as "founder in residence" ended the attribute early
+  return d.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 function fmtN(n) { return n === null || n === undefined ? "-" : n.toLocaleString(); }
 function fmtBytes(n) {
@@ -1361,7 +1363,6 @@ function selectRun(runId, filter = "passed") {
   loadJobs();
 }
 
-function yesNo(v) { return v ? 'Yes' : 'No'; }
 function count(key, n) { return `<span data-count="${key}" data-value="${n ?? ''}">${fmtN(n)}</span>`; }
 
 // The run's funnel, for a finished run (numbers from runs.jsonl) and for a
@@ -1386,7 +1387,6 @@ function funnelHtml(v) {
   if (v.cs) {
     const parts = [`Location <b>${esc(cs.location || 'anywhere')}</b>`,
       `Posted within <b>${esc(cs.hours_old)} hours</b>`, `Up to <b>${fmtN(wanted)}</b> per search term`];
-    if (cs.exact_phrase_search !== undefined) parts.push(`Exact phrase <b>${yesNo(cs.exact_phrase_search)}</b>`);
     if (cs.stage1_only) parts.push(`<b>Stops after Stage 1</b>`);
     scrape += `<div class="conditions">${parts.join(' · ')}</div>`;
   }
@@ -2320,16 +2320,12 @@ function renderConfigSection() {
 <div class="section">
   <div class="section-title"><span class="num">1</span>Scraping criteria</div>
   <div class="card">
-    <div class="explain">Searches LinkedIn directly with these terms. Location is set here only — Stage0 doesn't filter location again. There is no remote-only switch: LinkedIn ignores its Remote filter for searches that are not logged in. To find remote roles, add "remote" to a search term and judge remote from the posting itself, with Stage0 keywords and a rubric criterion.</div>
+    <div class="explain">Searches LinkedIn directly with these terms. Location is set here only — Stage0 doesn't filter location again. There is no remote-only switch: LinkedIn ignores its Remote filter for searches that are not logged in. To find remote roles, add "remote" to a search term and judge remote from the posting itself, with Stage0 keywords and a rubric criterion. A search term is sent as you type it. LinkedIn matches by meaning, not by exact words (a search for "founder in residence" also returns "Entrepreneur In Residence"), with or without quotes; a phrase that must be in the posting belongs in Stage0's keywords.</div>
     <div class="field"><label>Search terms</label>${renderChipInput('cfg-search-terms', c.search_terms)}</div>
     <div class="field-row">
       <div class="field"><label>Location</label><input type="text" id="cfg-location" value="${esc(c.location)}"></div>
       <div class="field"><label>Posted within (hours)</label><input type="number" id="cfg-hours-old" value="${esc(c.hours_old)}"></div>
       <div class="field"><label>Max results per search term</label><input type="number" id="cfg-results-wanted" value="${esc(c.results_wanted)}"></div>
-    </div>
-    <div class="field-row">
-      <div class="field"><label>Exact phrase — Yes matches each search term as a whole phrase</label>
-        <select id="cfg-exact-phrase" class="sort-select mono"><option value="yes" ${c.exact_phrase_search ? 'selected' : ''}>Yes</option><option value="no" ${c.exact_phrase_search ? '' : 'selected'}>No</option></select></div>
     </div>
     <label class="check-row"><input type="checkbox" id="cfg-stage1-only" ${c.stage1_only ? 'checked' : ''}>
       <span><b>Stop after Stage 1</b> — a run scrapes, filters and reads the keyword sentences, then stops before Stage 2, the expensive step that reads every remaining posting in full. Use it while you tune keywords and the rubric. You can continue a stopped run to Stage 2 from the Results tab.</span></label>
@@ -2393,10 +2389,10 @@ function renderConfigSection() {
       location: document.getElementById('cfg-location').value,
       hours_old: parseInt(document.getElementById('cfg-hours-old').value, 10) || 0,
       results_wanted: parseInt(document.getElementById('cfg-results-wanted').value, 10) || 0,
-      exact_phrase_search: document.getElementById('cfg-exact-phrase').value === 'yes',
       stage1_only: document.getElementById('cfg-stage1-only').checked,
     };
-    delete criteria.is_remote;  // a filter LinkedIn ignores for logged-out searches; no longer a setting
+    delete criteria.is_remote;            // LinkedIn ignores both for logged-out searches;
+    delete criteria.exact_phrase_search;  // they are no longer settings
     pipelineConfig.criteria = criteria;
     saveConfig({criteria}, e.target);
   });
