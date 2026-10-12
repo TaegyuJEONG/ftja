@@ -5,6 +5,22 @@ What changed in each version, newest first. If you cloned FTJA earlier, run
 these. Your own files — `criteria.json`, `rubric.md`, `profile/`, `seen.db`,
 digests — are never touched by an update.
 
+## 0.2.15 — 2026-10-12
+
+### What changes for you after updating
+
+- New option on the Pipeline tab, under Scraping criteria: **Title must
+  contain the search term**. LinkedIn also returns postings it considers
+  related, so a search for "Entrepreneur In Residence" brings back
+  "Co-Founder" and "Strategy Lead". With the option on, Stage 0 keeps a
+  posting only if its title contains the search term that found it, in any
+  word form ("Product Manager" keeps "Senior Product Managers"). With
+  several search terms, each is checked against its own results.
+- It is off unless you turn it on. Turned on, differently named versions of
+  the same job are dropped ("Founder in Residence" for "Entrepreneur In
+  Residence"); add them as search terms to keep them.
+- The Stage 0 line of a run shows how many postings the rule dropped.
+
 ## 0.2.14 — 2026-10-12
 
 ### What changes for you after updating

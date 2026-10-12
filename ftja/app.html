@@ -690,7 +690,7 @@ const ACTIONS = [
   {value: "skipped_circumstance", label: "Later"},
   {value: "expired", label: "Expired"},
 ];
-const DROP_LABELS = {language: "unreadable language", no_tier1_hit: "no keyword match", exclude_keyword: "exclude keyword present", language_requirement: "requires another language", duplicate_content: "duplicate posting", already_seen: "already judged on an earlier run"};
+const DROP_LABELS = {title_mismatch: "title lacks the search term", language: "unreadable language", no_tier1_hit: "no keyword match", exclude_keyword: "exclude keyword present", language_requirement: "requires another language", duplicate_content: "duplicate posting", already_seen: "already judged on an earlier run"};
 const RUN_PAGE_SIZE = 10;
 
 let runs = [];
@@ -1387,6 +1387,7 @@ function funnelHtml(v) {
   if (v.cs) {
     const parts = [`Location <b>${esc(cs.location || 'anywhere')}</b>`,
       `Posted within <b>${esc(cs.hours_old)} hours</b>`, `Up to <b>${fmtN(wanted)}</b> per search term`];
+    if (cs.title_must_match) parts.push(`<b>Title must contain the search term</b>`);
     if (cs.stage1_only) parts.push(`<b>Stops after Stage 1</b>`);
     scrape += `<div class="conditions">${parts.join(' · ')}</div>`;
   }
@@ -2327,6 +2328,8 @@ function renderConfigSection() {
       <div class="field"><label>Posted within (hours)</label><input type="number" id="cfg-hours-old" value="${esc(c.hours_old)}"></div>
       <div class="field"><label>Max results per search term</label><input type="number" id="cfg-results-wanted" value="${esc(c.results_wanted)}"></div>
     </div>
+    <label class="check-row"><input type="checkbox" id="cfg-title-match" ${c.title_must_match ? 'checked' : ''}>
+      <span><b>Title must contain the search term</b> — LinkedIn also returns postings it considers related: a search for "Entrepreneur In Residence" brings back "Co-Founder" and "Strategy Lead". With this on, Stage0 keeps a posting only if its title contains the search term that found it, in any word form ("Product Manager" keeps "Senior Product Managers"). Each search term is checked against its own results. To accept another title, add it as a search term.</span></label>
     <label class="check-row"><input type="checkbox" id="cfg-stage1-only" ${c.stage1_only ? 'checked' : ''}>
       <span><b>Stop after Stage 1</b> — a run scrapes, filters and reads the keyword sentences, then stops before Stage 2, the expensive step that reads every remaining posting in full. Use it while you tune keywords and the rubric. You can continue a stopped run to Stage 2 from the Results tab.</span></label>
     <div class="save-row"><button class="save-btn" id="save-scrape">Save</button><span class="saved-note mono">Saved</span></div>
@@ -2389,6 +2392,7 @@ function renderConfigSection() {
       location: document.getElementById('cfg-location').value,
       hours_old: parseInt(document.getElementById('cfg-hours-old').value, 10) || 0,
       results_wanted: parseInt(document.getElementById('cfg-results-wanted').value, 10) || 0,
+      title_must_match: document.getElementById('cfg-title-match').checked,
       stage1_only: document.getElementById('cfg-stage1-only').checked,
     };
     delete criteria.is_remote;            // LinkedIn ignores both for logged-out searches;

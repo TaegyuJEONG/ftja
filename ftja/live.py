@@ -42,7 +42,7 @@ from ftja.verdict import (DEFAULT_CRITERIA_PATH, STATUS_FOR_VERDICT, clean_extra
 
 RUNS_DIR = ".ftja-run"
 KEEP_RUNS = 5
-SNAPSHOT_KEYS = ("search_terms", "location", "hours_old", "results_wanted", "stage1_only")
+SNAPSHOT_KEYS = ("search_terms", "location", "hours_old", "results_wanted", "title_must_match", "stage1_only")
 PAGE_SIZE = 10
 # A replay has no lock to say it is alive; it counts as running while it keeps writing.
 REPLAY_STALE_SECONDS = 120
@@ -166,11 +166,16 @@ def stage0(run_dir: str, project_dir: str = ".", db_path: str = "seen.db") -> di
 
     merged: dict[str, dict] = {}
     scrape_dir = os.path.join(run_dir, "scrape")
+    terms = ((_read_json(os.path.join(run_dir, "run.json"), {}) or {}).get("criteria_snapshot") or {}).get("search_terms") or []
     for name in sorted(os.listdir(scrape_dir), key=lambda s: (len(s), s)):
         if name.endswith(".json") and not name.endswith(".progress.json"):
+            n = name[:-len(".json")]
+            term = terms[int(n)] if n.isdigit() and int(n) < len(terms) else None  # scrape/<n>.json is search term n
             for job in _read_json(os.path.join(scrape_dir, name), []):
                 if job.get("job_url"):
-                    merged.setdefault(job["job_url"], job)
+                    kept = merged.setdefault(job["job_url"], job)
+                    if term and term not in kept.setdefault("_search_terms", []):
+                        kept["_search_terms"].append(term)  # which searches returned it
     jobs = list(merged.values())
     criteria = _read_json(os.path.join(project_dir, "criteria.json"), {})
     dropped_jobs: list[dict] = []

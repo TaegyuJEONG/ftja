@@ -61,6 +61,8 @@ def test_a_run_from_start_to_finish_as_the_viewer_sees_it(project, capsys):
     counts = live.stage0(run_dir, project, db)
     assert (counts["scraped"], counts["passed"], counts["dropped"]["already_seen"]) == (3, 2, 0)  # merged by url; the French posting is dropped by code
     assert live.state(project)["stage0"]["passed"] == 2 and live.state(project)["stage1"] is None
+    found_by = {j["job_url"]: j["_search_terms"] for j in live._read_json(os.path.join(run_dir, "stage0.json"))}
+    assert found_by == {"https://x/1": ["Product Builder"], "https://x/2": ["Product Builder", "Product Manager"]}  # which searches returned each job
 
     assert live.prepare_stage1(run_dir, project)["jobs"] == 2
     prompt = open(os.path.join(run_dir, "s1", "0.txt")).read()

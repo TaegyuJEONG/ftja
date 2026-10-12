@@ -448,6 +448,15 @@ search matches by meaning ("founder in residence" also returns
 goes in `keywords.tier1`, which Stage 0 checks against the text. Do not
 write `exact_phrase_search` to `criteria.json`.
 
+`title_must_match` (default `false`): with `true`, Stage 0 keeps a posting
+only if its title contains the search term that found it, in any word form
+("Product Manager" keeps "Senior Product Managers"; a posting found by the
+"AI Specialist" search has to say that, not "Product Manager"). LinkedIn
+returns related titles too ("Entrepreneur In Residence" brings back
+"Co-Founder"), so offer this when the candidate wants exactly the titles
+they named, and say what it costs: differently named versions of the same
+job are dropped unless they are added as search terms.
+
 `rubric.md` — free-form markdown, written in the user's own words as much as
 possible (this is what the Stage 2 subagent reads verbatim — write it as
 instructions TO that subagent, e.g. "Pass if..." / "Fail if..." sections),
