@@ -5,6 +5,14 @@ What changed in each version, newest first. If you cloned FTJA earlier, run
 these. Your own files — `criteria.json`, `rubric.md`, `profile/`, `seen.db`,
 digests — are never touched by an update.
 
+## 0.2.16 — 2026-10-12
+
+### What changes for you after updating
+
+- The Scraping criteria on the Pipeline tab read shorter. The two
+  checkboxes and the note at the top each say what they do in one line; the
+  full explanation shows when you hover over the line or its "?" mark.
+
 ## 0.2.15 — 2026-10-12
 
 ### What changes for you after updating
