@@ -3197,12 +3197,8 @@ function renderConfigSection() {
   <div class="section-title"><span class="num">4</span>Stage1 — first pass (cheap model)${stageSwitchHtml('stage1')}</div>
   <div class="card ${stageOn('stage1') ? '' : 'stage-off'}" data-stage-card="stage1">
     ${stageOn('stage1') ? '' : '<div class="stage-off-note">Off. Postings go from the stage before straight to the next stage that is on.</div>'}
-    <div class="explain">
-      Shows a cheap AI model (haiku) <b>only the sentence where a keyword below appears plus the sentences right before/after it</b>.
-      The full posting is not shown — it's a first-pass filter for "does this look promising" based only on the Pass/Fail sections of rubric.md. The criteria
-      themselves are edited one by one under Stage2 (section 5) below.
-    </div>
-    <div class="field" style="margin-bottom:6px;"><label>Include keywords — a posting with none of them is dropped by code, before any model call. One list for each language you read postings in (set under Stage0).</label></div>
+    <div class="explain">A cheap AI model (haiku) reads only the sentences around your keywords and judges them against your Pass and Fail criteria (under Stage2).</div>
+    <div class="field" style="margin-bottom:6px;"><label>Keywords, per language you read</label></div>
     ${stage1KeywordGroupsHtml(c)}
     <div class="save-row"><button class="save-btn" id="save-stage1">Save</button><span class="saved-note mono">Saved</span></div>
   </div>
