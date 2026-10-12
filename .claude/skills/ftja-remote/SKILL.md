@@ -139,7 +139,8 @@ with none of them is dropped without a model call. So:
 
 **Guidance.** Two or three sentences the model reads above the questions:
 that it judges the role and not the company, what does not count as an
-office day (travel, an onboarding week, occasional gatherings), and
+office day (travel, an onboarding week, occasional gatherings), that steps
+of the hiring process (an on-site interview) say nothing about the job, and
 anything the user's answers make important.
 
 ## 4. Measure before saving

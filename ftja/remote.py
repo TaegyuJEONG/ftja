@@ -59,7 +59,8 @@ GENERATING_STALE_SECONDS = 600
 DEFAULT_CONFIG = {
     "drop_without_keywords": True,
     "guidance": ("Judge the role itself, not the company. Travel, an onboarding week and occasional team "
-                 "gatherings are not office days."),
+                 "gatherings are not office days. Steps of the hiring process, such as an on-site interview, say "
+                 "nothing about the job: ignore them."),
     "profile": {},
     "categories": [
         {"id": "remote_level", "label": "Remote level", "question": "How remote is the role itself?",
