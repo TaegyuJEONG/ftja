@@ -3209,10 +3209,7 @@ function renderConfigSection() {
   <div class="card ${stageOn('stage2') ? '' : 'stage-off'}" data-stage-card="stage2">
     ${stageOn('stage2') ? '' : '<div class="stage-off-note">Off. A run stops after its last stage; what passed waits there, and you can continue it from the Results tab.</div>'}
     ${stageOn('stage2') && !stageOn('stage1') && !stageOn('remote') ? '<div class="stage-off-note">Stage2 is the only stage that is on: every posting that passes Stage0 is read in full by the pricier model.</div>' : ''}
-    <div class="explain">
-      Only postings that passed the stage before get shown to a pricier AI model (sonnet) with <b>the full posting + the entire judgment criteria below + the profile summary</b>,
-      and answers each criterion below with a quote from the posting. Code turns those answers into pass / review / fail.
-    </div>
+    <div class="explain">A stronger AI model (sonnet) reads the whole posting against the criteria below and your profile, quoting the posting for each.</div>
     <div id="rubric-editor">${rubricEditorHtml()}</div>
   </div>
 </div>
