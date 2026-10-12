@@ -41,14 +41,18 @@ These are the candidate's conditions, all of them:
 {conditions}
 
 Reading the sentences as a whole against those conditions: do they say
-this role is worked in a way that suits the candidate?
+this role can be worked remotely, in a way that suits the candidate?
 
-- `pass` only when a sentence you were shown says how this role is worked
-  (that it can be done remotely, from where, or the like) in a way that
-  fits the conditions, and none shows something that rules a posting out.
-  Put that sentence's S-id in the top-level `evidence_sids`. A pass needs
-  at least one. A side detail alone (no travel, a yearly offsite, a time
-  zone) is not enough when nothing says how the role itself is worked.
+- `pass` only when a sentence you were shown says the role itself can be
+  done remotely (fully remote, work from home, work from anywhere in a
+  region, or the like), in a way that fits the conditions, and none shows
+  something that rules a posting out. Put that sentence's S-id in the
+  top-level `evidence_sids`. A pass needs at least one.
+- Not enough for a pass, when nothing says the role is remote: where the
+  employer can hire or where you must live ("open to people living in
+  France, Germany or Spain"), a relocation offer, a telework perk in a
+  benefits list, a company-wide telework policy, no travel, a yearly
+  offsite, a time zone.
 - `fail` in every other case — including when the sentences say nothing
   about how this role is worked. Do not pass on what is usual, on the
   company's address or on the listed location.

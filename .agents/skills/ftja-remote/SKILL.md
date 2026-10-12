@@ -176,7 +176,9 @@ with none of them is dropped without a model call. So:
   phrase when a single word has an everyday meaning: `team gathering`,
   not `gathering`; `distributed team`, not `distributed`; never `global`,
   `country`, `location`, `office` or `work` alone. An all-capitals keyword
-  (EU, WFH, CET) matches only in capitals.
+  (EU, WFH, CET) matches only in capitals; leave out an abbreviation that
+  means something else in a language the user reads (in French postings
+  "CET" is a savings account, compte épargne temps).
 - Put each keyword in the one category it informs most (listing it twice
   changes nothing). A keyword of any category gets the posting read.
 - Keep keywords that matched nothing in the measurement below: a small

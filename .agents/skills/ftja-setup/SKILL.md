@@ -388,9 +388,14 @@ my search settings, continue the setup`) and do not claim that the chat resumed.
 - `location`, `hours_old` — this is the ONLY place location is
   controlled. There is no remote-only setting: LinkedIn ignores its
   workplace filter for logged-out searches, so a candidate who wants remote
-  roles gets them through tier1 keywords ("remote", "hybrid", "on-site", ...)
-  and a rubric criterion, judged from each posting's text. Do not write
-  `is_remote` to `criteria.json`.
+  roles gets them through the **Remote check**, a separate stage they set
+  up afterwards on the Pipeline tab (`/ftja-remote`); say so when they
+  mention remote work. Do not put remote-work words ("remote", "hybrid",
+  "on-site", "télétravail", ...) in `keywords.tier1`: Stage 1 would then
+  read benefit and location sentences and judge them against a rubric that
+  is about the role. The one exception is a rubric that itself has a
+  remote criterion in its Pass or Fail section. Do not write `is_remote`
+  to `criteria.json`.
 - `locations` (optional list, e.g. `["France", "Germany", "Switzerland"]`):
   for a candidate who wants more than one place. `/ftja-run` then searches
   every search term in every location (3 titles × 3 locations = 9
@@ -426,7 +431,10 @@ my search settings, continue the setup`) and do not claim that the chat resumed.
   so a language requirement does not need an `exclude_keywords` entry — and
   a bare language name there would also drop "the German market".
 - `keywords.tier1`: the keyword phrases that must appear in a JD sentence
-  for it to even reach Stage 1. **Write them in every language in
+  for it to even reach Stage 1. Stage 1 reads only the sentences around
+  them and judges those against the rubric's Pass and Fail, so every
+  keyword has to be a word that shows up where a posting talks about what
+  those criteria are about. **Write them in every language in
   `languages`, not only English**: a posting written in French is caught
   only by French keywords, so a candidate who reads English and French
   gets both sets. Do not translate word for word; give the terms postings
