@@ -163,3 +163,26 @@ def test_onboarding_search_settings_take_several_locations_and_keep_keyword_lang
     assert criteria["title_must_match"] is True
     assert criteria["keywords"] == {"tier1": ["prototype", "prototypage"], "tier1_language": {"prototypage": "fr"}}
     assert [s["location"] for s in live.searches(criteria)] == ["France", "Germany"]  # a run searches each
+
+
+def test_the_filter_card_asks_the_setup_agent_for_one_languages_keywords(tmp_path):
+    from ftja.onboarding import OnboardingError, apply_action, read_state, write_state
+    root = str(tmp_path)
+    card = {"keywords": ["prototype"], "languages": ["en"], "exclude_keywords": []}
+    write_state(root, stage="rubric", phase="stage0", allowed_actions=["confirm_stage0", "request_stage0_keywords"],
+                profile={"criteria": {}}, cards={"stage0": card})
+    with pytest.raises(OnboardingError):
+        apply_action(root, {"type": "request_stage0_keywords", "language": "ko"})  # not among the languages yet
+    # the user added Korean and a keyword on the card, then pressed the button: the card as it is comes along
+    edited = {"keywords": ["prototype", "MVP"], "languages": ["en", "ko"], "exclude_keywords": [], "keyword_language": {"prototype": "en"}}
+    state = apply_action(root, {"type": "request_stage0_keywords", "language": "ko", "card": edited})
+    stage0 = state["cards"]["stage0"]
+    assert stage0["pending_languages"] == ["ko"] and stage0["keywords"] == ["prototype", "MVP"] and state["phase"] == "stage0"
+    # the agent writes them into the card: nothing is waiting any more
+    after = apply_action(root, {"type": "set_stage0_draft", "card": {
+        "keywords": ["prototype", "MVP", "프로토타입"], "keyword_language": {"prototype": "en", "프로토타입": "ko"}}})
+    assert "pending_languages" not in after["cards"]["stage0"] and after["cards"]["stage0"]["languages"] == ["en", "ko"]
+    done = apply_action(root, {"type": "confirm_stage0", "keywords": ["prototype", "MVP", "프로토타입"], "languages": ["en", "ko"],
+                               "exclude_keywords": [], "keyword_language": {"prototype": "en", "프로토타입": "ko"}})
+    assert done["profile"]["criteria"]["keywords"] == {"tier1": ["prototype", "MVP", "프로토타입"],
+                                                       "tier1_language": {"prototype": "en", "프로토타입": "ko"}}

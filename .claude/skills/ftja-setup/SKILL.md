@@ -339,10 +339,33 @@ the matching command:
 
 ```bash
 venv/bin/python -m ftja.onboarding . wait-for-action --type confirm_profile --timeout 900
-venv/bin/python -m ftja.onboarding . wait-for-action --type confirm_stage0 --timeout 900
+venv/bin/python -m ftja.onboarding . wait-for-action --type confirm_stage0 --type request_stage0_keywords --timeout 900
 venv/bin/python -m ftja.onboarding . wait-for-action --type answer_rubric_question --timeout 900
 venv/bin/python -m ftja.onboarding . wait-for-action --type confirm_rubric --timeout 900
 ```
+
+**The filter card can ask you for keywords.** On the code-based filter
+card the user can add a language they read and press "Add <language>
+keywords with my agent" (or type "add <language> keywords to the filter"
+in the chat). The wait then returns `request_stage0_keywords` with
+`action.language`. Do not treat it as a confirmation:
+
+1. Read `cards.stage0` from `onboarding-state.json`: it holds the card as
+   the user has it now (`keywords`, `keyword_language`, `languages`).
+2. Write the keywords a posting **in that language** would use for the
+   same things the existing keywords catch. Do not translate word for
+   word; give the terms postings in that language really use, list the
+   word forms yourself (singular and plural, masculine and feminine), skip
+   names that are the same in every language, and add no place names.
+3. Save the card with the new keywords appended and each of them recorded
+   under that language, leaving everything else as it was:
+
+   ```bash
+   venv/bin/python -m ftja.onboarding . set-state --stage rubric --phase stage0 --status waiting --json '{"cards":{"stage0":{"keywords":[<all existing>, <the new ones>],"keyword_language":{<existing entries>, "<new keyword>":"<language code>"},"languages":[<as on the card>],"exclude_keywords":[<as on the card>]}}}'
+   ```
+
+4. Say in one line what you added, then run the same wait command again.
+   The card shows the new keywords by itself.
 
 Use only the command for the card currently shown. The helper watches the
 connected project folder and also recovers an action that completed immediately

@@ -107,8 +107,14 @@ h1.serif { font-size: 38px; font-weight: 400; line-height: 1; margin-bottom: 8px
 #remote-dialog .rm-step { margin-top: 0; font-size: 15px; }
 #remote-dialog .rm-step-intro { margin-left: 0; }
 .kw-ask { margin: 8px 0 0; }
-.onboarding-kw-group { display: flex; gap: 10px; align-items: baseline; margin-bottom: 8px; }
-.onboarding-kw-lang { flex: none; width: 64px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text3); }
+.onboarding-kw-group { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0; border-top: 1px solid var(--border); }
+.onboarding-kw-group:first-child { border-top: none; padding-top: 2px; }
+.onboarding-kw-lang { flex: none; width: 64px; padding-top: 7px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text3); }
+.onboarding-kw-body { flex: 1; min-width: 0; }
+.onboarding-kw-body .onboarding-add-row { margin-top: 8px; }
+.onboarding-kw-body .onboarding-source-note, .onboarding-kw-body .onboarding-pending-label { margin: 4px 0 0; }
+/* every drop-down: our own arrow, with room to its right */
+select { -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2353504A' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important; background-repeat: no-repeat !important; background-position: right 12px center !important; padding-right: 32px !important; }
 .kw-off { opacity: .5; }
 .kw-off .chip-tag { cursor: default; }
 .rm-answers { margin: 4px 0 2px; }
@@ -642,7 +648,8 @@ select.sort-select {
 .profile-title-add-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
 .profile-title-add-row input { flex: 1; min-width: 0; }
 .profile-title-add-row .save-btn { height: 38px; }
-.profile-search-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(150px, .7fr) minmax(130px, .6fr); gap: 18px; align-items: start; }
+.profile-search-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: end; }
+.profile-search-grid label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .profile-field-hint { color: var(--text3); font-size: 10.5px; line-height: 1.45; margin: 6px 0 0; }
 .profile-confirm-actions { justify-content: flex-end; margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--border); }
 .profile-summary-status { display: none !important; }
@@ -950,6 +957,7 @@ function recoveryPhrase(actionType) {
     answer_rubric_question: 'I answered the rubric question, continue the setup',
     confirm_rubric: 'I confirmed the rubric, continue the setup',
   };
+  if (String(actionType).startsWith('request_stage0_keywords:')) return `add ${actionType.split(':')[1]} keywords to the filter`;
   return phrases[actionType] || 'I confirmed the latest card, continue the setup';
 }
 function onboardingTags(values, key, editable = true) {
@@ -1027,11 +1035,13 @@ function rubricCard(state) {
   const ready = bridgeReady(state);
   const stage0 = cards.stage0 || {};
   if (phase === 'stage0') {
+    const writing = (state.cards?.stage0?.pending_languages || []).map(languageLabel);
+    if (!ready && writing.length) return onboardingPendingCard('Code-based filter', `Writing your ${writing.join(' and ')} keywords…`, 'request_stage0_keywords:' + writing.join(' and '));
     if (!ready) return onboardingPendingCard('Code-based filter', 'Preparing your code-based filter…', 'confirm_stage0');
     const stage0Keywords = onboardingDraft.tier1;
     const stage0Languages = onboardingDraft.languages;
     const stage0Excludes = onboardingDraft.exclude_keywords;
-    return `<div class="onboarding-card"><h3>Code-based filter</h3><p>Review the first screen before LLM judgment. Matching keywords, readable languages, and excluded words are applied here.</p><div class="onboarding-field"><label>Keywords to match</label>${onboardingKeywordsByLanguage(stage0Keywords, stage0Languages)}</div><div class="onboarding-field"><label>Languages you use</label>${onboardingTags(stage0Languages, 'languages', true)}</div><div class="onboarding-field"><label>Words to exclude</label>${onboardingTags(stage0Excludes, 'exclude_keywords', true)}</div><div class="onboarding-actions onboarding-confirm-actions"><button class="primary" type="button" data-confirm-stage0>Confirm filter</button></div></div>`;
+    return `<div class="onboarding-card"><h3>Code-based filter</h3><p>Review the first screen before LLM judgment. Matching keywords, readable languages, and excluded words are applied here.</p><div class="onboarding-field"><label>Languages you read postings in</label>${onboardingTags(stage0Languages, 'languages', true)}</div><div class="onboarding-field"><label>Keywords to match — one list for each language</label>${onboardingKeywordsByLanguage(stage0Keywords, stage0Languages)}</div><div class="onboarding-field"><label>Words to exclude</label>${onboardingTags(stage0Excludes, 'exclude_keywords', true)}</div><div class="onboarding-actions onboarding-confirm-actions"><button class="primary" type="button" data-confirm-stage0>Confirm filter</button></div></div>`;
   }
   const questions = state.rubric_questions || [];
   const currentIndex = questions.findIndex(question => !String(question.answer || '').trim());
@@ -1165,17 +1175,69 @@ async function submitOnboardingAction(button, type, payload = {}) {
     alert(error.message || 'Could not send this decision to the setup chat.');
   }
 }
-// The proposed keywords, one row per language the candidate reads, so it is
-// plain that each language has its own. Each pill keeps its place in the
-// one list underneath, which is what removing and confirming work on.
+// The proposed keywords, one list per language the candidate reads, each
+// with its own box to add to. A keyword with no language recorded shows
+// under the first. Each pill keeps its place in the one list underneath,
+// which is what removing and confirming work on. A language with no
+// keywords offers to have the setup agent write them.
+let onboardingKeywordAsked = {};  // language -> when the agent was asked, or an error to show
 function onboardingKeywordsByLanguage(keywords, languages) {
   const marked = onboardingDraft.keyword_language || {};
-  if (!Object.keys(marked).length || (languages || []).length < 2) return onboardingTags(keywords, 'tier1', true);
-  const rows = languages.map(code => ({code, items: []}));
-  (keywords || []).forEach((k, i) => (rows.find(r => r.code === marked[k]) || rows[0]).items.push([k, i]));
-  const groups = rows.map(r => `<div class="onboarding-kw-group"><span class="onboarding-kw-lang">${esc(languageLabel(r.code))}</span><div class="onboarding-pills">${r.items.map(([k, i]) =>
-    `<span class="onboarding-pill">${esc(k)} <button type="button" data-remove="tier1" data-index="${i}" aria-label="Remove ${esc(k)}">×</button></span>`).join('') || '<span class="onboarding-source-note" style="margin:0">None yet</span>'}</div></div>`).join('');
-  return `<div class="onboarding-editor" data-onboarding-editor="tier1">${groups}<div class="onboarding-add-row"><div class="onboarding-input-wrap"><input type="text" data-onboarding-input="tier1" placeholder="Add a keyword" autocomplete="off"></div><button type="button" data-onboarding-add="tier1">Add</button></div></div>`;
+  const codes = (languages || []).length ? languages : ['en'];
+  const rows = codes.map(code => ({code, items: []}));
+  (keywords || []).forEach((k, i) => {
+    const row = marked[k] ? rows.find(r => r.code === marked[k]) : rows[0];  // of a language taken off the list: kept, not shown
+    if (row) row.items.push([k, i]);
+  });
+  const waiting = (onboardingState?.cards?.stage0?.pending_languages) || [];
+  const any = rows.some(r => r.items.length);
+  return `<div class="onboarding-kw-groups">${rows.map(r => {
+    const name = esc(languageLabel(r.code));
+    const asked = onboardingKeywordAsked[r.code];
+    let offer = '';
+    if (!r.items.length && any) {
+      if (waiting.includes(r.code)) {
+        const late = typeof asked !== 'number' || Date.now() - asked > 10000;
+        offer = `<p class="onboarding-pending-label"><span class="onboarding-spinner"></span><span>Your setup agent is writing the ${name} keywords</span></p>${late ? `<p class="onboarding-source-note">No reaction? Type this in the setup chat: <b>add ${name} keywords to the filter</b></p>` : ''}`;
+      } else {
+        offer = `<p class="onboarding-source-note">No ${name} keywords yet, so every posting written in ${name} would be dropped. <button type="button" class="link-btn pass" data-kw-lang-ask="${esc(r.code)}">Add ${name} keywords with my agent</button>${typeof asked === 'string' ? `<br><b>${esc(asked)}</b> Type this in the setup chat instead: <b>add ${name} keywords to the filter</b>` : ''}</p>`;
+      }
+    }
+    return `<div class="onboarding-kw-group"><span class="onboarding-kw-lang">${name}</span><div class="onboarding-kw-body"><div class="onboarding-pills">${r.items.map(([k, i]) =>
+      `<span class="onboarding-pill">${esc(k)} <button type="button" data-remove="tier1" data-index="${i}" aria-label="Remove ${esc(k)}">×</button></span>`).join('')}</div>${offer}
+      <div class="onboarding-add-row"><div class="onboarding-input-wrap"><input type="text" data-kw-lang-input="${esc(r.code)}" placeholder="Add a keyword in ${name}" autocomplete="off"></div><button type="button" data-kw-lang-add="${esc(r.code)}">Add</button></div></div></div>`;
+  }).join('')}</div>`;
+}
+function addOnboardingKeyword(code, raw) {
+  const value = String(raw || '').trim();
+  if (!value) return;
+  const current = [...(onboardingDraft.tier1 || [])];
+  if (!current.some(item => item.toLowerCase() === value.toLowerCase())) current.push(value);
+  onboardingDraft.tier1 = current;
+  onboardingDraft.keyword_language = {...(onboardingDraft.keyword_language || {}), [value]: code};
+  renderOnboarding();
+}
+function bindOnboardingKeywords() {
+  document.querySelectorAll('[data-kw-lang-input]').forEach(input => {
+    input.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addOnboardingKeyword(input.dataset.kwLangInput, input.value); } });
+  });
+  document.querySelectorAll('[data-kw-lang-add]').forEach(button => button.addEventListener('click', () => {
+    addOnboardingKeyword(button.dataset.kwLangAdd, document.querySelector(`[data-kw-lang-input="${button.dataset.kwLangAdd}"]`).value);
+  }));
+  // The setup chat is waiting on this card; the request reaches it the same way Confirm does.
+  document.querySelectorAll('[data-kw-lang-ask]').forEach(button => button.addEventListener('click', async () => {
+    const code = button.dataset.kwLangAsk;
+    button.disabled = true;
+    onboardingKeywordAsked[code] = Date.now();
+    try {
+      await postOnboardingAction('request_stage0_keywords', {language: code, card: {keywords: onboardingDraft.tier1, languages: onboardingDraft.languages,
+        exclude_keywords: onboardingDraft.exclude_keywords, keyword_language: onboardingDraft.keyword_language || {}}});
+      setTimeout(() => { if (document.body.classList.contains('onboarding-active')) renderOnboarding(); }, 10300);  // then say what to type if nothing came
+    } catch (error) {
+      onboardingKeywordAsked[code] = error.message || 'The setup chat is not listening.';
+      renderOnboarding();
+    }
+  }));
 }
 function addOnboardingValue(key, rawValue) {
   let value = String(rawValue || '').trim();
@@ -1198,7 +1260,10 @@ function renderOnboardingLanguageOptions(input) {
   const exactMatch = LANGUAGE_OPTIONS.some(item => item.name.toLowerCase() === query || item.code === query);
   const custom = query && !exactMatch ? `<button type="button" class="onboarding-language-option" data-language-value="${esc(input.value.trim())}" role="option"><span>Use “${esc(input.value.trim())}”</span><span class="code">custom</span></button>` : '';
   options.innerHTML = filtered.map(item => `<button type="button" class="onboarding-language-option" data-language-value="${item.code}" role="option"><span>${esc(item.name)}</span><span class="code">${item.code}</span></button>`).join('') + custom || '<div class="onboarding-language-empty">No matching languages</div>';
-  options.querySelectorAll('[data-language-value]').forEach(option => option.addEventListener('click', () => addOnboardingValue('languages', option.dataset.languageValue)));
+  options.querySelectorAll('[data-language-value]').forEach(option => {
+    option.addEventListener('mousedown', (e) => { e.preventDefault(); addOnboardingValue('languages', option.dataset.languageValue); });  // before the box loses focus and the list closes
+    option.addEventListener('click', () => addOnboardingValue('languages', option.dataset.languageValue));  // keyboard: Enter picks the first
+  });
 }
 let locationSearchTimer = null;
 function locationLabelFromNominatim(item) {
@@ -1266,6 +1331,7 @@ function addOnboardingLocation(raw) {
   renderOnboarding();
 }
 function bindOnboarding() {
+  bindOnboardingKeywords();
   const titleMatch = document.getElementById('profile-title-match');
   if (titleMatch) titleMatch.addEventListener('change', () => { onboardingDraft.title_must_match = titleMatch.checked; });
   const addLocation = document.querySelector('[data-location-add]');

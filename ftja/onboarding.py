@@ -222,6 +222,11 @@ def validate_stage0_draft(card: dict[str, Any]) -> dict[str, list[str]]:
         kept = {str(k): str(v).strip().lower() for k, v in marked.items() if str(k) in keywords and str(v).strip()}
         if kept:
             out["keyword_language"] = kept
+    # languages the user asked the agent to write keywords for, until it has (see request_stage0_keywords)
+    covered = set((out.get("keyword_language") or {}).values())
+    waiting = [code for code in _clean_list(card.get("pending_languages")) if code in languages and code not in covered]
+    if waiting:
+        out["pending_languages"] = waiting
     return out
 
 
@@ -345,7 +350,7 @@ def apply_action(project_dir: str, action: dict[str, Any]) -> dict[str, Any]:
             "keywords": _tier1(stage0),
         }
         profile = {**profile, "titles": titles, "criteria": criteria}
-        state.update(stage="rubric", phase="stage0", allowed_actions=["confirm_stage0"], profile=profile, cards={**cards, "stage0": stage0})
+        state.update(stage="rubric", phase="stage0", allowed_actions=["confirm_stage0", "request_stage0_keywords"], profile=profile, cards={**cards, "stage0": stage0})
     elif kind == "set_stage0_draft":
         _require(state, "rubric", "stage0")
         current = cards.get("stage0") or {}
@@ -355,8 +360,28 @@ def apply_action(project_dir: str, action: dict[str, Any]) -> dict[str, Any]:
             "languages": requested.get("languages", current.get("languages", [])),
             "exclude_keywords": requested.get("exclude_keywords", current.get("exclude_keywords", [])),
             "keyword_language": requested.get("keyword_language", current.get("keyword_language")),
+            "pending_languages": requested.get("pending_languages", current.get("pending_languages")),
         })
-        state.update(cards={**cards, "stage0": stage0}, allowed_actions=["confirm_stage0"])
+        state.update(cards={**cards, "stage0": stage0}, allowed_actions=["confirm_stage0", "request_stage0_keywords"])
+    elif kind == "request_stage0_keywords":
+        # "Add Korean keywords with my agent" on the filter card. The card as
+        # it is on screen comes along, so what the user edited is not lost
+        # when the agent's keywords are written into it.
+        _require(state, "rubric", "stage0")
+        language = str(action.get("language") or "").strip().lower()
+        current = cards.get("stage0") or {}
+        sent = action.get("card") if isinstance(action.get("card"), dict) else {}
+        languages = _clean_list(sent.get("languages", current.get("languages", [])))
+        if not language or language not in languages:
+            raise OnboardingError("add the language to the languages you use first")
+        stage0 = validate_stage0_draft({
+            "keywords": sent.get("keywords", current.get("keywords", [])),
+            "languages": languages,
+            "exclude_keywords": sent.get("exclude_keywords", current.get("exclude_keywords", [])),
+            "keyword_language": sent.get("keyword_language", current.get("keyword_language")),
+            "pending_languages": [*(current.get("pending_languages") or []), language],
+        })
+        state.update(cards={**cards, "stage0": stage0}, allowed_actions=["confirm_stage0", "request_stage0_keywords"])
     elif kind == "confirm_stage0":
         _require(state, "rubric", "stage0")
         stage0 = validate_stage0_draft({"keywords": action.get("keywords"), "languages": action.get("languages"), "exclude_keywords": action.get("exclude_keywords"),
