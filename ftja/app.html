@@ -395,6 +395,10 @@ dialog.s1-dialog::backdrop { background: rgba(29, 27, 25, .38); }
 .rc-line textarea:focus { border-color: var(--accent); outline: none; }
 .rc-line [data-rc-remove] { padding-top: 9px; flex: none; }
 .rc-kind .rc-list { padding-top: 8px; }
+.rc-stage { margin-top: 18px; }
+.rc-stage:first-child { margin-top: 6px; }
+.rc-stage-label { display: inline-block; font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; font-weight: 600; color: var(--on-accent); background: var(--accent-strong); padding: 3px 9px; border-radius: 2px 2px 0 0; }
+.rc-stage-box { border: 1px solid var(--accent-border); border-radius: 0 3px 3px 3px; padding: 14px 16px 10px; }
 .rc-kind-row { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 .rc-kind-row .rc-kind-intro { padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; text-transform: none; letter-spacing: 0; font-size: 12px; color: var(--text3); }
 .rc-body { padding: 2px 0 14px; }
@@ -1064,12 +1068,12 @@ function rubricCard(state) {
   if (phase === 'rubric_review') {
     if (!ready) return onboardingPendingCard('Your judgment rubric', 'Drafting your judgment rubric…', 'confirm_rubric');
     const draft = state.rubric_criteria_draft || {criteria: [], notes: {}};
-    const sections = RUBRIC_KINDS.map(([kind, title, intro]) => `
+    const sections = rubricByStage(([kind, title, intro]) => `
       <div class="rc-kind" data-kind="${kind}">
         ${rubricKindHeadHtml(title, intro)}
         <div class="rc-list">${draft.criteria.filter(c => c.kind === kind).map(c => rubricItemHtml(c, draft.criteria)).join('')}</div>
         <button class="text-btn rc-add" type="button" data-rc-add="${kind}">Add a criterion</button>
-      </div>`).join('');
+      </div>`);
     return `<div class="onboarding-card"><h3>Confirm your judgment rubric</h3><p>Built from your three answers. Edit any line, remove it, or press Enter to add one.</p><div id="onboarding-rubric">${sections}</div><div class="onboarding-actions onboarding-confirm-actions"><button class="primary" type="button" data-confirm-rubric>Confirm rubric and open Pipeline</button></div></div>`;
   }
   return onboardingPendingCard('Judgment rubric', 'Getting the next step ready…');
@@ -2517,6 +2521,13 @@ function rubricItemHtml(c, all) {
         <button class="text-btn" type="button" data-rc-remove title="Remove this criterion">Remove</button></div>
     </div>`;
 }
+// Pass and Fail are what Stage1 and Stage2 both judge by; Preferences are
+// read by Stage2 alone. The two groups are drawn apart and labelled so.
+function rubricByStage(sectionHtml) {
+  const of = kinds => RUBRIC_KINDS.filter(([kind]) => kinds.includes(kind)).map(sectionHtml).join('');
+  return `<div class="rc-stage"><div class="rc-stage-label">Stage1 &amp; Stage2</div><div class="rc-stage-box">${of(['pass', 'fail'])}</div></div>
+    <div class="rc-stage"><div class="rc-stage-label">Stage2 only</div><div class="rc-stage-box">${of(['preference'])}</div></div>`;
+}
 function rubricKindHeadHtml(title, intro) {
   return `<div class="rc-kind-head rc-kind-row"><span>${title}</span><span class="rc-kind-intro">${intro}</span></div>`;
 }
@@ -2567,7 +2578,7 @@ function rubricEditorHtml() {
   const stale = pipelineConfig.rubric_criteria_status === 'stale'
     ? `<div class="rc-warn">rubric.md was edited as text after this list was made. The next /ftja-run rebuilds the list from the text; saving the list here replaces the text instead.</div>` : '';
   const notes = data.notes || {};
-  const sections = RUBRIC_KINDS.map(([kind, title, intro]) => `
+  const sections = rubricByStage(([kind, title, intro]) => `
     <div class="rc-kind" data-kind="${kind}">
       ${rubricKindHeadHtml(title, intro)}
       <div class="rc-list">${data.criteria.filter(c => c.kind === kind).map(c => rubricItemHtml(c, data.criteria)).join('')}</div>
@@ -2575,7 +2586,7 @@ function rubricEditorHtml() {
       <details class="fold"><summary>Notes for this section</summary>
         <div class="rc-body"><textarea data-rc-notes="${kind}" rows="4">${esc(notes[kind] || '')}</textarea></div>
       </details>
-    </div>`).join('');
+    </div>`);
   return `${stale}${sections}
     <div class="save-row"><button class="save-btn" id="save-rubric-criteria">Save rubric</button><span class="saved-note mono">Saved</span></div>
     <details class="fold" style="margin-top:18px;"><summary>Edit as plain text</summary><div class="rc-body">
