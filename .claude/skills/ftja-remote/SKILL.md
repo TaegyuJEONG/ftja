@@ -58,6 +58,8 @@ you stop, so the page does not wait for you.
   (ISO codes; empty means any, then use English plus the main language of
   where they live). Keywords are written in **each** of these languages.
 - `venv/bin/python -m ftja.remote show`: the current setup. If `saved` is
+  false, what it prints is the general built-in setup: use it as a list of
+  ideas and write a fresh one. If `saved` is
   true the user already has one: keep every category you do not recognise
   as one of the five below (they added it), and keep the `id` of every
   category and answer that still exists, even if you reword it.
@@ -134,8 +136,10 @@ with none of them is dropped without a model call. So:
   not `gathering`; `distributed team`, not `distributed`; never `global`,
   `country`, `location`, `office` or `work` alone. An all-capitals keyword
   (EU, WFH, CET) matches only in capitals.
-- Put each keyword in the category it informs. A keyword of any category
-  gets the posting read.
+- Put each keyword in the one category it informs most (listing it twice
+  changes nothing). A keyword of any category gets the posting read.
+- Keep keywords that matched nothing in the measurement below: a small
+  scrape says little about a rare phrase.
 
 **Guidance.** Two or three sentences the model reads above the questions:
 that it judges the role and not the company, what does not count as an
