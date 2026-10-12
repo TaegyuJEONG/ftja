@@ -67,7 +67,16 @@ for the same things the existing keywords catch.
   à"; "prototype", "prototypes", "prototypage").
 - Prefer a phrase when a single word has an everyday meaning in that
   language. An all-capitals keyword (EU, MVP) matches only in capitals.
-- No place names (countries, cities, regions).
+- Add no place names (countries, cities, regions). If the user's own list
+  has some, leave their equivalents out too; that list is theirs to edit.
+- The existing keywords keep working on postings in the new language:
+  matching does not depend on the posting's language. So a word that
+  language's postings use unchanged ("remote", "onboarding", "visa", an
+  abbreviation like CET) needs no new entry. Add what is *different* in
+  that language.
+- A keyword the other list already has in this language (the Remote
+  check's French keywords, when you write Stage 1's) can be reused where
+  it fits.
 - Cover every existing keyword's idea, not just the first few. A list a
   third the size of the original is usually missing things.
 - For a `remote` item, also say which category each keyword belongs to
@@ -99,7 +108,9 @@ go through; they are added to the lists when the user confirms there.
 Tell the user, in their language and in two or three lines: which lists
 and languages you wrote keywords for, how many each, that the web view has
 opened them to confirm (Pipeline tab if their web view is closed), and
-that their existing keywords are untouched.
+that their existing keywords are untouched. If `gaps` showed other
+languages or lists still without keywords that this request did not cover,
+name them and say they can ask for those the same way.
 
 If you were called from `/ftja-run`'s wait (`{"status": "keywords"}`), go
 back to that wait afterwards.
