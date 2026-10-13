@@ -50,7 +50,7 @@ class ConfirmTests(unittest.TestCase):
         self.assertTrue(path.exists())
         self.assertEqual(criteria_status(str(path), str(self.root / "rubric.md")), "ok")
         self.assertEqual(len(load_criteria(str(path))["criteria"]), 3)
-        self.assertIn("Builds AI products", (self.root / "rubric.md").read_text())
+        self.assertIn("Builds AI products", (self.root / "rubric.md").read_text(encoding="utf-8"))
         self.assertEqual(read_state(str(self.root))["stage"], "run")
 
     def test_a_list_with_nothing_that_can_pass_is_rejected(self):
@@ -59,7 +59,7 @@ class ConfirmTests(unittest.TestCase):
 
     def test_the_text_only_path_still_works(self):
         self.confirm(rubric_md="# Rubric\n\nPass everything.")
-        self.assertEqual((self.root / "rubric.md").read_text(), "# Rubric\n\nPass everything.")
+        self.assertEqual((self.root / "rubric.md").read_text(encoding="utf-8"), "# Rubric\n\nPass everything.")
 
 
 if __name__ == "__main__":

@@ -12,7 +12,7 @@ from ftja.state import connect, is_seen, record_criterion_feedback, update_decis
 def a_run(project, db, run_id, urls):
     """A finished run that judged `urls`, with its working directory."""
     os.makedirs(os.path.join(project, ".ftja-run", runs_store.run_stamp(run_id)))
-    open(os.path.join(project, ".ftja-run", runs_store.run_stamp(run_id), "done.json"), "w").write("{}")
+    open(os.path.join(project, ".ftja-run", runs_store.run_stamp(run_id), "done.json"), "w", encoding="utf-8").write("{}")
     results = [{"job_url": u, "title": "PM", "company": "Acme", "status": "stage1_fail", "stage_reached": 1,
                 "reasoning": "Hybrid."} for u in urls]
     finalize(results, db_path=db, out_dir=project, stats={"ts_start": run_id})
@@ -21,7 +21,7 @@ def a_run(project, db, run_id, urls):
 @pytest.fixture
 def project(tmp_path):
     root = str(tmp_path)
-    open(os.path.join(root, "rubric.md"), "w").write("## Pass\nremote\n")
+    open(os.path.join(root, "rubric.md"), "w", encoding="utf-8").write("## Pass\nremote\n")
     return root, os.path.join(root, "seen.db")
 
 

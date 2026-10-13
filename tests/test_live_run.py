@@ -65,7 +65,7 @@ def test_a_run_from_start_to_finish_as_the_viewer_sees_it(project, capsys):
     assert found_by == {"https://x/1": ["Product Builder"], "https://x/2": ["Product Builder", "Product Manager"]}  # which searches returned each job
 
     assert live.prepare_stage1(run_dir, project)["jobs"] == 2
-    prompt = open(os.path.join(run_dir, "s1", "0.txt")).read()
+    prompt = open(os.path.join(run_dir, "s1", "0.txt"), encoding="utf-8").read()
     assert "TITLE: Product Builder | COMPANY: Alpha" in prompt and "[T1] You will prototype" in prompt
     assert "## Pass" in prompt and "{blocks}" not in prompt and "Used by `/ftja-run`" not in prompt
     assert live.state(project)["stage1"] == {"total": 2, "pass": 0, "fail": 0, "pending": 2}
@@ -76,9 +76,9 @@ def test_a_run_from_start_to_finish_as_the_viewer_sees_it(project, capsys):
     sid = next(b["s_id"] for b in live._read_json(os.path.join(run_dir, "s1", "manifest.json"))[1]["blocks"] if b["matched"])
     sid0 = next(b["s_id"] for b in live._read_json(os.path.join(run_dir, "s1", "manifest.json"))[0]["blocks"] if b["matched"])
     # a pass that cites nothing is not usable: the job is rerun, not counted as passed
-    open(os.path.join(run_dir, "s1", "0.out.json"), "w").write('{"verdict": "pass", "evidence_sids": []}')
+    open(os.path.join(run_dir, "s1", "0.out.json"), "w", encoding="utf-8").write('{"verdict": "pass", "evidence_sids": []}')
     assert live.check_stage1(run_dir)["rerun"][0] == ["a pass with no evidence sentence"]
-    open(os.path.join(run_dir, "s1", "0.out.json"), "w").write(
+    open(os.path.join(run_dir, "s1", "0.out.json"), "w", encoding="utf-8").write(
         '```json\n{"verdict": "pass", "evidence_sids": ["%s"], "reason": "Builds it.", "blocks": [{"sid": "%s", "why": "Builds"}]}\n```' % (sid0, sid0))
     live._write_json(os.path.join(run_dir, "s1", "1.out.json"),
                      {"verdict": "fail", "evidence_sids": [sid], "reason": "Engineers do the prototyping.",
@@ -103,7 +103,7 @@ def test_a_run_from_start_to_finish_as_the_viewer_sees_it(project, capsys):
     os.rename(os.path.join(run_dir, "s1", "1.out.json.keep"), os.path.join(run_dir, "s1", "1.out.json"))
     done = live.prepare_stage2(run_dir, project)  # nothing is renumbered or repeated
     assert (done["jobs"], done["new"]) == (1, [])
-    prompt = open(os.path.join(run_dir, "s2", "0.txt")).read()
+    prompt = open(os.path.join(run_dir, "s2", "0.txt"), encoding="utf-8").read()
     assert "- builds (pass) Builds personally: Builds it personally." in prompt and BUILD in prompt
     assert f"Read `{os.path.join(run_dir, 'rubric.md')}`" in prompt  # the run's own copy of the rubric
     state = live.state(project)
@@ -145,7 +145,7 @@ def test_a_run_from_start_to_finish_as_the_viewer_sees_it(project, capsys):
     assert any(b["matched"] for b in json.loads(kept[0])) and kept[1] == "Builds it."
     assert rows["Alpha"][0] == "passed" and [c["id"] for c in json.loads(rows["Alpha"][2])] == ["builds", "intern"]
     assert rows["Beta"][:2] == ("stage1_fail", "Engineers do the prototyping.")
-    record = json.loads(open(os.path.join(project, "runs.jsonl")).read())
+    record = json.loads(open(os.path.join(project, "runs.jsonl"), encoding="utf-8").read())
     assert record["run_id"] == run["run_id"] and record["total_tokens"] == 1234 and record["duration_seconds"] >= 0
     assert record["scraped_count"] == 3 and record["scraped_by_term"][0] == {"term": "Product Builder", "location": "", "count": 2}
     with connect(db) as conn:  # the same posting under a second URL, and a job from before reasons existed
@@ -194,7 +194,7 @@ def test_replay_writes_nothing_to_the_run_history(project, monkeypatch):
         definitions=[{"id": "builds", "kind": "pass", "label": "Builds personally"}],
         descriptions={"https://x/1": BUILD})
     release(os.path.join(project, ".ftja.lock"))  # a replay needs no lock
-    history = open(os.path.join(project, "runs.jsonl")).read()
+    history = open(os.path.join(project, "runs.jsonl"), encoding="utf-8").read()
 
     seen = {}
     real_write = live._write_json
@@ -211,7 +211,7 @@ def test_replay_writes_nothing_to_the_run_history(project, monkeypatch):
     assert state["scrape"]["total"] == 40 and state["stage1"] == {"total": 2, "pass": 1, "fail": 1, "pending": 0}
     assert state["jobs"][0]["status"] == "passed" and state["jobs"][0]["criteria"][0]["quote"] == BUILD
     assert os.path.exists(os.path.join(run_dir, "done.json")) and live.state(project) is None
-    assert open(os.path.join(project, "runs.jsonl")).read() == history
+    assert open(os.path.join(project, "runs.jsonl"), encoding="utf-8").read() == history
 
     live.replay(project, db, seconds=1, per_term=10)  # a shorter sample of the same run
     sample = seen["state"]
@@ -261,8 +261,8 @@ def _finalize(run_dir, db, project, capsys):
 
 def test_a_run_can_stop_after_stage1_and_be_continued_later(project, capsys):
     db = os.path.join(project, "seen.db")
-    criteria = json.load(open(os.path.join(project, "criteria.json")))
-    json.dump({**criteria, "stage1_only": True}, open(os.path.join(project, "criteria.json"), "w"))
+    criteria = json.load(open(os.path.join(project, "criteria.json"), encoding="utf-8"))
+    json.dump({**criteria, "stage1_only": True}, open(os.path.join(project, "criteria.json"), "w", encoding="utf-8"))
 
     run = live.start(project)
     run_dir = run["run_dir"]
@@ -346,10 +346,10 @@ def test_the_continue_button_reaches_a_waiting_session_and_only_a_waiting_one(tm
 
 
 def test_every_search_term_is_searched_in_every_location(project, monkeypatch):
-    criteria = json.load(open(os.path.join(project, "criteria.json")))
+    criteria = json.load(open(os.path.join(project, "criteria.json"), encoding="utf-8"))
     criteria.update(search_terms=["Product Manager", "Product Owner", "Product Lead"],
                     locations=["France", "Germany", "Switzerland"], location="ignored when there is a list")
-    json.dump(criteria, open(os.path.join(project, "criteria.json"), "w"))
+    json.dump(criteria, open(os.path.join(project, "criteria.json"), "w", encoding="utf-8"))
 
     run = live.start(project)
     run_dir = run["run_dir"]

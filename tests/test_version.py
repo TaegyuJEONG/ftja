@@ -5,7 +5,7 @@ from ftja import version
 
 
 def setup(tmp_path, local="0.2.0"):
-    (tmp_path / "VERSION").write_text(local + "\n")
+    (tmp_path / "VERSION").write_text(local + "\n", encoding="utf-8")
     return str(tmp_path)
 
 
@@ -34,7 +34,7 @@ def test_offline_or_disabled_never_reports_an_update(tmp_path, monkeypatch):
     assert version.check(root, root) == {"current": "0.2.0", "latest": None, "update_available": False}
 
     # offline now, but an old answer is on disk: use it rather than nothing
-    (tmp_path / version.CACHE_FILE).write_text(json.dumps({"checked_at": time.time() - 10 ** 6, "latest": "0.5.0"}))
+    (tmp_path / version.CACHE_FILE).write_text(json.dumps({"checked_at": time.time() - 10 ** 6, "latest": "0.5.0"}), encoding="utf-8")
     assert version.check(root, root)["latest"] == "0.5.0"
 
     monkeypatch.setenv("FTJA_NO_UPDATE_CHECK", "1")
@@ -44,13 +44,13 @@ def test_offline_or_disabled_never_reports_an_update(tmp_path, monkeypatch):
 
 def test_changes_since_returns_only_newer_sections(tmp_path):
     root = setup(tmp_path)
-    (tmp_path / "CHANGELOG.md").write_text("# Changelog\n\nintro\n\n## 0.3.0 — today\n\nthree\n\n## 0.2.0\n\ntwo\n\n## 0.1.0\n\none\n")
+    (tmp_path / "CHANGELOG.md").write_text("# Changelog\n\nintro\n\n## 0.3.0 — today\n\nthree\n\n## 0.2.0\n\ntwo\n\n## 0.1.0\n\none\n", encoding="utf-8")
     assert version.changes_since("0.1.0", root) == "## 0.3.0 — today\n\nthree\n\n## 0.2.0\n\ntwo"
     assert version.changes_since("0.3.0", root) == ""
 
 
 def test_repository_changelog_covers_the_repository_version():
-    assert f"## {version.local_version()}" in open(version.REPO_ROOT + "/CHANGELOG.md").read()
+    assert f"## {version.local_version()}" in open(version.REPO_ROOT + "/CHANGELOG.md", encoding="utf-8").read()
 
 
 def test_the_command_line_check_never_answers_from_the_cache(tmp_path, monkeypatch, capsys):

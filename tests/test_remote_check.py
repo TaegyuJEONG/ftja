@@ -55,9 +55,9 @@ def project(tmp_path, monkeypatch):
 
 def set_stages(project, **stages):
     path = os.path.join(project, "criteria.json")
-    criteria = json.load(open(path))
+    criteria = json.load(open(path, encoding="utf-8"))
     criteria["stages"] = stages
-    json.dump(criteria, open(path, "w"))
+    json.dump(criteria, open(path, "w", encoding="utf-8"))
 
 
 def scrape(run_dir, jobs=JOBS):
@@ -272,7 +272,7 @@ def test_a_run_with_the_remote_check_before_stage1_and_stage2(project, capsys):
         live.prepare_stage1(run_dir, project)  # the Remote check comes first
     prepared = live.prepare_remote(run_dir, project)
     assert (prepared["jobs"], prepared["without_remote_keywords"]) == (2, 0)
-    assert "[K] This role is fully remote within the EU." in open(os.path.join(run_dir, "rc", "0.txt")).read()
+    assert "[K] This role is fully remote within the EU." in open(os.path.join(run_dir, "rc", "0.txt"), encoding="utf-8").read()
     assert live.state(project)["remote"] == {"total": 2, "pass": 0, "fail": 0, "pending": 2}
     assert live.check_remote(run_dir)["rerun"] == {0: ["no usable answer file"], 1: ["no usable answer file"]}
     with pytest.raises(SystemExit):
@@ -314,7 +314,7 @@ def test_a_run_with_the_remote_check_before_stage1_and_stage2(project, capsys):
     assert (record["remote_pass"], record["remote_fail"], record["stage1_pass"], record["stage1_fail"],
             record["stage2_pass"], record["stage2_pending"]) == (1, 1, 1, 0, 1, 0)
     assert record["stages"] == ["remote", "stage1", "stage2"] and record["stopped_after"] is None
-    assert "failed at the Remote check" in open(os.path.join(project, "rejected-" + live.run_dir_for(project, run["run_id"]).split("/")[-1] + ".md")).read()
+    assert "failed at the Remote check" in open(os.path.join(project, "rejected-" + os.path.basename(live.run_dir_for(project, run["run_id"])) + ".md"), encoding="utf-8").read()
 
     after = live.remote_jobs(project, db, run["run_id"])  # now from seen.db
     assert after["total"] == 1 and after["jobs"][0]["reason"].startswith("Remote level: Hybrid") and after["jobs"][0]["decided_by"] == "rule"
@@ -346,7 +346,7 @@ def test_a_remote_only_run_stops_and_can_go_on_to_stage1_then_stage2(project, ca
     assert (record["stages"], record["stopped_after"], record["stage2_pending"], record["remote_pass"]) == (["remote"], "remote", 2, 2)
     with connect(db) as conn:
         assert dict(conn.execute("SELECT status, COUNT(*) FROM seen_jobs GROUP BY status")) == {"remote_fail": 1, "remote_pass": 2}
-    digest = open(os.path.join(project, "digest-" + os.path.basename(run_dir) + ".md")).read()
+    digest = open(os.path.join(project, "digest-" + os.path.basename(run_dir) + ".md"), encoding="utf-8").read()
     assert "# Passed the Remote check (2)" in digest and "- Remote level: Fully remote — Remote within the EU" in digest
     assert "  > This role is fully remote within the EU." in digest  # each answer with the sentence it rests on
 
@@ -455,9 +455,9 @@ def test_the_page_asks_for_a_draft_and_the_draft_becomes_the_setup_only_when_con
         "residence": "Lyon, France", "work_countries": "France, EU", "time_zone": "CET", "work_permit": "France only"}
 
     remote.set_request_status(root, "generating")
-    stale = json.load(open(os.path.join(root, remote.REQUEST_FILE)))
+    stale = json.load(open(os.path.join(root, remote.REQUEST_FILE), encoding="utf-8"))
     stale["began_at"] -= remote.GENERATING_STALE_SECONDS + 1
-    json.dump(stale, open(os.path.join(root, remote.REQUEST_FILE), "w"))
+    json.dump(stale, open(os.path.join(root, remote.REQUEST_FILE), "w", encoding="utf-8"))
     assert remote.read_request(root)["status"] == "failed"  # the session died: the spinner does not turn forever
 
     remote.discard_draft(root)
