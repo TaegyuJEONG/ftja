@@ -349,20 +349,20 @@ def main():
                     help="optional path for the jobs dropped by the language-requirement rule, with evidence")
     args = ap.parse_args()
 
-    with open(args.jobs) as f:
+    with open(args.jobs, encoding="utf-8-sig") as f:
         jobs = json.load(f)
-    with open(args.criteria) as f:
+    with open(args.criteria, encoding="utf-8-sig") as f:
         criteria = json.load(f)
 
     dropped_jobs: list[dict] = []
     passed, dropped = filter_stage0(jobs, criteria, dropped_jobs)
     if args.dropped_out:
-        with open(args.dropped_out, "w") as f:
+        with open(args.dropped_out, "w", encoding="utf-8") as f:
             json.dump(dropped_jobs, f, ensure_ascii=False, indent=2)
 
     out = json.dumps(passed, ensure_ascii=False, indent=2)
     if args.out:
-        with open(args.out, "w") as f:
+        with open(args.out, "w", encoding="utf-8") as f:
             f.write(out)
     else:
         print(out)

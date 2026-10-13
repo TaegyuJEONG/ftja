@@ -43,6 +43,7 @@ import time
 from datetime import datetime, timezone
 
 from ftja import remote as remote_check
+from ftja import osutil
 from ftja.lock import is_locked
 from ftja.state import connect, is_seen
 from ftja.verdict import (DEFAULT_CRITERIA_PATH, STATUS_FOR_VERDICT, clean_extras, judge, load_criteria,
@@ -65,7 +66,7 @@ REPLAY_STALE_SECONDS = 120
 def _read_json(path: str, default=None):
     """Missing, empty or half-written (a subagent is mid-write) all read as `default`."""
     try:
-        with open(path) as f:
+        with open(path, encoding="utf-8-sig") as f:
             return json.load(f)
     except (OSError, json.JSONDecodeError):
         return default
@@ -75,9 +76,9 @@ def _write_json(path: str, value):
     """Write-then-rename, so a poll never reads half a file."""
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     tmp = f"{path}.tmp"
-    with open(tmp, "w") as f:
+    with open(tmp, "w", encoding="utf-8") as f:
         json.dump(value, f, ensure_ascii=False, indent=2)
-    os.replace(tmp, path)
+    osutil.replace(tmp, path)
 
 
 def _mtime(path: str) -> float:
@@ -92,7 +93,7 @@ def _mtime(path: str) -> float:
 def _read_answer(path: str) -> dict | None:
     """A subagent's output file. Tolerates a ```json fence around the object."""
     try:
-        with open(path) as f:
+        with open(path, encoding="utf-8-sig") as f:
             text = f.read().strip()
     except OSError:
         return None
@@ -106,7 +107,7 @@ def _read_answer(path: str) -> dict | None:
 
 def _template(path: str) -> str:
     """A prompt file's text after its `---` line (above it are notes for people)."""
-    with open(path) as f:
+    with open(path, encoding="utf-8-sig") as f:
         text = f.read()
     return text.split("\n---\n", 1)[-1].strip()
 
@@ -261,7 +262,7 @@ def stage0(run_dir: str, project_dir: str = ".", db_path: str = "seen.db") -> di
 
 def _rubric_excerpt(rubric_path: str) -> str:
     """rubric.md's Pass and Fail sections — all Stage 1 gets to see of the rubric."""
-    with open(rubric_path) as f:
+    with open(rubric_path, encoding="utf-8-sig") as f:
         text = f.read()
     sections = re.split(r"(?m)^(?=## )", text)
     wanted = [s.strip() for s in sections if re.match(r"## +(pass|fail)\b", s, re.I)]
@@ -328,7 +329,7 @@ def prepare_remote(run_dir: str, project_dir: str = ".") -> dict:
                  "blocks": [{"s_id": b["s_id"], "sentence": b["sentence"], "matched": bool(b.get("matched")),
                              "keywords": b.get("matched_keywords") or []} for b in blocks]}
         if blocks:
-            with open(os.path.join(run_dir, "rc", f"{n}.txt"), "w") as f:
+            with open(os.path.join(run_dir, "rc", f"{n}.txt"), "w", encoding="utf-8") as f:
                 f.write(remote_check.render_prompt(template, config, job, blocks))
         else:
             entry["auto"] = True
@@ -415,7 +416,7 @@ def prepare_stage1(run_dir: str, project_dir: str = ".") -> dict:
         prompt = (template.replace("{rubric_pass_fail_excerpt}", excerpt)
                   .replace("{title}", str(job.get("title") or "")).replace("{company}", str(job.get("company") or ""))
                   .replace("{blocks}", rendered))
-        with open(os.path.join(run_dir, "s1", f"{n}.txt"), "w") as f:
+        with open(os.path.join(run_dir, "s1", f"{n}.txt"), "w", encoding="utf-8") as f:
             f.write(prompt)
         manifest.append(entry)
     _write_json(os.path.join(run_dir, "s1", "manifest.json"), manifest)
@@ -514,7 +515,7 @@ def record_tokens(run_dir: str, tokens: int, label: str = "") -> dict:
     """One subagent call's `usage.subagent_tokens`, appended as it arrives so
     the run's total is a sum of what was recorded, not a number someone
     has to add up and remember at the end."""
-    with open(os.path.join(run_dir, "tokens.jsonl"), "a") as f:
+    with open(os.path.join(run_dir, "tokens.jsonl"), "a", encoding="utf-8") as f:
         f.write(json.dumps({"tokens": int(tokens), "label": label, "at": time.time()}) + "\n")
     return {"recorded": int(tokens), "total": tokens_total(run_dir)}
 
@@ -522,7 +523,7 @@ def record_tokens(run_dir: str, tokens: int, label: str = "") -> dict:
 def tokens_total(run_dir: str) -> int:
     total = 0
     try:
-        with open(os.path.join(run_dir, "tokens.jsonl")) as f:
+        with open(os.path.join(run_dir, "tokens.jsonl"), encoding="utf-8-sig") as f:
             for line in f:
                 try:
                     total += int(json.loads(line).get("tokens") or 0)
@@ -566,7 +567,7 @@ def prepare_stage2(run_dir: str, project_dir: str = ".", partial: bool = False) 
         new.append(n)
         prompt = (template.replace("{title}", str(job.get("title") or "")).replace("{company}", str(job.get("company") or ""))
                   .replace("{location}", str(entry.get("location") or job.get("location") or "")).replace("{full_description}", job["description"]))
-        with open(os.path.join(run_dir, "s2", f"{n}.txt"), "w") as f:
+        with open(os.path.join(run_dir, "s2", f"{n}.txt"), "w", encoding="utf-8") as f:
             f.write(prompt)
         manifest.append({"n": n, "s1_n": entry["n"], "job_url": entry["job_url"], "title": entry.get("title"),
                          "company": entry.get("company"), "location": entry.get("location")})

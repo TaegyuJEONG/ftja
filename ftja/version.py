@@ -36,7 +36,7 @@ GIT_TIMEOUT_SECONDS = 20
 
 def local_version(root: str = REPO_ROOT) -> str:
     try:
-        with open(os.path.join(root, "VERSION")) as f:
+        with open(os.path.join(root, "VERSION"), encoding="utf-8-sig") as f:
             return f.read().strip()
     except OSError:
         return "0.0.0"
@@ -97,7 +97,7 @@ def check(project_dir: str = ".", root: str = REPO_ROOT, force: bool = False) ->
     cache_path = os.path.join(project_dir, CACHE_FILE)
     cached = {}
     try:
-        with open(cache_path) as f:
+        with open(cache_path, encoding="utf-8-sig") as f:
             cached = json.load(f)
     except (OSError, json.JSONDecodeError):
         pass
@@ -109,7 +109,7 @@ def check(project_dir: str = ".", root: str = REPO_ROOT, force: bool = False) ->
         latest = (_fetch_latest_with_git(root) if force else None) or _fetch_latest(root)
         if latest is not None:
             try:
-                with open(cache_path, "w") as f:
+                with open(cache_path, "w", encoding="utf-8") as f:
                     json.dump({"checked_at": time.time(), "latest": latest}, f)
             except OSError:
                 pass
@@ -123,7 +123,7 @@ def check(project_dir: str = ".", root: str = REPO_ROOT, force: bool = False) ->
 def changes_since(version: str, root: str = REPO_ROOT) -> str:
     """CHANGELOG.md's sections for every version newer than `version`."""
     try:
-        with open(os.path.join(root, "CHANGELOG.md")) as f:
+        with open(os.path.join(root, "CHANGELOG.md"), encoding="utf-8-sig") as f:
             sections = re.split(r"(?m)^(?=## )", f.read())
     except OSError:
         return ""

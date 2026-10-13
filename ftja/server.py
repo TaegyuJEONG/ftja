@@ -20,15 +20,13 @@ import csv
 import io
 import json
 import os
-import subprocess
-import sys
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
 from ftja.state import connect, record_criterion_feedback, update_decision, VALID_FEEDBACK_VOTES, VALID_USER_ACTIONS
 from ftja.pipeline_view import read_config, write_config, keyword_stats
-from ftja import live, version
+from ftja import live, osutil, version
 from ftja import remote as remote_check
 from ftja import keywords as keyword_languages
 from ftja.verdict import DEFAULT_CRITERIA_PATH, criteria_status, load_criteria, save_criteria
@@ -58,7 +56,7 @@ def _onboarding_state(project_dir: str) -> dict:
     if not os.path.exists(path):
         return {"step": "background", "status": "not_started"}
     try:
-        with open(path) as f:
+        with open(path, encoding="utf-8-sig") as f:
             value = json.load(f)
         return value if isinstance(value, dict) else {"step": "background", "status": "not_started"}
     except (OSError, json.JSONDecodeError):
@@ -67,7 +65,7 @@ def _onboarding_state(project_dir: str) -> dict:
 
 def _write_onboarding_state(project_dir: str, state: dict):
     path = os.path.join(project_dir, ONBOARDING_STATE)
-    with open(path, "w") as f:
+    with open(path, "w", encoding="utf-8") as f:
         json.dump({**state, "updated_at": datetime.now(timezone.utc).isoformat()}, f, ensure_ascii=False, indent=2)
         f.write("\n")
 
@@ -205,19 +203,14 @@ def make_handler(db_path: str, project_dir: str):
             if kind not in {"file", "folder"}:
                 self._send_json(400, {"error": "source kind must be file or folder"})
                 return
-            if sys.platform != "darwin":
-                self._send_json(501, {"error": "native source picking is currently supported on macOS only"})
+            if not osutil.can_pick():
+                self._send_json(501, {"error": "choosing a file here works on macOS and Windows only"})
                 return
-            if kind == "folder":
-                script = 'POSIX path of (choose folder with prompt "Select a source folder")'
-            else:
-                script = 'POSIX path of (choose file with prompt "Select a source file")'
-            result = subprocess.run(["osascript", "-e", script], capture_output=True, text=True)
-            if result.returncode != 0:
+            path = osutil.pick_path(kind)
+            if path is None:
                 self._send_json(204, {})
                 return
-            path = result.stdout.strip()
-            if not path or not os.path.exists(path):
+            if not os.path.exists(path):
                 self._send_json(400, {"error": "the selected source no longer exists"})
                 return
             self._send_json(200, {
@@ -441,14 +434,14 @@ def make_handler(db_path: str, project_dir: str):
                 heard = run_bridge.request_remote(project_dir)
                 self._send_json(200, {"ok": True, **_remote_setup(project_dir), **heard})
             elif self.path == "/api/open-folder":
-                # Opens this viewer's own folder in Finder. The path is never
-                # taken from the request, so nothing else can be opened.
-                if sys.platform != "darwin":
-                    self._send_json(501, {"error": "opening the folder is supported on macOS only"})
-                    return
-                result = subprocess.run(["open", os.path.realpath(project_dir)], capture_output=True, text=True)
-                if result.returncode != 0:
-                    self._send_json(500, {"error": result.stderr.strip() or "the folder could not be opened"})
+                # Opens this viewer's own folder in Finder or Explorer. The path
+                # is never taken from the request, so nothing else can be opened.
+                try:
+                    error = osutil.open_folder(os.path.realpath(project_dir))
+                except OSError as e:
+                    error = str(e)
+                if error:
+                    self._send_json(500, {"error": error})
                     return
                 self._send_json(200, {"ok": True})
             elif self.path in ("/api/delete-run", "/api/restore-run", "/api/empty-trash"):

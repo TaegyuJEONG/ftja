@@ -10,6 +10,8 @@ import time
 from datetime import datetime, timezone
 from typing import Any
 
+from ftja import osutil
+
 STATE_FILE = "onboarding-state.json"
 ACTION_FILE = "onboarding-action.json"
 BRIDGE_FILE = "onboarding-bridge.json"
@@ -445,7 +447,7 @@ def _path(project_dir: str, name: str) -> str:
 
 def read_json(project_dir: str, name: str, fallback: Any) -> Any:
     try:
-        with open(_path(project_dir, name), encoding="utf-8") as f:
+        with open(_path(project_dir, name), encoding="utf-8-sig") as f:
             return json.load(f)
     except (OSError, json.JSONDecodeError):
         return fallback
@@ -459,7 +461,7 @@ def write_json(project_dir: str, name: str, value: Any) -> None:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             json.dump(value, f, ensure_ascii=False, indent=2)
             f.write("\n")
-        os.replace(temp, target)
+        osutil.replace(temp, target)
     finally:
         if os.path.exists(temp):
             os.unlink(temp)
@@ -535,12 +537,7 @@ def bridge_is_ready(project_dir: str) -> bool:
     bridge = read_bridge(project_dir)
     if bridge.get("status") != "listening":
         return False
-    try:
-        pid = int(bridge.get("pid"))
-        os.kill(pid, 0)
-    except (TypeError, ValueError, OSError):
-        return False
-    return True
+    return osutil.pid_alive(bridge.get("pid"))
 
 
 def read_action(project_dir: str) -> dict[str, Any] | None:

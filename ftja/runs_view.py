@@ -8,7 +8,7 @@ def _all_jsonl(path) -> list[dict]:
     if not os.path.exists(path):
         return []
     records = []
-    with open(path) as f:
+    with open(path, encoding="utf-8-sig") as f:
         for line in f:
             line = line.strip()
             if line:

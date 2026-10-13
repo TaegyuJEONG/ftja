@@ -29,6 +29,7 @@ import shutil
 from datetime import datetime, timezone
 
 from ftja.lock import is_locked
+from ftja import osutil
 from ftja.state import PRUNE_AFTER_DAYS, connect, pending_criterion_feedback
 
 RUNS_DIR = ".ftja-run"
@@ -63,17 +64,17 @@ def _read_runs(project_dir: str) -> list[dict]:
     path = os.path.join(project_dir, RUNS_FILE)
     if not os.path.exists(path):
         return []
-    with open(path) as f:
+    with open(path, encoding="utf-8-sig") as f:
         return [json.loads(line) for line in f if line.strip()]
 
 
 def _write_runs(project_dir: str, records: list[dict]):
     path = os.path.join(project_dir, RUNS_FILE)
     tmp = path + ".tmp"
-    with open(tmp, "w") as f:
+    with open(tmp, "w", encoding="utf-8") as f:
         for record in records:
             f.write(json.dumps(record, ensure_ascii=False) + "\n")
-    os.replace(tmp, path)
+    osutil.replace(tmp, path)
 
 
 def _result_files(project_dir: str, run_id: str) -> list[str]:
@@ -154,7 +155,7 @@ def delete_run(project_dir: str, db_path: str, run_id: str) -> dict:
     kept = [r for r in records if r.get("run_id") != run_id]
     record = next((r for r in records if r.get("run_id") == run_id), None)
     # Written before anything is removed: a crash from here on loses nothing.
-    with open(os.path.join(trash, "trash.json"), "w") as f:
+    with open(os.path.join(trash, "trash.json"), "w", encoding="utf-8") as f:
         json.dump({"run_id": run_id, "deleted_at": datetime.now(timezone.utc).isoformat(),
                    "record": record, "rows": rows, "files": preview["files"],
                    "summary": {k: preview[k] for k in ("jobs", "by_status", "decisions", "ts_end")}},
@@ -177,7 +178,7 @@ def delete_run(project_dir: str, db_path: str, run_id: str) -> dict:
 def _trash_entry(project_dir: str, name: str) -> dict | None:
     path = os.path.join(project_dir, TRASH_DIR, name)
     try:
-        with open(os.path.join(path, "trash.json")) as f:
+        with open(os.path.join(path, "trash.json"), encoding="utf-8-sig") as f:
             data = json.load(f)
     except (OSError, json.JSONDecodeError):
         return None
@@ -209,7 +210,7 @@ def restore_run(project_dir: str, db_path: str, name: str) -> dict:
     """Put a deleted run back. A job that a later run has judged since stays
     with that run: its old row is not restored over the newer judgment."""
     path = _trash_path(project_dir, name)
-    with open(os.path.join(path, "trash.json")) as f:
+    with open(os.path.join(path, "trash.json"), encoding="utf-8-sig") as f:
         data = json.load(f)
     run_id, rows = data.get("run_id"), data.get("rows") or []
     restored = skipped = 0
@@ -253,7 +254,7 @@ def empty_trash(project_dir: str = ".", name: str = "") -> dict:
 
 
 def _log(project_dir: str, message: str):
-    with open(os.path.join(project_dir, "run.log"), "a") as f:
+    with open(os.path.join(project_dir, "run.log"), "a", encoding="utf-8") as f:
         f.write(f"[{datetime.now(timezone.utc).isoformat()}] {message}\n")
 
 

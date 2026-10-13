@@ -11,6 +11,9 @@ user pulls. This skill does that pull safely. The user's own files
 `seen.db`, digests, `.ftja-run/`) are ignored by git; an update never
 touches them.
 
+**On Windows**, read every `venv/bin/python` below as `venv\Scripts\python`
+(and `venv/bin/pip` as `venv\Scripts\pip`), and run commands in PowerShell.
+
 ## 1. Where things stand
 
 ```
@@ -55,7 +58,8 @@ venv/bin/pip install -q -r requirements.txt
 ```
 
 The viewer keeps the old code in memory until it restarts. If something is
-listening on port 8765 (`lsof -tiTCP:8765 -sTCP:LISTEN`), stop that process
+listening on port 8765 (`lsof -tiTCP:8765 -sTCP:LISTEN`; Windows:
+`(Get-NetTCPConnection -LocalPort 8765 -State Listen).OwningProcess`), stop that process
 and start it again from this folder (`venv/bin/python -m ftja.server`, in
 the background), then check `http://127.0.0.1:8765/` answers.
 

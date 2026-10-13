@@ -13,7 +13,8 @@ have nothing for it, and every posting in that language is dropped unread.
 Your job is to write that language's keywords from the ones the user
 already has. They confirm them on the page; nothing is added before that.
 
-Every python call uses `venv/bin/python`. Never edit `criteria.json`,
+Every python call uses `venv/bin/python`. **On Windows**, read every `venv/bin/python` as `venv\Scripts\python` (and `venv/bin/pip` as `venv\Scripts\pip`), and run commands in PowerShell. Write the draft files this skill passes with `--file` using your file-writing tool, not PowerShell `>` or `Set-Content`, which do not write plain UTF-8.
+Never edit `criteria.json`,
 `remote-check.json` or `keywords-request.json` by hand.
 
 ## 0. Be in the right folder

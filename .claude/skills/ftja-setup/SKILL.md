@@ -36,15 +36,24 @@ checklist, or start any `wait-for-action` call in this turn.
 4. Create the repository's Python environment (`venv`) and install
    dependencies if they don't already exist, using the repository's own
    commands.
+   **On Windows** the commands are `python -m venv venv` and
+   `venv\Scripts\pip install -r requirements.txt`, and for the rest of this
+   skill every `venv/bin/python` is `venv\Scripts\python`, run in
+   PowerShell. A fresh Windows PC often has neither Git nor Python (a
+   `python` that only opens the Microsoft Store is not Python): ask once,
+   for both together, before installing them with `winget install --id
+   Git.Git -e` and `winget install --id Python.Python.3.12 -e`.
 5. Initialize or resume `onboarding-state.json` from that connected folder.
 6. Start the local server from that folder if `http://127.0.0.1:8765/` is
-   not responding. Verify it with `curl` before proceeding. If another
+   not responding. Verify it with `curl` (Windows: `Invoke-WebRequest
+   -UseBasicParsing`) before proceeding. If another
    project's FTJA server already holds port 8765, tell the user and ask
    before stopping it — don't silently kill another workspace's server.
    Start it via `mcp__Claude_Browser__preview_start` with a `name`, not a
    background shell command: create or merge `.claude/launch.json` with a
    configuration such as `{"name": "ftja", "runtimeExecutable":
-   "venv/bin/python", "runtimeArgs": ["-m", "ftja.server"], "port": 8765}`,
+   "venv/bin/python", "runtimeArgs": ["-m", "ftja.server"], "port": 8765}`
+   (on Windows the `runtimeExecutable` is `"venv\\Scripts\\python.exe"`),
    then call `preview_start` with that `name`. This is a one-shot, purpose-
    built launch path; a background `Bash`/`nohup` command doing the same
    thing is more failure-prone (it needs its own PID tracking) and, live,
@@ -53,7 +62,8 @@ checklist, or start any `wait-for-action` call in this turn.
 7. Open the viewer immediately, next to this chat. Call
    `mcp__Claude_Browser__preview_start` with `http://127.0.0.1:8765`, then
    call `mcp__Claude_Browser__get_page_text` to verify the page. On macOS
-   also run `open http://127.0.0.1:8765` so the user gets a visible browser
+   also run `open http://127.0.0.1:8765` (on Windows `Start-Process
+   http://127.0.0.1:8765`) so the user gets a visible browser
    without needing to click an `Open` card. Do not describe the viewer as
    open until a navigation/page-text check succeeds.
 8. End the turn by asking exactly one question, e.g.: "I've opened the FTJA

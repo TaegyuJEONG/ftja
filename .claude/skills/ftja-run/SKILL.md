@@ -9,6 +9,11 @@ You are executing one pass of the FTJA pipeline defined in `SPEC.md`. Follow
 these steps in order. Every python call below uses `venv/bin/python` — if
 `venv/` doesn't exist yet, run `python3 -m venv venv && venv/bin/pip install -r requirements.txt` first.
 
+**On Windows**, read every `venv/bin/python` below as `venv\Scripts\python`
+(and `venv/bin/pip` as `venv\Scripts\pip`), and run commands in PowerShell.
+Create a missing `venv` with `python -m venv venv; venv\Scripts\pip install -r requirements.txt`.
+Where a step uses `curl`, `lsof` or `open`, use the Windows form it names.
+
 **If the user asked to continue a run** ("/ftja-run continue", with or
 without a run id and a stage, or "continue to Stage 1 / Stage 2"): do step
 0a, then go straight to "Continuing a run that stopped early" at the end
@@ -43,18 +48,22 @@ FTJA repository before running anything:
 3. Make sure the viewer on port 8765 is THIS folder's. Every FTJA clone
    uses the same port, so a viewer that answers may be showing another
    folder's data, and this run would never appear in it.
-   `curl -s http://127.0.0.1:8765/api/version` returns `project_dir`.
+   `curl -s http://127.0.0.1:8765/api/version` returns `project_dir`
+   (Windows: `Invoke-RestMethod http://127.0.0.1:8765/api/version`).
    - It matches `pwd`: the viewer is fine, go on.
    - No answer: start it from this folder (`venv/bin/python -m ftja.server`,
      in the background) and verify with `curl`.
    - It names another folder, or has no `project_dir` (an older viewer):
      that viewer belongs to a different clone. Stop it (`lsof
-     -tiTCP:8765 -sTCP:LISTEN | xargs kill`), start this folder's as above,
+     -tiTCP:8765 -sTCP:LISTEN | xargs kill`; Windows: `Stop-Process -Id
+     (Get-NetTCPConnection -LocalPort 8765 -State Listen).OwningProcess`),
+     start this folder's as above,
      and tell the user in your report that you switched the viewer from
      that folder to this one.
 4. On an interactive run, put the viewer in front of the user every time,
    whether you started it or it was already running: on macOS run
-   `open http://127.0.0.1:8765`, and if `mcp__Claude_Browser__preview_start`
+   `open http://127.0.0.1:8765` (Windows: `Start-Process
+   http://127.0.0.1:8765`), and if `mcp__Claude_Browser__preview_start`
    is available call it with that URL too. The run is watched there; a
    viewer that is running but not on screen shows the user nothing. (On an
    unattended run, open nothing.)
@@ -456,7 +465,7 @@ the full JD text), writes `digest-<run id>.md` (passed, then the ones to
 review) and `rejected-<run id>.md` (Stage1/2 fails, with their reasoning,
 so "why did X fail" stays readable after the run ends; the run id is the
 run's start time, so two runs on one day keep separate files), appends `run.log`
-and `runs.jsonl`, fires the macOS notification, and marks the run finished
+and `runs.jsonl`, fires the notification (macOS only), and marks the run finished
 so the viewer swaps the live view for the finished run — do this even if 0
 jobs passed (silent failure is exactly what we're avoiding).
 

@@ -25,6 +25,8 @@ import os
 import time
 from datetime import datetime, timezone
 
+from ftja import osutil
+
 BRIDGE_FILE = "run-bridge.json"
 ACTION_FILE = "run-action.json"
 DEFAULT_TIMEOUT_SECONDS = 540  # under the 10 minutes an agent's shell command may run
@@ -32,7 +34,7 @@ DEFAULT_TIMEOUT_SECONDS = 540  # under the 10 minutes an agent's shell command m
 
 def _read(project_dir: str, name: str) -> dict:
     try:
-        with open(os.path.join(project_dir, name)) as f:
+        with open(os.path.join(project_dir, name), encoding="utf-8-sig") as f:
             value = json.load(f)
     except (OSError, json.JSONDecodeError):
         return {}
@@ -42,9 +44,9 @@ def _read(project_dir: str, name: str) -> dict:
 def _write(project_dir: str, name: str, value: dict):
     path = os.path.join(project_dir, name)
     tmp = path + ".tmp"
-    with open(tmp, "w") as f:
+    with open(tmp, "w", encoding="utf-8") as f:
         json.dump(value, f, ensure_ascii=False)
-    os.replace(tmp, path)
+    osutil.replace(tmp, path)
 
 
 def _remove(project_dir: str, name: str):
@@ -61,11 +63,7 @@ def listening(project_dir: str = ".") -> dict:
     bridge = _read(project_dir, BRIDGE_FILE)
     alive = False
     if bridge.get("status") == "listening" and float(bridge.get("until") or 0) > time.time():
-        try:
-            os.kill(int(bridge.get("pid")), 0)
-            alive = True
-        except (TypeError, ValueError, OSError):
-            alive = False
+        alive = osutil.pid_alive(bridge.get("pid"))
     return {"listening": alive, "run_id": bridge.get("run_id") if alive else None,
             "until": bridge.get("until") if alive else None}
 

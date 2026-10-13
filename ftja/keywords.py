@@ -34,6 +34,7 @@ import time
 from datetime import datetime, timezone
 
 from ftja import remote
+from ftja import osutil
 
 REQUEST_FILE = "keywords-request.json"
 TARGETS = ("stage1", "remote")
@@ -42,7 +43,7 @@ GENERATING_STALE_SECONDS = 600
 
 def _read(path: str):
     try:
-        with open(path) as f:
+        with open(path, encoding="utf-8-sig") as f:
             return json.load(f)
     except (OSError, json.JSONDecodeError):
         return None
@@ -50,10 +51,10 @@ def _read(path: str):
 
 def _write(path: str, value):
     tmp = path + ".tmp"
-    with open(tmp, "w") as f:
+    with open(tmp, "w", encoding="utf-8") as f:
         json.dump(value, f, ensure_ascii=False, indent=2)
         f.write("\n")
-    os.replace(tmp, path)
+    osutil.replace(tmp, path)
 
 
 def _codes(languages) -> list[str]:
@@ -256,7 +257,7 @@ def main():
     elif args.cmd == "begin":
         out = begin(args.project_dir, args.all)
     elif args.cmd == "propose":
-        with open(args.file) as f:
+        with open(args.file, encoding="utf-8-sig") as f:
             data = json.load(f)
         try:
             out = propose(args.project_dir, data)

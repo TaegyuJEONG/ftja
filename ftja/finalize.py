@@ -175,7 +175,7 @@ def write_digest(passed: list[dict], out_dir: str = ".", review: list[dict] | No
                   "The posting is ambiguous on a point that decides the verdict. Read these yourself.", ""]
         for job in review:
             lines += _job_block(job)
-    with open(path, "w") as f:
+    with open(path, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
     return path
 
@@ -212,14 +212,14 @@ def write_rejected(rejected: list[dict], out_dir: str = ".", stage0_dropped: lis
             lines.append("")
             lines.append(f"> {job.get('evidence') or '(no record)'}")
             lines.append("")
-    with open(path, "w") as f:
+    with open(path, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
     return path
 
 
 def append_log(message: str, log_path: str = "run.log"):
     ts = datetime.now(timezone.utc).isoformat()
-    with open(log_path, "a") as f:
+    with open(log_path, "a", encoding="utf-8") as f:
         f.write(f"[{ts}] {message}\n")
 
 
@@ -269,7 +269,7 @@ def append_run_record(results: list[dict], stats: dict, run_id: str, out_dir: st
     path = f"{out_dir}/runs.jsonl"
     lines, replaced = [], False
     if os.path.exists(path):
-        with open(path) as f:
+        with open(path, encoding="utf-8-sig") as f:
             for line in f:
                 if not line.strip():
                     continue
@@ -281,7 +281,7 @@ def append_run_record(results: list[dict], stats: dict, run_id: str, out_dir: st
                 replaced = replaced or same
     if not replaced:
         lines.append(json.dumps(record, ensure_ascii=False))
-    with open(path, "w") as f:
+    with open(path, "w", encoding="utf-8") as f:
         f.write("\n".join(lines) + "\n")
 
 
@@ -393,7 +393,7 @@ def finalize(results: list[dict], db_path: str = DEFAULT_DB, out_dir: str = ".",
 
 def previous_duration(out_dir: str, run_id: str) -> float:
     try:
-        with open(f"{out_dir}/runs.jsonl") as f:
+        with open(f"{out_dir}/runs.jsonl", encoding="utf-8-sig") as f:
             for line in f:
                 record = json.loads(line) if line.strip() else {}
                 if record.get("run_id") == run_id:
@@ -439,24 +439,24 @@ def main():
     if not args.results:
         ap.error("--results or --run-dir is required")
 
-    with open(args.results) as f:
+    with open(args.results, encoding="utf-8-sig") as f:
         results = json.load(f)
 
     definitions, descriptions = None, {}
     if any(r.get("stage2") is not None for r in results):
         definitions = load_criteria(args.criteria)["criteria"]
     if args.jobs:
-        with open(args.jobs) as f:
+        with open(args.jobs, encoding="utf-8-sig") as f:
             descriptions = {j.get("job_url", ""): j.get("description") or "" for j in json.load(f)}
 
     stage0_dropped = []
     if args.stage0_dropped:
-        with open(args.stage0_dropped) as f:
+        with open(args.stage0_dropped, encoding="utf-8-sig") as f:
             stage0_dropped = json.load(f)
 
     stats = {}
     if args.stats:
-        with open(args.stats) as f:
+        with open(args.stats, encoding="utf-8-sig") as f:
             stats = json.load(f)
 
     if args.run_dir:
@@ -475,7 +475,7 @@ def main():
                        definitions=definitions, descriptions=descriptions,
                        rubric_path=os.path.join(args.run_dir, "rubric.md") if args.run_dir else None)
     if args.run_dir:  # the live view stops showing the run; Results shows the finished one
-        with open(os.path.join(args.run_dir, "done.json"), "w") as f:
+        with open(os.path.join(args.run_dir, "done.json"), "w", encoding="utf-8") as f:
             json.dump(summary, f)
     print(json.dumps(summary, ensure_ascii=False), file=sys.stderr)
 

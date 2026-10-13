@@ -3565,7 +3565,7 @@ const startTab = location.hash === '#pipeline' ? 'pipeline' : 'results';
 fetch('/api/version').then(r => r.json()).then(v => {
   // two clones share the port: say which folder's data this is
   document.querySelectorAll('.subtitle').forEach(el => {
-    el.innerHTML = `Fine Tune Job Agent · ${esc(v.current)} · <button class="storage-btn" type="button" data-open-folder title="Open this folder in Finder">${esc(v.project_dir)}</button> · <button class="storage-btn" type="button" data-storage></button>`;
+    el.innerHTML = `Fine Tune Job Agent · ${esc(v.current)} · <button class="storage-btn" type="button" data-open-folder title="Open this folder">${esc(v.project_dir)}</button> · <button class="storage-btn" type="button" data-storage></button>`;
   });
   refreshStorage();
   if (!v.update_available) return;

@@ -33,8 +33,8 @@ class ProfileSourceTests(unittest.TestCase):
                     headers={"Content-Type": "application/json"},
                     method="POST",
                 )
-                with patch("ftja.server.sys.platform", "darwin"), patch(
-                    "ftja.server.subprocess.run", return_value=completed
+                with patch("ftja.osutil.MAC", True), patch("ftja.osutil.WINDOWS", False), patch(
+                    "ftja.osutil.subprocess.run", return_value=completed
                 ) as run:
                     with urlopen(request, timeout=3) as response:
                         payload = json.load(response)

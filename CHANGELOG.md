@@ -5,6 +5,30 @@ What changed in each version, newest first. If you cloned FTJA earlier, run
 these. Your own files — `criteria.json`, `rubric.md`, `profile/`, `seen.db`,
 digests — are never touched by an update.
 
+## 0.3.1 — 2026-10-13
+
+### What changes for you after updating
+
+- **On a Mac, nothing changes.**
+- **FTJA now works on Windows.** Before, setup stopped at the first step:
+  "Add resume" answered "supported on macOS only".
+  - "Add resume" opens the Windows file chooser.
+  - The folder name at the bottom of the page opens the folder in Explorer.
+  - The page knows when your agent is waiting for your click. The check
+    used before could interrupt the agent's wait on Windows, or always
+    report that no agent was there, which keeps the buttons switched off.
+  - Postings, keywords and résumés with letters outside your Windows
+    language (Korean, French accents, a long dash) are read and written
+    correctly. Every file is UTF-8 now, on every system.
+  - Saving no longer fails when the page reads a file at the same moment
+    your agent rewrites it.
+  - The setup, run and update instructions your agent follows name the
+    Windows commands, and setup offers to install Git and Python when the
+    PC has neither.
+- **Still Mac only:** scheduled runs and the "run finished" notification.
+- The Windows code is covered by tests but has had little use on real
+  Windows PCs yet. If something stops, please report the message you see.
+
 ## 0.3.0 — 2026-10-12
 
 ### What changes for you after updating

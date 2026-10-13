@@ -9,8 +9,9 @@ worth your attention, with the reason for each one.
 
 <sub>Click the recording to watch it full size.</sub>
 
-> **Beta.** Built and tested with **Claude Code on macOS**. Codex and other
-> agents come next. Until then, fork it and make it yours.
+> **Beta.** Built and tested with **Claude Code on macOS**. Windows is
+> supported but newer and less tested; scheduled runs and the "run
+> finished" notification are macOS only. Codex and other agents come next. Until then, fork it and make it yours.
 
 ## What it does
 
@@ -214,6 +215,16 @@ git clone https://github.com/TaegyuJEONG/ftja.git ~/FTJA
 
 ```bash
 cd ~/FTJA && python3 -m venv venv && venv/bin/pip install -r requirements.txt
+```
+
+On Windows, in PowerShell:
+
+```powershell
+git clone https://github.com/TaegyuJEONG/ftja.git $HOME\FTJA
+```
+
+```powershell
+cd $HOME\FTJA; python -m venv venv; venv\Scripts\pip install -r requirements.txt
 ```
 
 Then open the folder in Claude Code and run `/ftja-setup`.
