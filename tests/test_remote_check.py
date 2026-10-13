@@ -10,7 +10,7 @@ import shutil
 import pytest
 
 from ftja import finalize as finalize_mod
-from ftja import live, remote, run_bridge
+from ftja import live, remote
 from ftja.filter_stage0 import filter_stage0
 from ftja.lock import acquire
 from ftja.runs_view import list_runs
@@ -412,29 +412,6 @@ def test_the_remote_check_can_feed_stage2_directly_and_keep_postings_without_key
 
 
 # ---- the buttons ----
-
-def test_the_continue_button_names_the_next_stage_and_generate_reaches_a_waiting_session(tmp_path):
-    import threading
-    import time
-    root, run_id = str(tmp_path), "2026-10-12T07:00:00Z"
-    assert run_bridge.request_remote(root) == {"listening": False}  # nobody waiting: the viewer shows the line to type
-    assert not os.path.exists(os.path.join(root, run_bridge.ACTION_FILE))
-
-    def wait_and(press):
-        result = {}
-        waiter = threading.Thread(target=lambda: result.update(run_bridge.wait_for_continue(root, run_id, timeout_seconds=10)))
-        waiter.start()
-        for _ in range(50):
-            if run_bridge.listening(root)["listening"]:
-                break
-            time.sleep(0.05)
-        assert press() == {"listening": True}
-        waiter.join(timeout=5)
-        return result
-
-    assert wait_and(lambda: run_bridge.request_continue(root, run_id, "stage1")) == {"status": "continue", "run_id": run_id, "to": "stage1"}
-    assert wait_and(lambda: run_bridge.request_remote(root)) == {"status": "remote", "run_id": run_id}
-
 
 def test_the_page_asks_for_a_draft_and_the_draft_becomes_the_setup_only_when_confirmed(tmp_path):
     root = str(tmp_path)

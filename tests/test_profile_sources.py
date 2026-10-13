@@ -1,126 +1,11 @@
-import json
-import threading
 import unittest
-from http.server import ThreadingHTTPServer
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest.mock import patch
-from urllib.request import Request, urlopen
 
 from ftja.pipeline_view import read_config, write_config
-from ftja.server import make_handler
-from ftja.onboarding import write_bridge, read_state, write_json
 
 
 class ProfileSourceTests(unittest.TestCase):
-    def test_folder_picker_returns_folder_kind(self):
-        with TemporaryDirectory() as tmp:
-            selected = Path(tmp) / "portfolio"
-            selected.mkdir()
-            server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(
-                str(Path(tmp) / "seen.db"), tmp
-            ))
-            thread = threading.Thread(target=server.serve_forever, daemon=True)
-            thread.start()
-            try:
-                completed = __import__("subprocess").CompletedProcess(
-                    ["osascript"], 0, f"{selected}\n", ""
-                )
-                body = json.dumps({"kind": "folder"}).encode()
-                request = Request(
-                    f"http://127.0.0.1:{server.server_port}/api/pick-profile-source",
-                    data=body,
-                    headers={"Content-Type": "application/json"},
-                    method="POST",
-                )
-                with patch("ftja.osutil.MAC", True), patch("ftja.osutil.WINDOWS", False), patch(
-                    "ftja.osutil.subprocess.run", return_value=completed
-                ) as run:
-                    with urlopen(request, timeout=3) as response:
-                        payload = json.load(response)
-                self.assertEqual(payload["kind"], "folder")
-                self.assertEqual(payload["path"], str(selected))
-                self.assertEqual(payload["label"], "portfolio")
-                self.assertIn("choose folder", run.call_args.args[0][2])
-            finally:
-                server.shutdown()
-                server.server_close()
-                thread.join(timeout=3)
-
-    def test_web_actions_are_rejected_until_the_setup_bridge_is_ready(self):
-        with TemporaryDirectory() as tmp:
-            source = Path(tmp) / "resume.txt"
-            source.write_text("experience", encoding="utf-8")
-            server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(
-                str(Path(tmp) / "seen.db"), tmp
-            ))
-            thread = threading.Thread(target=server.serve_forever, daemon=True)
-            thread.start()
-            try:
-                body = json.dumps({
-                    "type": "set_profile_sources",
-                    "expected_revision": 0,
-                    "sources": [{"path": str(source), "kind": "file"}],
-                }).encode()
-                request = Request(
-                    f"http://127.0.0.1:{server.server_port}/api/onboarding-action",
-                    data=body,
-                    headers={"Content-Type": "application/json"},
-                    method="POST",
-                )
-                from urllib.error import HTTPError
-                with self.assertRaises(HTTPError) as error:
-                    urlopen(request, timeout=3)
-                self.assertEqual(error.exception.code, 409)
-                self.assertIn("bridge", error.exception.read().decode().lower())
-            finally:
-                server.shutdown()
-                server.server_close()
-                thread.join(timeout=3)
-
-    def test_confirm_action_is_written_for_the_setup_helper(self):
-        with TemporaryDirectory() as tmp:
-            source = Path(tmp) / "resume.txt"
-            source.write_text("experience", encoding="utf-8")
-            server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(
-                str(Path(tmp) / "seen.db"), tmp
-            ))
-            thread = threading.Thread(target=server.serve_forever, daemon=True)
-            thread.start()
-            try:
-                write_bridge(tmp, "listening", ["set_profile_sources", "confirm_profile_sources"], __import__("os").getpid())
-
-                def post(payload):
-                    request = Request(
-                        f"http://127.0.0.1:{server.server_port}/api/onboarding-action",
-                        data=json.dumps(payload).encode(),
-                        headers={"Content-Type": "application/json"},
-                        method="POST",
-                    )
-                    with urlopen(request, timeout=3) as response:
-                        return json.load(response)
-
-                first = post({
-                    "type": "set_profile_sources",
-                    "expected_revision": 0,
-                    "sources": [{"path": str(source), "kind": "file"}],
-                })
-                self.assertEqual(first["state"]["revision"], 1)
-                self.assertEqual(json.loads((Path(tmp) / "onboarding-action.json").read_text(encoding="utf-8"))["type"], "set_profile_sources")
-                second = post({"type": "confirm_profile_sources", "expected_revision": 1})
-                self.assertTrue(second["state"]["profile"]["sources_confirmed"])
-                action = json.loads((Path(tmp) / "onboarding-action.json").read_text(encoding="utf-8"))
-                self.assertEqual(action["type"], "confirm_profile_sources")
-                # The checklist item flips to done in the same response, so the
-                # web doesn't have to wait for the next poll to show progress.
-                checklist_status = {i["id"]: i["status"] for s in second["checklist"] for i in s["items"]}
-                self.assertEqual(checklist_status["add_background_files"], "done")
-                self.assertEqual(checklist_status["review_profile_summary"], "current")
-            finally:
-                server.shutdown()
-                server.server_close()
-                thread.join(timeout=3)
-
     def test_pipeline_registry_preserves_folder_sources(self):
         with TemporaryDirectory() as tmp:
             folder = Path(tmp) / "portfolio"
@@ -132,39 +17,6 @@ class ProfileSourceTests(unittest.TestCase):
             self.assertEqual(len(sources), 1)
             self.assertEqual(sources[0]["kind"], "folder")
             self.assertTrue(sources[0]["exists"])
-
-    def test_onboarding_ui_offers_a_resume_and_holds_folders_for_after_the_beta(self):
-        html = Path(__file__).parents[1].joinpath("ftja", "app.html").read_text(encoding="utf-8")
-        self.assertIn("Add your background.", html)
-        self.assertIn("Fine-tune your job search.", html)
-        self.assertIn("Your search settings", html)
-        self.assertIn("Published within", html)
-        self.assertIn("Past 24 hours (recommended)", html)
-        self.assertIn("Confirm search settings", html)
-        self.assertIn("Add the resume FTJA should read to understand your background.", html)
-        self.assertIn("Add a keyword", html)
-        self.assertIn("Search or add a language", html)
-        self.assertIn("Add a word to exclude", html)
-        self.assertIn("languageLabel(v)", html)
-        self.assertIn("data-onboarding-input", html)
-        self.assertIn("data-onboarding-add", html)
-        self.assertIn("Selected items stay on your computer. Your coding agent reads them locally.", html)
-        self.assertIn("+ Add resume", html)
-        self.assertNotIn('data-add-onboarding-source="folder"', html)
-        self.assertIn("Portfolio and folder sources come after the beta.", html)
-        self.assertIn("Confirm sources", html)
-        self.assertIn("data-confirm-profile-sources", html)
-        self.assertIn("applyOnboardingBridgeGate", html)
-        self.assertIn("Waiting for the setup agent", html)
-        self.assertIn("state.bridge?.updated_at", html)
-        self.assertIn("I uploaded my background files, continue the setup", html)
-        self.assertIn("sources: [...current, source]", html)
-        self.assertNotIn("Choose resume or portfolio file", html)
-        self.assertNotIn("You can add more than one. Nothing is uploaded;", html)
-        self.assertNotIn("Start with what you know.", html)
-        self.assertNotIn("Confirm profile and search draft", html)
-        self.assertNotIn("Posting age", html)
-        self.assertNotIn("<h3>Your source materials</h3><p>${esc(latestOnboardingMessage(state))}", html)
 
     def test_public_demo_uses_the_canonical_landing_source(self):
         root = Path(__file__).parents[1]

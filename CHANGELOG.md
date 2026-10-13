@@ -5,6 +5,34 @@ What changed in each version, newest first. If you cloned FTJA earlier, run
 these. Your own files — `criteria.json`, `rubric.md`, `profile/`, `seen.db`,
 digests — are never touched by an update.
 
+## 0.4.0 - 2026-10-13
+
+### What changes for you after updating
+
+- **Setup happens in the chat.** `/ftja-setup` asks for your resume
+  (attach it, or say where it is; it is kept in your FTJA folder's
+  `profile/`), drafts your profile summary, proposes your search settings
+  and code filter, and asks the three questions about your ideal role, all
+  in the chat. The web view opens only at the end, on the Pipeline tab,
+  where you can review and edit everything before your first run.
+- **The page no longer talks to your agent.** Buttons that used to hand a
+  request to a waiting agent session now show the command to type in the
+  chat, with a Copy button: Continue to Stage 1 / Stage 2
+  (`/ftja-run continue <run id>`), the Remote check's setup
+  (`/ftja-remote`) and a new language's keywords (`/ftja-keywords`). What
+  you fill in on the page is still saved, and the agent reads it when you
+  type the command. This removes the errors where a click reached no one
+  ("setup bridge is not listening", "stale onboarding revision") and the
+  minutes a finished run kept your chat waiting.
+- **Changing your resume goes through the chat too.** The Pipeline tab no
+  longer opens a file chooser: attach the new file in the chat and type
+  `/ftja-profile-update`. Removing a source still works on the page.
+- Everything you edit on the page (settings, rubric, decisions on jobs,
+  deleting runs) works as before.
+- A setup that was halfway through on the old web flow starts over;
+  your existing `criteria.json` and `rubric.md` stay until the new setup
+  writes them.
+
 ## 0.3.1 — 2026-10-13
 
 ### What changes for you after updating

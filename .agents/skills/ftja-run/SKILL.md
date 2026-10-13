@@ -478,38 +478,13 @@ Do steps 5 and 6 as usual (finalize, release the lock). In your report,
 say that the run stopped there on purpose, how many postings passed that
 stage, and that they can read them in the Results tab ("Passed N — see
 why" on that stage's line; for the Remote check that popup also downloads
-the table) and press **Continue to Stage 1** or **Continue to Stage 2**
-there when they want another stage to run.
+the table) and that **Continue to Stage 1** or **Continue to Stage 2** there shows
+the line to type in this chat when they want another stage to run.
 
-On an **unattended** run, stop here.
-
-On an **interactive** run, do not end your turn yet: stay available for
-those buttons, the way the setup chat waits for the web view. Tell the
-user you are waiting for about nine minutes, then run (shell timeout
-600000 ms):
-
-```
-venv/bin/python -m ftja.run_bridge wait --run-id <run id>
-```
-
-- `{"status": "continue", "to": "stage1" | "stage2"}`: the user pressed a
-  Continue button. Go on with "Continuing a run that stopped early" below,
-  for this run id and that stage (`to` missing means `stage2`).
-- `{"status": "remote"}`: the user pressed the Remote check's button on
-  the Pipeline tab. Follow the `ftja-remote` skill
-  (`.agents/skills/ftja-remote/SKILL.md`) from its step 1, then start this
-  wait again.
-- `{"status": "keywords"}`: the user asked on the Pipeline tab for the
-  keywords of a language they started reading. Follow the `ftja-keywords`
-  skill (`.agents/skills/ftja-keywords/SKILL.md`) from its step 1, then
-  start this wait again.
-- `{"status": "timeout"}`: nobody pressed anything. End your turn, and say
-  that the run can still be continued any time by typing
-  `/ftja-run continue <run id>` in this chat (the button shows the exact
-  line when no session is waiting).
-
-If the user writes to you while you wait, answer them; the wait can be
-started again afterwards.
+Then end your turn. The run can be continued any time: the Continue button
+in the Results tab shows the line to type, `/ftja-run continue <run id>`
+(with the stage, for a run that stopped after the Remote check). Do not
+wait for the page: it cannot reach this session, it only shows commands.
 
 ## Continuing a run that stopped early
 

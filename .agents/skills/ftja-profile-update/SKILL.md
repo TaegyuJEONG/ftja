@@ -31,6 +31,12 @@ exclusion rules; use `/ftja-tune` for those.
 
 1. Read `profile/sources.json` if it exists. If it does not exist, inspect
    the files currently in `profile/` and ask which ones should be registered.
+   If the user attached a new or replacement resume in the chat, save it into
+   `profile/` under its own file name first (if you received only its text,
+   write that to `profile/resume.md`), and add it to `profile/sources.json`
+   as `{"path": "profile/<file>", "label": "<file>", "kind": "file",
+   "enabled": true}`. For a replacement, ask whether the old entry should be
+   removed from the registry; never delete the old file itself.
 2. Check every registered source path. Report missing or unreadable files and
    do not silently remove them from the registry.
 3. Read the current `profile/summary.md` and every enabled, available source.

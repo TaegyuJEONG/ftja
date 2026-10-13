@@ -40,10 +40,11 @@ You need a Mac and [Claude Code](https://claude.com/claude-code).
 
 2. Paste it into a new Claude Code session.
 
-That is all. Your agent downloads FTJA, opens a web view next to the chat and
-walks you through four steps: add your resume, confirm the profile it drafts,
-confirm your search settings, and answer three short questions that become
-your judgment rubric.
+That is all. Your agent downloads FTJA and walks you through setup in the
+chat: attach your resume, approve the profile it drafts, agree on your search
+settings and code filter, and answer three short questions that become your
+judgment rubric. Then it opens the web view on the Pipeline tab, where you
+can review and edit everything before your first run.
 
 ## Using it day to day
 

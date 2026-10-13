@@ -112,6 +112,3 @@ opened them to confirm (Pipeline tab if their web view is closed), and
 that their existing keywords are untouched. If `gaps` showed other
 languages or lists still without keywords that this request did not cover,
 name them and say they can ask for those the same way.
-
-If you were called from `/ftja-run`'s wait (`{"status": "keywords"}`), go
-back to that wait afterwards.

@@ -1,10 +1,45 @@
-"""File-backed coordination between the FTJA skill chat and local web UI."""
+"""Setup, driven entirely from the chat.
+
+The setup chat interviews the user and calls these commands; the viewer is
+opened only once setup has written criteria.json and rubric.md. Nothing
+here waits for a click: every command checks its input, saves it, prints
+the result and returns.
+
+The order is fixed, and each command refuses to run before the one it
+builds on:
+
+    profile  the resume (a file inside the project, usually profile/...)
+             and the profile summary the user approved
+    search   search titles, locations, recency, results wanted, and the
+             code filter: keywords per language, readable languages,
+             exclude words
+    rubric   the user's three answers (clear yes, dealbreakers,
+             preferences); code turns them into the rubric list, one
+             criterion per line, so the model never rewrites them
+    finish   writes criteria.json, profile/summary.md,
+             profile/sources.json, rubric-criteria.json and rubric.md
+
+Progress is kept in onboarding-state.json, so a setup that was interrupted
+picks up where it stopped (`status` says what comes next).
+
+JSON goes in through --json-file: PowerShell strips the quotes out of JSON
+given on the command line. --json works too, on macOS and Linux.
+
+Usage:
+    python -m ftja.onboarding . status
+    python -m ftja.onboarding . profile --source profile/resume.pdf --summary-file profile/summary.draft.md
+    python -m ftja.onboarding . search --json-file .ftja-run/search.json
+    python -m ftja.onboarding . rubric --json-file .ftja-run/answers.json
+    python -m ftja.onboarding . finish
+    python -m ftja.onboarding . reset
+"""
 from __future__ import annotations
 
 import argparse
 import json
 import os
 import re
+import sys
 import tempfile
 import time
 from datetime import datetime, timezone
@@ -13,129 +48,23 @@ from typing import Any
 from ftja import osutil
 
 STATE_FILE = "onboarding-state.json"
-ACTION_FILE = "onboarding-action.json"
-BRIDGE_FILE = "onboarding-bridge.json"
+STATE_VERSION = 2
+STEPS = ("profile", "search", "rubric", "finish")
 
-DEFAULT_BRIDGE: dict[str, Any] = {
-    "status": "offline",
-    "action_types": [],
-    "pid": None,
-    "label": "",
-    "updated_at": None,
-}
-
-# Bridge status values, from the web's point of view:
-#   "listening" - a wait-for-action loop is polling; the web's decision
-#                  buttons are enabled.
-#   "working"   - the setup agent is between waits, doing something the web
-#                  should narrate (writing a summary, deriving keywords).
-#                  `label` carries the human-readable description.
-#   "offline"   - no active bridge process (not started yet, crashed, or a
-#                  wait timed out without a follow-up).
-BRIDGE_STATUSES = {"listening", "working", "offline"}
-
-DEFAULT_STATE: dict[str, Any] = {
-    "version": 1,
-    "revision": 0,
-    "stage": "profile",
-    "phase": "sources",
-    "status": "waiting",
-    "allowed_actions": ["set_profile_sources"],
-    "messages": [],
-    "profile": {"sources": [], "summary": "", "titles": [], "criteria": {}, "sources_confirmed": False, "summary_confirmed": False},
-    "cards": {},
-    "rubric_questions": [],
-}
-
-# The checklist the chat and the web both render, grouped into four stages.
-# Each entry's `done`/`current` is computed from onboarding-state.json (plus,
-# for the last stage, whether a run has actually produced output) so the two
-# surfaces can never drift apart — neither one owns progress on its own.
-CHECKLIST_STAGES: list[dict[str, Any]] = [
-    {
-        "id": "profile",
-        "label": "Profile",
-        "items": [
-            {"id": "add_background_files", "label": "Add your background files"},
-            {"id": "review_profile_summary", "label": "Review your profile summary"},
-        ],
-    },
-    {
-        "id": "search_settings",
-        "label": "Search settings",
-        "items": [
-            {"id": "review_search_settings", "label": "Review your search settings"},
-            {"id": "review_code_filter", "label": "Review the code-based filter"},
-        ],
-    },
-    {
-        "id": "judgment",
-        "label": "Judgment",
-        "items": [
-            {"id": "answer_role_questions", "label": "Answer three questions about your ideal role"},
-            {"id": "confirm_rubric", "label": "Confirm your judgment rubric"},
-        ],
-    },
-    {
-        "id": "first_run",
-        "label": "First run",
-        "items": [
-            {"id": "run_first_search", "label": "Run your first job search"},
-            {"id": "review_first_results", "label": "Review your first results"},
-        ],
-    },
-]
-
-
-def build_checklist(state: dict[str, Any], project_dir: str | None = None) -> list[dict[str, Any]]:
-    """Return CHECKLIST_STAGES annotated with each item's status: 'done',
-    'current' (the one thing to do right now), or 'pending'."""
-    profile = state.get("profile") or {}
-    stage, phase = state.get("stage"), state.get("phase")
-    questions = state.get("rubric_questions") or []
-    questions_answered = sum(1 for q in questions if str(q.get("answer") or "").strip())
-
-    has_run = False
-    if project_dir is not None:
-        try:
-            from ftja.runs_view import list_runs
-            has_run = bool(list_runs(project_dir))
-        except Exception:
-            has_run = False
-
-    done = {
-        "add_background_files": bool(profile.get("sources_confirmed")),
-        "review_profile_summary": bool(profile.get("summary_confirmed")),
-        "review_search_settings": stage in {"rubric", "run"},
-        "review_code_filter": stage == "run" or (stage == "rubric" and phase not in {"stage0"}),
-        "answer_role_questions": stage == "run" or (stage == "rubric" and phase not in {"stage0", "questions"}),
-        "confirm_rubric": stage == "run",
-        "run_first_search": has_run,
-        "review_first_results": has_run,
-    }
-    current_id = next((item_id for item_id, is_done in done.items() if not is_done), None)
-
-    stages = []
-    for stage_def in CHECKLIST_STAGES:
-        items = []
-        for item in stage_def["items"]:
-            item_id = item["id"]
-            status = "done" if done[item_id] else ("current" if item_id == current_id else "pending")
-            items.append({**item, "status": status})
-        stages.append({"id": stage_def["id"], "label": stage_def["label"], "items": items})
-    return stages
-
-
-DEFAULT_RUBRIC_QUESTIONS = [
+RUBRIC_QUESTIONS = [
     {"id": "clear_yes", "label": "What makes a role a clear yes?", "hint": "Describe the work, team, and level that would make you want to apply."},
     {"id": "dealbreakers", "label": "What should rule a role out?", "hint": "Name non-negotiables or dealbreakers that need judgment beyond the code-based filter."},
     {"id": "preferences", "label": "What would make a good role even better?", "hint": "Add preferences FTJA should use to rank otherwise good roles."},
 ]
 
-
-
 _RUBRIC_KIND_BY_QUESTION = {"clear_yes": "pass", "dealbreakers": "fail", "preferences": "preference"}
 
+
+class OnboardingError(ValueError):
+    """The input is not valid, or a step it builds on is not done yet."""
+
+
+# --- the rubric, built by code from the three answers -----------------------
 
 def _criterion_label(text: str) -> str:
     """A short name for one criterion line: the part before a colon or dash
@@ -152,7 +81,7 @@ def _criterion_label(text: str) -> str:
 def draft_rubric_criteria(questions: list[dict[str, Any]]) -> dict[str, Any]:
     """The three rubric answers as the rubric list the Pipeline tab edits:
     one criterion per line of an answer (bullets and semicolons also split).
-    Each "clear yes" line stands alone — a job passes on any one of them —
+    Each "clear yes" line stands alone (a job passes on any one of them),
     so nothing is silently required together; the candidate can group
     criteria afterwards in the Pipeline tab."""
     criteria: list[dict[str, Any]] = []
@@ -175,14 +104,7 @@ def draft_rubric_criteria(questions: list[dict[str, Any]]) -> dict[str, Any]:
     return {"criteria": criteria, "notes": {"pass": "", "fail": "", "preference": ""}}
 
 
-class OnboardingError(ValueError):
-    """A requested transition is not valid for the current state."""
-
-
-def _require(state: dict[str, Any], stage: str, phase: str) -> None:
-    if state.get("stage") != stage or state.get("phase") != phase:
-        raise OnboardingError(f"action is not allowed in {state.get('stage')}/{state.get('phase')}")
-
+# --- checking what the chat hands over --------------------------------------
 
 def _clean_list(value: Any) -> list[str]:
     if not isinstance(value, list):
@@ -198,248 +120,75 @@ def _clamp_results_wanted(value: Any, default: int = 100) -> int:
     return max(1, min(1000, parsed))
 
 
-def _locations(action: dict[str, Any]) -> tuple[list[str], str]:
-    """Where to search, from a search-settings action: its `locations` list
-    (a run searches every title in every one), or the single `location` the
-    card had before there could be several. -> (the list, or [] when only a
-    single location was given; the same as one line)."""
-    listed = _clean_list(action.get("locations")) if isinstance(action.get("locations"), list) else []
-    return listed, ", ".join(listed) if listed else str(action.get("location") or "").strip()
-
-
-def validate_stage0_draft(card: dict[str, Any]) -> dict[str, list[str]]:
-    """Require a profile-derived, reviewable Stage 0 proposal."""
+def validate_stage0_draft(card: dict[str, Any]) -> dict[str, Any]:
+    """The code filter as proposed from the profile: keywords, the languages
+    the user reads, exclude words, and which language each keyword is in."""
     if not isinstance(card, dict):
-        raise OnboardingError("Stage 0 draft must be an object")
+        raise OnboardingError("the code filter must be an object")
     keywords = _clean_list(card.get("keywords"))
-    languages = _clean_list(card.get("languages"))
+    languages = [code.lower() for code in _clean_list(card.get("languages"))]
     excludes = _clean_list(card.get("exclude_keywords"))
     if not keywords:
-        raise OnboardingError("Stage 0 draft needs at least one proposed keyword")
+        raise OnboardingError("the code filter needs at least one keyword")
     if not languages:
-        raise OnboardingError("Stage 0 draft needs at least one readable language")
-    out = {"keywords": keywords, "languages": languages, "exclude_keywords": excludes}
+        raise OnboardingError("the code filter needs at least one language the user reads")
+    out: dict[str, Any] = {"keywords": keywords, "languages": languages, "exclude_keywords": excludes}
     marked = card.get("keyword_language")
     if isinstance(marked, dict):  # which language each keyword is in (see ftja.keywords); optional
         kept = {str(k): str(v).strip().lower() for k, v in marked.items() if str(k) in keywords and str(v).strip()}
         if kept:
             out["keyword_language"] = kept
-    # languages the user asked the agent to write keywords for, until it has (see request_stage0_keywords)
-    covered = set((out.get("keyword_language") or {}).values())
-    waiting = [code for code in _clean_list(card.get("pending_languages")) if code in languages and code not in covered]
-    if waiting:
-        out["pending_languages"] = waiting
     return out
 
 
-def _tier1(stage0: dict) -> dict:
-    """criteria.json's keyword block for a Stage 0 card."""
-    block = {"tier1": stage0["keywords"]}
+def validate_search(data: dict[str, Any]) -> dict[str, Any]:
+    """Search settings plus the code filter -> the criteria.json content."""
+    if not isinstance(data, dict):
+        raise OnboardingError("search settings must be an object")
+    titles = _clean_list(data.get("titles") or data.get("search_terms"))
+    locations = _clean_list(data.get("locations")) if isinstance(data.get("locations"), list) else []
+    if not locations and str(data.get("location") or "").strip():
+        locations = [str(data["location"]).strip()]
+    if not titles:
+        raise OnboardingError("search settings need at least one job title")
+    if not locations:
+        raise OnboardingError("search settings need at least one location")
+    stage0 = validate_stage0_draft(data.get("filter") or data.get("stage0") or {})
+    try:
+        hours_old = int(data.get("hours_old", 24))
+    except (TypeError, ValueError):
+        raise OnboardingError("hours_old must be a whole number of hours")
+    keywords: dict[str, Any] = {"tier1": stage0["keywords"]}
     if stage0.get("keyword_language"):
-        block["tier1_language"] = stage0["keyword_language"]
-    return block
+        keywords["tier1_language"] = stage0["keyword_language"]
+    criteria: dict[str, Any] = {
+        "search_terms": titles,
+        "location": ", ".join(locations),
+        "locations": locations,
+        "hours_old": max(1, hours_old),
+        "results_wanted": _clamp_results_wanted(data.get("results_wanted"), 100),
+        "languages": stage0["languages"],
+        "exclude_keywords": stage0["exclude_keywords"],
+        "keywords": keywords,
+    }
+    if "title_must_match" in data:
+        criteria["title_must_match"] = bool(data["title_must_match"])
+    return criteria
 
 
-def _clean_sources(value: Any) -> list[dict[str, Any]]:
-    if not isinstance(value, list) or not value:
-        raise OnboardingError("at least one profile source is required")
-    result = []
-    for source in value:
-        if not isinstance(source, dict) or not source.get("path"):
-            raise OnboardingError("each profile source needs a path")
-        path = str(source["path"])
-        kind = "folder" if source.get("kind") == "folder" else "file"
-        result.append({"path": path, "label": str(source.get("label") or os.path.basename(os.path.normpath(path))), "kind": kind, "enabled": source.get("enabled", True) is not False})
-    return result
-
-
-def apply_action(project_dir: str, action: dict[str, Any]) -> dict[str, Any]:
-    """Apply one legal transition; the browser cannot skip or reorder steps."""
-    if not isinstance(action, dict) or not action.get("type"):
-        raise OnboardingError("action type required")
-    state = read_state(project_dir)
-    expected = action.get("expected_revision")
-    if expected is not None and int(expected) != int(state.get("revision", 0)):
-        raise OnboardingError("stale onboarding revision; reload and try again")
-    kind = action["type"]
-    profile = state["profile"]
-    cards = state.get("cards", {})
-    if kind == "set_profile_sources":
-        if state.get("stage") != "profile" or state.get("phase") not in {"sources", "profile_summary"}:
-            raise OnboardingError(f"action is not allowed in {state.get('stage')}/{state.get('phase')}")
-        if profile.get("sources_confirmed"):
-            raise OnboardingError("profile sources are already confirmed")
-        sources = _clean_sources(action.get("sources"))
-        profile = {**profile, "sources": sources, "sources_confirmed": False, "summary_confirmed": False}
-        state.update(
-            phase="profile_summary",
-            allowed_actions=["set_profile_sources", "confirm_profile_sources"],
-            profile=profile,
-        )
-    elif kind == "confirm_profile_sources":
-        if state.get("stage") != "profile" or state.get("phase") not in {"sources", "profile_summary"}:
-            raise OnboardingError(f"action is not allowed in {state.get('stage')}/{state.get('phase')}")
-        if not profile.get("sources"):
-            raise OnboardingError("at least one profile source is required")
-        profile = {**profile, "sources_confirmed": True}
-        state.update(
-            phase="profile_summary",
-            allowed_actions=["set_profile_summary"],
-            profile=profile,
-        )
-    elif kind == "set_profile_summary":
-        if state.get("stage") != "profile" or state.get("phase") not in {"profile_summary", "profile_summary_review"}:
-            raise OnboardingError(f"action is not allowed in {state.get('stage')}/{state.get('phase')}")
-        if not profile.get("sources_confirmed"):
-            raise OnboardingError("confirm the profile sources before writing a summary")
-        summary = str(action.get("summary") or "").strip()
-        if not summary:
-            raise OnboardingError("profile summary is required")
-        profile = {**profile, "summary": summary, "summary_confirmed": False}
-        state.update(phase="profile_summary_review", allowed_actions=["set_profile_summary", "confirm_profile_summary"], profile=profile, cards={**cards, "profile": {"summary": summary}})
-    elif kind == "confirm_profile_summary":
-        _require(state, "profile", "profile_summary_review")
-        if not profile.get("summary"):
-            raise OnboardingError("profile summary is required")
-        state.update(phase="title_proposal", allowed_actions=["set_profile_draft"], profile={**profile, "summary_confirmed": True})
-    elif kind == "set_profile_draft":
-        _require(state, "profile", "title_proposal")
-        if not profile.get("summary_confirmed"):
-            raise OnboardingError("confirm the profile summary before proposing search conditions")
-        titles = _clean_list(action.get("titles"))
-        locations, location = _locations(action)
-        if not titles or not location:
-            raise OnboardingError("search settings draft needs at least one title and a location")
-        stage0 = validate_stage0_draft(action.get("stage0") or {})
-        criteria = {
-            **{k: v for k, v in profile.get("criteria", {}).items() if k not in ("is_remote", "exact_phrase_search", "locations")},  # dead settings; the locations are set afresh below
-            "search_terms": titles,
-            "location": location,
-            **({"locations": locations} if locations else {}),
-            **({"title_must_match": bool(action["title_must_match"])} if "title_must_match" in action else {}),
-            "hours_old": int(action.get("hours_old", 24)),
-            "results_wanted": _clamp_results_wanted(action.get("results_wanted"), 100),
-            "languages": stage0["languages"],
-            "exclude_keywords": stage0["exclude_keywords"],
-            "keywords": _tier1(stage0),
-        }
-        state.update(
-            allowed_actions=["set_profile_draft", "confirm_profile"],
-            profile={**profile, "titles": titles, "criteria": criteria},
-            cards={**cards, "stage0": stage0},
-        )
-    elif kind == "confirm_profile":
-        _require(state, "profile", "title_proposal")
-        if not profile.get("summary_confirmed"):
-            raise OnboardingError("confirm the profile summary before setting search conditions")
-        stage0 = validate_stage0_draft(cards.get("stage0") or {})
-        titles = _clean_list(action.get("titles"))
-        locations, location = _locations(action)
-        if not titles or not location:
-            raise OnboardingError("at least one title and a location are required")
-        criteria = {
-            **{k: v for k, v in profile.get("criteria", {}).items() if k not in ("is_remote", "exact_phrase_search", "locations")},  # dead settings; the locations are set afresh below
-            "search_terms": titles,
-            "location": location,
-            **({"locations": locations} if locations else {}),
-            **({"title_must_match": bool(action["title_must_match"])} if "title_must_match" in action else {}),
-            "hours_old": int(action.get("hours_old", 24)),
-            "results_wanted": _clamp_results_wanted(
-                action.get("results_wanted", profile.get("criteria", {}).get("results_wanted")), 100
-            ),
-            "languages": stage0["languages"],
-            "exclude_keywords": stage0["exclude_keywords"],
-            "keywords": _tier1(stage0),
-        }
-        profile = {**profile, "titles": titles, "criteria": criteria}
-        state.update(stage="rubric", phase="stage0", allowed_actions=["confirm_stage0", "request_stage0_keywords"], profile=profile, cards={**cards, "stage0": stage0})
-    elif kind == "set_stage0_draft":
-        _require(state, "rubric", "stage0")
-        current = cards.get("stage0") or {}
-        requested = action.get("card") or {}
-        stage0 = validate_stage0_draft({
-            "keywords": requested.get("keywords", current.get("keywords", [])),
-            "languages": requested.get("languages", current.get("languages", [])),
-            "exclude_keywords": requested.get("exclude_keywords", current.get("exclude_keywords", [])),
-            "keyword_language": requested.get("keyword_language", current.get("keyword_language")),
-            "pending_languages": requested.get("pending_languages", current.get("pending_languages")),
-        })
-        state.update(cards={**cards, "stage0": stage0}, allowed_actions=["confirm_stage0", "request_stage0_keywords"])
-    elif kind == "request_stage0_keywords":
-        # "Add Korean keywords with my agent" on the filter card. The card as
-        # it is on screen comes along, so what the user edited is not lost
-        # when the agent's keywords are written into it.
-        _require(state, "rubric", "stage0")
-        language = str(action.get("language") or "").strip().lower()
-        current = cards.get("stage0") or {}
-        sent = action.get("card") if isinstance(action.get("card"), dict) else {}
-        languages = _clean_list(sent.get("languages", current.get("languages", [])))
-        if not language or language not in languages:
-            raise OnboardingError("add the language to the languages you use first")
-        stage0 = validate_stage0_draft({
-            "keywords": sent.get("keywords", current.get("keywords", [])),
-            "languages": languages,
-            "exclude_keywords": sent.get("exclude_keywords", current.get("exclude_keywords", [])),
-            "keyword_language": sent.get("keyword_language", current.get("keyword_language")),
-            "pending_languages": [*(current.get("pending_languages") or []), language],
-        })
-        state.update(cards={**cards, "stage0": stage0}, allowed_actions=["confirm_stage0", "request_stage0_keywords"])
-    elif kind == "confirm_stage0":
-        _require(state, "rubric", "stage0")
-        stage0 = validate_stage0_draft({"keywords": action.get("keywords"), "languages": action.get("languages"), "exclude_keywords": action.get("exclude_keywords"),
-                                        "keyword_language": action.get("keyword_language", (cards.get("stage0") or {}).get("keyword_language"))})
-        keywords = stage0["keywords"]; languages = stage0["languages"]; excludes = stage0["exclude_keywords"]
-        criteria = {**profile.get("criteria", {}), "languages": languages, "exclude_keywords": excludes, "keywords": _tier1(stage0)}
-        questions = [{**question, "answer": ""} for question in DEFAULT_RUBRIC_QUESTIONS]
-        state.update(phase="questions", allowed_actions=["answer_rubric_question"], profile={**profile, "criteria": criteria}, cards={**cards, "stage0": stage0}, rubric_questions=questions)
-    elif kind == "answer_rubric_question":
-        _require(state, "rubric", "questions")
-        questions = list(state.get("rubric_questions") or [])
-        unanswered = next((question for question in questions if not str(question.get("answer") or "").strip()), None)
-        question_id = str(action.get("question_id") or "")
-        answer = str(action.get("answer") or "").strip()
-        if not unanswered or question_id != unanswered.get("id"):
-            raise OnboardingError("answer the current rubric question before moving on")
+def validate_answers(data: dict[str, Any]) -> list[dict[str, Any]]:
+    if not isinstance(data, dict):
+        raise OnboardingError("the rubric answers must be an object")
+    questions = []
+    for question in RUBRIC_QUESTIONS:
+        answer = str(data.get(question["id"]) or "").strip()
         if not answer:
-            raise OnboardingError("an answer is required")
-        for question in questions:
-            if question.get("id") == question_id:
-                question["answer"] = answer
-        complete = all(str(question.get("answer") or "").strip() for question in questions)
-        state.update(phase="rubric_review" if complete else "questions", allowed_actions=["confirm_rubric"] if complete else ["answer_rubric_question"], rubric_questions=questions)
-        if complete:
-            state["rubric_criteria_draft"] = draft_rubric_criteria(questions)
-    elif kind == "confirm_rubric":
-        _require(state, "rubric", "rubric_review")
-        questions = state.get("rubric_questions") or []
-        if not questions or any(not str(question.get("answer") or "").strip() for question in questions):
-            raise OnboardingError("answer every rubric question before confirmation")
-        from ftja.pipeline_view import write_config
-        listed = action.get("criteria")
-        if isinstance(listed, list):
-            # The rubric as one criterion per line, the same list the
-            # Pipeline tab edits: save_criteria writes rubric-criteria.json
-            # and rewrites rubric.md from it, so the Pipeline tab shows the
-            # list from the first visit instead of after a first run.
-            from ftja.verdict import save_criteria
-            write_config(project_dir, criteria=profile.get("criteria", {}), profile_md=profile.get("summary", ""), profile_sources=profile.get("sources", []))
-            try:
-                save_criteria(project_dir, listed, action.get("notes") or {})
-            except ValueError as e:
-                raise OnboardingError(str(e))
-        else:
-            rubric = str(action.get("rubric_md") or "").strip()
-            if not rubric:
-                raise OnboardingError("rubric draft is required before confirmation")
-            write_config(project_dir, criteria=profile.get("criteria", {}), rubric_md=rubric, profile_md=profile.get("summary", ""), profile_sources=profile.get("sources", []))
-        state.update(stage="run", phase="ready", status="ready", allowed_actions=[])
+            raise OnboardingError(f"an answer to \"{question['label']}\" ({question['id']}) is required")
+        questions.append({**question, "answer": answer})
+    return questions
 
-    else:
-        raise OnboardingError(f"unknown onboarding action: {kind}")
-    state["revision"] = int(state.get("revision", 0)) + 1
-    state["updated_at"] = datetime.now(timezone.utc).isoformat()
-    write_json(project_dir, STATE_FILE, state)
-    return state
+
+# --- the state file ---------------------------------------------------------
 
 def _path(project_dir: str, name: str) -> str:
     return os.path.join(project_dir, name)
@@ -448,8 +197,7 @@ def _path(project_dir: str, name: str) -> str:
 def read_json(project_dir: str, name: str, fallback: Any) -> Any:
     try:
         # Windows refuses to open a file in the instant another process is
-        # renaming over it. Reading that as "no file" would hand back an
-        # empty state (revision 0), so wait for the rename to finish.
+        # renaming over it; wait for the rename to finish.
         for attempt in range(20):
             try:
                 with open(_path(project_dir, name), encoding="utf-8-sig") as f:
@@ -476,253 +224,174 @@ def write_json(project_dir: str, name: str, value: Any) -> None:
             os.unlink(temp)
 
 
+def _empty_state() -> dict[str, Any]:
+    return {"version": STATE_VERSION, "profile": None, "search": None, "rubric": None, "finished_at": None}
+
+
 def read_state(project_dir: str) -> dict[str, Any]:
+    """The setup so far. A state file from the old web-driven setup
+    (version 1) is not continued: setup starts over."""
     state = read_json(project_dir, STATE_FILE, {})
-    if not isinstance(state, dict):
-        state = {}
-    merged = {**DEFAULT_STATE, **state}
-    merged["profile"] = {**DEFAULT_STATE["profile"], **(state.get("profile") or {})}
-    merged["cards"] = state.get("cards") or {}
-    merged["messages"] = state.get("messages") or []
-    merged["revision"] = int(state.get("revision", 0))
-    merged["allowed_actions"] = state["allowed_actions"] if isinstance(state.get("allowed_actions"), list) else DEFAULT_STATE["allowed_actions"]
-    return merged
+    if not isinstance(state, dict) or state.get("version") != STATE_VERSION:
+        return _empty_state()
+    return {**_empty_state(), **state}
 
 
-def write_state(project_dir: str, **changes: Any) -> dict[str, Any]:
-    state = read_state(project_dir)
-    state.update({k: v for k, v in changes.items() if v is not None})
-    state["updated_at"] = datetime.now(timezone.utc).isoformat()
+def _save(project_dir: str, state: dict[str, Any]) -> dict[str, Any]:
+    state = {**state, "version": STATE_VERSION, "updated_at": datetime.now(timezone.utc).isoformat()}
     write_json(project_dir, STATE_FILE, state)
     return state
 
 
-def add_message(project_dir: str, role: str, text: str) -> dict[str, Any]:
+def next_step(state: dict[str, Any]) -> str:
+    """The first step not done yet, or "done"."""
+    if state.get("finished_at"):
+        return "done"
+    for step in STEPS[:-1]:
+        if not state.get(step):
+            return step
+    return "finish"
+
+
+def _require(state: dict[str, Any], step: str) -> None:
+    missing = next_step(state)
+    if missing == "done":
+        missing = "finish"
+    if STEPS.index(missing) < STEPS.index(step):
+        raise OnboardingError(f"do the {missing} step first")
+
+
+# --- the steps --------------------------------------------------------------
+
+def save_profile(project_dir: str, sources: list[str], summary: str) -> dict[str, Any]:
+    """The resume (and any other files) the profile is built from, and the
+    summary the user approved. Sources must exist; paths inside the project
+    are stored relative to it, so the folder can move."""
+    if not sources:
+        raise OnboardingError("at least one source file is required (the resume)")
+    summary = str(summary or "").strip()
+    if not summary:
+        raise OnboardingError("the profile summary is empty")
+    root = os.path.realpath(project_dir)
+    cleaned = []
+    for source in sources:
+        full = source if os.path.isabs(source) else os.path.join(project_dir, source)
+        if not os.path.exists(full):
+            raise OnboardingError(f"source not found: {source}")
+        real = os.path.realpath(full)
+        stored = os.path.relpath(real, root) if real.startswith(root + os.sep) else real
+        stored = stored.replace("\\", "/")
+        cleaned.append({"path": stored, "label": os.path.basename(real),
+                        "kind": "folder" if os.path.isdir(real) else "file", "enabled": True})
     state = read_state(project_dir)
-    messages = list(state.get("messages", []))
-    messages.append({"role": role, "text": text, "at": datetime.now(timezone.utc).isoformat()})
-    return write_state(project_dir, messages=messages)
+    state.update(profile={"sources": cleaned, "summary": summary}, finished_at=None)
+    return _save(project_dir, state)
 
 
-def read_bridge(project_dir: str) -> dict[str, Any]:
-    bridge = read_json(project_dir, BRIDGE_FILE, {})
-    if not isinstance(bridge, dict):
-        bridge = {}
-    merged = {**DEFAULT_BRIDGE, **bridge}
-    merged["action_types"] = [str(item) for item in merged.get("action_types", []) if str(item).strip()]
-    return merged
+def save_search(project_dir: str, data: dict[str, Any]) -> dict[str, Any]:
+    state = read_state(project_dir)
+    _require(state, "search")
+    state.update(search=validate_search(data), finished_at=None)
+    return _save(project_dir, state)
 
 
-def write_bridge(project_dir: str, status: str, action_types: list[str] | None = None, pid: int | None = None, label: str = "", **extra: Any) -> dict[str, Any]:
-    if status not in BRIDGE_STATUSES:
-        raise ValueError(f"unknown bridge status: {status}")
-    bridge = {
-        **DEFAULT_BRIDGE,
-        **read_bridge(project_dir),
-        "status": status,
-        "action_types": [str(item) for item in (action_types or []) if str(item).strip()],
-        "pid": pid,
-        # Explicit default (not inherited from the previous write) so a
-        # "working" label never survives into the next listening/offline
-        # state and shows stale text in the web view.
-        "label": str(label or ""),
-        "updated_at": datetime.now(timezone.utc).isoformat(),
-        **extra,
-    }
-    write_json(project_dir, BRIDGE_FILE, bridge)
-    return bridge
+def save_rubric(project_dir: str, data: dict[str, Any]) -> dict[str, Any]:
+    state = read_state(project_dir)
+    _require(state, "rubric")
+    questions = validate_answers(data)
+    draft = draft_rubric_criteria(questions)
+    if not any(c["kind"] == "pass" for c in draft["criteria"]):
+        raise OnboardingError("the clear-yes answer gave no criterion")
+    state.update(rubric={"questions": questions, "criteria": draft}, finished_at=None)
+    return _save(project_dir, state)
 
 
-def set_bridge_working(project_dir: str, label: str) -> dict[str, Any]:
-    """Tell the web what the setup agent is doing right now, between two
-    wait-for-action calls (writing a summary, deriving keywords, ...). The
-    web shows `label` with a spinner instead of a plain "connecting" gate."""
-    return write_bridge(project_dir, "working", pid=os.getpid(), label=label)
-
-
-def bridge_is_ready(project_dir: str) -> bool:
-    """True when a wait-for-action loop is actively polling for the web's
-    next decision, i.e. the web's action buttons should be enabled."""
-    bridge = read_bridge(project_dir)
-    if bridge.get("status") != "listening":
-        return False
-    return osutil.pid_alive(bridge.get("pid"))
-
-
-def live_bridge(project_dir: str) -> dict[str, Any]:
-    """The bridge as the web should see it. A wait that was killed leaves
-    "listening" behind in its file; shown as it is, the page offers a button
-    that the server then refuses."""
-    bridge = read_bridge(project_dir)
-    if bridge.get("status") == "listening" and not osutil.pid_alive(bridge.get("pid")):
-        bridge = {**bridge, "status": "offline", "action_types": [], "pid": None}
-    return bridge
-
-
-def is_repeat(project_dir: str, action: dict[str, Any]) -> bool:
-    """Is this the action that was just applied, sent a second time (a
-    double click, or a page that had not caught up yet)? It is already done:
-    answering "stale revision" would report a failure that did not happen."""
-    last = read_action(project_dir)
-    if not last or not isinstance(action, dict) or action.get("expected_revision") is None:
-        return False
+def finish(project_dir: str) -> dict[str, Any]:
+    """Write the files a run reads, from the confirmed steps."""
+    state = read_state(project_dir)
+    _require(state, "finish")
+    from ftja.pipeline_view import write_config
+    from ftja.verdict import save_criteria
+    profile = state["profile"]
+    write_config(project_dir, criteria=state["search"], profile_md=profile["summary"].rstrip() + "\n",
+                 profile_sources=profile["sources"])
     try:
-        applied = int(read_state(project_dir).get("revision", 0)) == int(action["expected_revision"]) + 1
-    except (TypeError, ValueError):
-        return False
-    return applied and {k: v for k, v in last.items() if k != "at"} == action
+        save_criteria(project_dir, state["rubric"]["criteria"]["criteria"], state["rubric"]["criteria"].get("notes") or {})
+    except ValueError as e:
+        raise OnboardingError(str(e))
+    state["finished_at"] = datetime.now(timezone.utc).isoformat()
+    return _save(project_dir, state)
 
 
-def read_action(project_dir: str) -> dict[str, Any] | None:
-    action = read_json(project_dir, ACTION_FILE, None)
-    return action if isinstance(action, dict) else None
-
-
-def write_action(project_dir: str, action: dict[str, Any]) -> None:
-    write_json(project_dir, ACTION_FILE, {**action, "at": datetime.now(timezone.utc).isoformat()})
-
-
-def wait_for_action(project_dir: str, action_types: list[str], timeout_seconds: int = 900) -> dict[str, Any]:
-    """Wait for one of the web actions written in the connected project folder."""
-    if not action_types:
-        raise ValueError("at least one action type is required")
-    if not 1 <= timeout_seconds <= 3600:
-        raise ValueError("timeout_seconds must be between 1 and 3600")
-    expected_types = {str(action_type).strip() for action_type in action_types if str(action_type).strip()}
-    initial_revision = int(read_state(project_dir).get("revision", 0))
-    # An action revision already reported as confirmed by an earlier
-    # wait_for_action call must never be reported again. Without this, two
-    # consecutive waits for the SAME action type (the three sequential
-    # `answer_rubric_question` calls) replay the first answer forever: the
-    # action file only ever holds the most recent action, and on its own
-    # `just_completed_before_wait_started`'s revision-delta check can't tell
-    # "this just happened" apart from "this was already reported by the
-    # previous wait for this same type."
-    already_confirmed_revision = int(read_bridge(project_dir).get("last_confirmed_revision", -1))
-    write_bridge(project_dir, "listening", sorted(expected_types), os.getpid(), last_confirmed_revision=already_confirmed_revision)
-    result: dict[str, Any] = {"status": "timeout", "state": read_state(project_dir)}
-    confirmed_revision = already_confirmed_revision
-    deadline = time.monotonic() + timeout_seconds
+def reset(project_dir: str) -> None:
     try:
-        while time.monotonic() < deadline:
-            action = read_action(project_dir)
-            if action and action.get("type") in expected_types:
-                state = read_state(project_dir)
-                action_revision = int(action.get("expected_revision", -1))
-                current_revision = int(state.get("revision", 0))
-                observed_after_wait_started = (
-                    initial_revision <= action_revision < current_revision
-                    and current_revision > initial_revision
-                )
-                just_completed_before_wait_started = (
-                    current_revision > 0
-                    and action_revision == current_revision - 1
-                    and action_revision > already_confirmed_revision
-                )
-                if observed_after_wait_started or just_completed_before_wait_started:
-                    result = {"status": "confirmed", "action": action, "state": state}
-                    confirmed_revision = action_revision
-                    return result
-            time.sleep(0.5)
-        result = {"status": "timeout", "state": read_state(project_dir)}
-        return result
-    finally:
-        write_bridge(project_dir, "offline", [], None, last_status=result.get("status"), last_confirmed_revision=confirmed_revision)
+        os.remove(_path(project_dir, STATE_FILE))
+    except OSError:
+        pass
 
 
-def wait_for_source_confirm(project_dir: str, timeout_seconds: int = 900) -> dict[str, Any]:
-    """Backward-compatible wrapper for the first source-confirm handoff."""
-    return wait_for_action(project_dir, ["confirm_profile_sources"], timeout_seconds)
+# --- command line -----------------------------------------------------------
+
+def _load_payload(args) -> dict[str, Any]:
+    if args.json_file:
+        with open(args.json_file, encoding="utf-8-sig") as f:
+            return json.load(f)
+    if args.json:
+        return json.loads(args.json)
+    raise OnboardingError("give the JSON with --json-file (or --json)")
+
+
+def _report(project_dir: str, state: dict[str, Any]) -> dict[str, Any]:
+    out = {"next": next_step(state)}
+    for step in ("profile", "search"):
+        if state.get(step):
+            out[step] = state[step]
+    if state.get("rubric"):
+        out["rubric"] = state["rubric"]["criteria"]
+    if out["next"] == "rubric":
+        out["questions"] = RUBRIC_QUESTIONS
+    if state.get("finished_at"):
+        out["files"] = ["criteria.json", "rubric.md", "rubric-criteria.json", "profile/summary.md", "profile/sources.json"]
+    return out
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Coordinate FTJA chat and web onboarding")
+    parser = argparse.ArgumentParser(description="FTJA setup, driven from the chat")
     parser.add_argument("project_dir", nargs="?", default=".")
     sub = parser.add_subparsers(dest="command", required=True)
-    init = sub.add_parser("init")
-    init.add_argument("--message", default="")
-    set_state = sub.add_parser("set-state")
-    set_state.add_argument("--stage", required=True)
-    set_state.add_argument("--phase", required=True)
-    set_state.add_argument("--status", default="waiting")
-    set_state.add_argument("--message", default="")
-    set_state.add_argument("--json", default="{}")
-    set_state.add_argument("--json-file", help="read the JSON from this file; PowerShell mangles quoted JSON on the command line")
-    wait = sub.add_parser("wait-for-source-confirm", help="Wait for the web source Confirm action")
-    wait.add_argument("--timeout", type=int, default=900)
-    wait_action = sub.add_parser("wait-for-action", help="Wait for a web action")
-    wait_action.add_argument("--type", dest="action_types", action="append", required=True)
-    wait_action.add_argument("--timeout", type=int, default=900)
-    add = sub.add_parser("message")
-    add.add_argument("role", choices=["agent", "user", "system"])
-    add.add_argument("text")
-    status_cmd = sub.add_parser("status", help="Tell the web what the setup agent is doing right now")
-    status_cmd.add_argument("state", choices=["working", "offline"])
-    status_cmd.add_argument("label", nargs="?", default="")
-    checklist_cmd = sub.add_parser("checklist", help="Print the current onboarding checklist")
+    sub.add_parser("status", help="What is done and what comes next")
+    profile = sub.add_parser("profile", help="Save the resume path(s) and the approved summary")
+    profile.add_argument("--source", action="append", default=[], help="a resume or other file; repeat for several")
+    profile.add_argument("--summary-file", required=True, help="a file holding the approved profile summary")
+    for name, help_text in (("search", "Save search settings and the code filter"),
+                            ("rubric", "Save the three answers; prints the rubric list code built from them")):
+        cmd = sub.add_parser(name, help=help_text)
+        cmd.add_argument("--json-file")
+        cmd.add_argument("--json")
+    sub.add_parser("finish", help="Write criteria.json, rubric.md and the profile files")
+    sub.add_parser("reset", help="Forget the setup so far (written files stay)")
     args = parser.parse_args()
-    if args.command == "init":
-        write_state(args.project_dir, **({"messages": [{"role": "agent", "text": args.message}]} if args.message else {}))
-    elif args.command == "wait-for-source-confirm":
-        print(json.dumps(wait_for_source_confirm(args.project_dir, args.timeout), ensure_ascii=False, indent=2))
-    elif args.command == "wait-for-action":
-        print(json.dumps(wait_for_action(args.project_dir, args.action_types, args.timeout), ensure_ascii=False, indent=2))
-    elif args.command == "message":
-        add_message(args.project_dir, args.role, args.text)
-    elif args.command == "status":
-        if args.state == "working":
-            print(json.dumps(set_bridge_working(args.project_dir, args.label), ensure_ascii=False, indent=2))
+    project_dir = args.project_dir
+    try:
+        if args.command == "status":
+            state = read_state(project_dir)
+        elif args.command == "profile":
+            with open(args.summary_file, encoding="utf-8-sig") as f:
+                summary = f.read()
+            state = save_profile(project_dir, args.source, summary)
+        elif args.command == "search":
+            state = save_search(project_dir, _load_payload(args))
+        elif args.command == "rubric":
+            state = save_rubric(project_dir, _load_payload(args))
+        elif args.command == "finish":
+            state = finish(project_dir)
         else:
-            print(json.dumps(write_bridge(args.project_dir, "offline", [], None), ensure_ascii=False, indent=2))
-    elif args.command == "checklist":
-        print(json.dumps(build_checklist(read_state(args.project_dir), args.project_dir), ensure_ascii=False, indent=2))
-    else:
-        if args.json_file:
-            with open(args.json_file, encoding="utf-8-sig") as f:
-                payload = json.load(f)
-        else:
-            payload = json.loads(args.json)
-        state = read_state(args.project_dir)
-        profile = payload.get("profile") or {}
-        if (state["stage"], state["phase"]) == ("profile", "sources"):
-            apply_action(args.project_dir, {"type": "set_profile_sources", "sources": profile.get("sources")})
-        elif (state["stage"], state["phase"]) == ("profile", "profile_summary"):
-            apply_action(args.project_dir, {"type": "set_profile_summary", "summary": profile.get("summary")})
-        elif (state["stage"], state["phase"]) == ("profile", "profile_summary_review"):
-            apply_action(args.project_dir, {"type": "confirm_profile_summary"})
-        elif (state["stage"], state["phase"]) == ("profile", "title_proposal"):
-            criteria = profile.get("criteria") or {}
-            stage0_card = (payload.get("cards") or {}).get("stage0", {})
-            stage0 = validate_stage0_draft({
-                "keywords": stage0_card.get("keywords", criteria.get("keywords", {}).get("tier1", [])),
-                "languages": stage0_card.get("languages", criteria.get("languages", [])),
-                "exclude_keywords": stage0_card.get("exclude_keywords", criteria.get("exclude_keywords", [])),
-                "keyword_language": stage0_card.get("keyword_language", criteria.get("keywords", {}).get("tier1_language")),
-            })
-            apply_action(args.project_dir, {
-                "type": "set_profile_draft",
-                "titles": profile.get("titles") or criteria.get("search_terms"),
-                "location": criteria.get("location"),
-                **({"locations": criteria["locations"]} if isinstance(criteria.get("locations"), list) and criteria["locations"] else {}),
-                **({"title_must_match": criteria["title_must_match"]} if "title_must_match" in criteria else {}),
-                "hours_old": criteria.get("hours_old", 24),
-                "results_wanted": criteria.get("results_wanted", 100),
-                "stage0": stage0,
-            })
-        elif (state["stage"], state["phase"]) == ("rubric", "stage0"):
-            card = (payload.get("cards") or {}).get("stage0", {})
-            criteria = profile.get("criteria") or {}
-            draft = validate_stage0_draft({
-                "keywords": card.get("keywords", criteria.get("keywords", {}).get("tier1", [])),
-                "languages": card.get("languages", criteria.get("languages", [])),
-                "exclude_keywords": card.get("exclude_keywords", criteria.get("exclude_keywords", [])),
-                "keyword_language": card.get("keyword_language", criteria.get("keywords", {}).get("tier1_language")),
-            })
-            apply_action(args.project_dir, {"type": "set_stage0_draft", "card": draft})
-        else:
-            raise OnboardingError("set-state cannot bypass the onboarding state machine")
-        if args.message:
-            add_message(args.project_dir, "agent", args.message)
+            reset(project_dir)
+            state = read_state(project_dir)
+    except (OnboardingError, OSError, json.JSONDecodeError) as e:
+        print(json.dumps({"error": str(e)}, ensure_ascii=False))
+        sys.exit(1)
+    print(json.dumps(_report(project_dir, state), ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":

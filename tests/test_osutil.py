@@ -30,21 +30,6 @@ def test_windows_never_signals_the_process_it_asks_about():
         kill.assert_not_called()
 
 
-def test_windows_file_chooser_returns_the_path_and_none_on_cancel():
-    chosen = subprocess.CompletedProcess([], 0, "C:\\Users\\지수\\이력서.pdf", "")
-    with as_windows(), mock.patch.object(osutil.subprocess, "run", return_value=chosen) as run:
-        assert osutil.pick_path("file") == "C:\\Users\\지수\\이력서.pdf"
-        argv, kwargs = run.call_args
-        assert argv[0][:4] == ["powershell", "-NoProfile", "-STA", "-Command"]
-        assert "OpenFileDialog" in argv[0][4] and "OutputEncoding" in argv[0][4]
-        assert kwargs["encoding"] == "utf-8"
-        osutil.pick_path("folder")
-        assert "FolderBrowserDialog" in run.call_args[0][0][4]
-    cancelled = subprocess.CompletedProcess([], 0, "", "")
-    with as_windows(), mock.patch.object(osutil.subprocess, "run", return_value=cancelled):
-        assert osutil.pick_path("file") is None
-
-
 def test_windows_opens_the_folder_in_explorer():
     with as_windows(), mock.patch.object(osutil.os, "startfile", create=True) as startfile, \
             mock.patch.object(osutil.subprocess, "run") as run:

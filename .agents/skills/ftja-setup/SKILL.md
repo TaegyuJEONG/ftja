@@ -1,532 +1,283 @@
 ---
 name: ftja-setup
-description: One-time (but re-invocable) onboarding for FTJA — interviews the user and creates local rubric.md + criteria.json. Invoke when rubric.md/criteria.json don't exist yet, or when the user asks to "set up again" / "reset rubric" / "redo onboarding".
+description: One-time (but re-invocable) onboarding for FTJA. Interviews the user in the chat and writes criteria.json, rubric.md and profile/summary.md, then opens the local viewer for a final review. Invoke when rubric.md/criteria.json don't exist yet, or when the user asks to "set up again" / "reset rubric" / "redo onboarding".
 ---
 
 # FTJA setup
 
-Interview the user conversationally (not a rigid form — follow up, don't
-just fire a checklist) to produce two files at the project root. Do not
-guess at answers; if the user is vague, ask a follow-up.
+The whole setup happens in this chat. The local viewer is opened only at
+the end, once the files a run needs exist, so the user can review and edit
+them there. Nothing in this skill waits for a click in the browser, and you
+never ask the user to click anything in the viewer during setup.
 
-This runs in two turns. Turn 1 connects the workspace and opens the web view
-on its own, then stops and asks one question. Turn 2 (triggered by the
-user's reply) creates the native checklist and drives the actual interview.
-Do not collapse these into one turn — see "Why two turns" below.
+Interview conversationally: one question at a time, follow up when an
+answer is vague, and do not guess an answer the user has not given. Talk in
+the language the user writes in. Keep each message short: what you
+propose, and the one thing you need from them.
 
-## Turn 1: connect and open the web view
+Every step is saved by `python -m ftja.onboarding`, which checks the input,
+refuses to run a step before the one it builds on, and prints the result as
+JSON (`{"error": ...}` and exit code 1 when something is wrong; fix it and
+run the command again). Progress is kept in `onboarding-state.json`, so an
+interrupted setup picks up where it stopped.
 
-Do this without asking the user anything mid-way, then end the turn with
-exactly one question. Do not check for native task tools, create the
-checklist, or start any `wait-for-action` call in this turn.
+**Commands on Windows.** Every `venv/bin/python` below is
+`venv\Scripts\python` in PowerShell. Pass JSON with `--json-file`: write the
+JSON to a file under `.ftja-run/` with your file-writing tool first.
+PowerShell strips the quotes out of JSON given on the command line, so do
+the same on every system and never use `--json`.
 
-1. Resolve the absolute path of the cloned FTJA repository from the actual
-   session context. Preserve the user's path and capitalization exactly; do
-   not guess between similarly named folders. Clone it first if it isn't
-   cloned yet.
-2. Create or merge `<workspace>/.claude/settings.local.json`, preserving
-   existing JSON keys and `env` values, with
-   `"CLAUDE_CODE_ENABLE_TODO_TOOLS": "1"`. Do this now, in this turn, even
-   though the native task tools it enables won't be checkable until turn 2.
-3. Call `mcp__ccd_directory__change_directory` with the exact absolute path.
-   Continue only when the result confirms `Folder access granted`. If the
-   tool is unavailable or permission is denied, stop and report that the
-   session folder is not connected; do not continue with a scratch
-   workspace.
-4. Create the repository's Python environment (`venv`) and install
-   dependencies if they don't already exist, using the repository's own
-   commands.
-5. Initialize or resume `onboarding-state.json` from that connected folder.
-6. Start the local server from that folder if `http://127.0.0.1:8765/` is
-   not responding. Verify it with `curl` before proceeding. If another
-   project's FTJA server already holds port 8765, tell the user and ask
-   before stopping it — don't silently kill another workspace's server.
-   Start it via `mcp__Claude_Browser__preview_start` with a `name`, not a
-   background shell command: create or merge `.claude/launch.json` with a
-   configuration such as `{"name": "ftja", "runtimeExecutable":
-   "venv/bin/python", "runtimeArgs": ["-m", "ftja.server"], "port": 8765}`,
-   then call `preview_start` with that `name`. This is a one-shot, purpose-
-   built launch path; a background `Bash`/`nohup` command doing the same
-   thing is more failure-prone (it needs its own PID tracking) and, live,
-   has been the actual site of long, silent multi-minute stalls in this
-   step — see "Move quickly through routine steps" for why that matters.
-7. Open the viewer immediately, next to this chat. Call
-   `mcp__Claude_Browser__preview_start` with `http://127.0.0.1:8765`, then
-   call `mcp__Claude_Browser__get_page_text` to verify the page. On macOS
-   also run `open http://127.0.0.1:8765` so the user gets a visible browser
-   without needing to click an `Open` card. Do not describe the viewer as
-   open until a navigation/page-text check succeeds.
-8. End the turn by asking exactly one question, e.g.: "I've opened the FTJA
-   web view next to this chat — ready to start onboarding?" Say nothing
-   about background files, checklists, or next steps yet; that all belongs
-   to turn 2.
+## Turn 1: connect the folder
 
-### Why two turns
+Do this without asking anything mid-way, then end the turn with exactly one
+question.
 
-`change_directory`'s folder switch, and the `env` setting it carries, only
-take effect once this turn ends and a new one begins — so does the native
-task tool availability that setting controls. Checking for `TaskCreate`/
-`TaskUpdate` inside this same turn is expected to find nothing; that is not
-evidence setup is broken, and it is not a reason to add a workaround (a
-background `sleep` command, an immediate self-recheck) to dodge the turn
-boundary. End the turn cleanly and let the user's reply start turn 2, where
-the tools are actually available.
+1. Resolve the absolute path of the FTJA folder from the session context.
+   Preserve the user's path and capitalization exactly; do not guess
+   between similarly named folders. Clone it first if it isn't cloned yet.
+   A fresh Windows PC often has neither Git nor Python (a `python` that
+   only opens the Microsoft Store is not Python): ask once, for both
+   together, before installing them with `winget install --id Git.Git -e`
+   and `winget install --id Python.Python.3.12 -e`.
+2. Create or merge `<folder>/.claude/settings.local.json`, keeping existing
+   keys and `env` values, with `"CLAUDE_CODE_ENABLE_TODO_TOOLS": "1"`.
+3. Call `mcp__ccd_directory__change_directory` with the exact absolute
+   path. Continue only when the result confirms `Folder access granted`.
+   If the tool is unavailable or permission is denied, stop and say the
+   session folder is not connected; do not continue in a scratch folder.
+   (A client without this tool, such as Codex started in the folder, is
+   already in the right place: check with `pwd` and go on.)
+4. Create the Python environment and install dependencies if they are not
+   there yet: `python3 -m venv venv` and `venv/bin/pip install -r
+   requirements.txt` (Windows: `python -m venv venv` and
+   `venv\Scripts\pip install -r requirements.txt`).
+5. Run `venv/bin/python -m ftja.onboarding . status`. If `next` is not
+   `profile`, an earlier setup was interrupted: say what is already done
+   and that you will continue from `next`, and ask the matching question
+   below instead of the resume question.
+6. End the turn by asking for the resume, for example: "Attach your resume
+   here (PDF or Word), or tell me where it is on this computer."
 
-If the Claude client header still says `No folder` after a successful
-`Folder access granted` result, report that the client label did not
-refresh; the internal working directory and the visible client association
-are separate states. Never claim the header says FTJA unless it actually
-does.
+The folder switch and the `env` setting take effect only once this turn
+ends, which is why setup asks its first question here instead of going on.
 
-### Move quickly through routine steps
+## Turn 2 onward
 
-A full onboarding pass is mostly the user reading a card, deciding, and
-clicking — that time is theirs and isn't something to optimize. But a live
-run of this skill has taken 20+ minutes on stretches with nothing for the
-user to look at, and the cause was not the web's poll interval (already
-sub-second and irrelevant to how many turns this skill takes) or large
-inputs — it was this skill routing simple, one-shot steps through several
-extra tool calls each:
+### Checklist
 
-- Retrying a failed tool call more than once or two before trying a
-  genuinely different approach. If a call is refused or errors, don't loop
-  on the identical call — the isolated fix above (`preview_start` +
-  `launch.json` for the server) exists because that exact retry loop was
-  observed live on a plain background server-start command.
-- Re-verifying something in the browser (navigate, screenshot, a second
-  `read_page`) right after writing it to `onboarding-state.json`. The web's
-  poll-and-render loop is exercised by this project's own test suite; once
-  you've confirmed the state file has what you meant to write, the browser
-  will render it. Reserve an actual browser check for when the user reports
-  something looks wrong, not as a routine step after every write.
-- Multiple small exploratory commands (checking if a port is free, whether
-  a process exists, whether a file exists) where one targeted command would
-  do. Prefer the one-shot commands this skill already gives you over
-  rediscovering them by hand.
+If `TaskCreate` and `TaskUpdate` are available now, create these items in
+this order and keep exactly one `in_progress`:
 
-## Turn 2 onward: the native checklist
-
-Any affirmative reply to turn 1's question starts this section — do not
-require exact wording.
-
-### Client-native task list
-
-- Verify `TaskCreate` and `TaskUpdate` are available in the current session
-  now. A tracked `.claude/settings.json` arriving with a clone is not
-  evidence the live session reloaded this feature — only an actual
-  post-turn-boundary check is. If the native tools are still unavailable
-  here, stop and report the limitation honestly; do not substitute prose
-  and call it a native checklist.
-- In Codex, use `update_plan` with `pending`, `in_progress`, and `completed`
-  statuses. Its contract permits at most one `in_progress` item.
-- Do not enter Plan Mode, `EnterPlanMode`, `/plan`, or a collaboration Plan
-  Mode for this workflow. The native checklist is an execution-progress
-  mechanism, not a planning mode.
-
-Create these 8 items, in this order. Each is something the *user* does or
-reviews — infrastructure from turn 1 (clone, connect, server, browser) is
-already done and does not belong on this list:
-
-1. `Add your background files`
+1. `Add your resume`
 2. `Review your profile summary`
 3. `Review your search settings`
 4. `Review the code-based filter`
 5. `Answer three questions about your ideal role`
-6. `Confirm your judgment rubric`
-7. `Run your first job search`
-8. `Review your first results`
+6. `Review everything in the viewer`
 
-Keep exactly one item `in_progress` at a time. A command invocation alone
-cannot complete a checklist item; complete one only after its required
-evidence is observed (see "Evidence and checklist advancement" below). The
-checklist mirrors durable `onboarding-state.json` and observed client or
-browser results; it never replaces that state machine or hides completed
-work. Item 5 covers three sequential sub-answers (clear yes, dealbreakers,
-preferences) — keep it `in_progress` across all three; it completes only
-once the third is confirmed.
+Complete an item only once its command below has printed a result without
+an error. If the task tools are not available, go on without a checklist;
+do not imitate one in prose. Do not enter Plan Mode for this workflow.
 
-### Narrate long operations
+### Step 1: the resume
 
-Between two `wait-for-action` calls — writing `profile/summary.md`,
-deriving titles/keywords, drafting the rubric — the web has nothing to show
-and would otherwise look stuck or disconnected. Before starting one of
-these, run:
+The resume goes into the `profile/` folder inside the FTJA folder. That
+folder is gitignored: a private local copy for daily runs, never committed.
 
-```bash
-venv/bin/python -m ftja.onboarding . status working "Writing your profile summary from your files"
-```
+- **Attached in the chat:** save the file into `profile/` under its own
+  file name. If what you received is only the text of the file and not
+  the file itself, write that text to `profile/resume.md` and say so in
+  one line.
+- **A path on this computer:** copy the file into `profile/` (`cp`;
+  Windows `Copy-Item`). Do not move or change the original.
 
-The web shows this label with a spinner, and the matching checklist item
-does the same, instead of a plain "connecting" notice. Write a short,
-specific label for what you're actually doing right now (not a generic
-"working..."). The next `wait-for-action` call automatically clears this
-and marks the bridge listening again — no separate "stop working" call is
-needed in the normal flow.
+Take the resume only. Portfolios and folders of documents are switched off
+during the beta, because the profile drafted from large folders was not
+reliable yet; if the user offers one, say so and go on with the resume.
 
-### Evidence and checklist advancement
+Read the resume and write a draft summary to `profile/summary.draft.md`: a
+condensed distillation of a few hundred words, with role history
+highlights, key skills and tools, notable achievements, and whatever a
+judge would need to assess fit. Stage 2 reads this file on every posting,
+every day, instead of the resume (reading the full files measured
+44k to 86k tokens per call), so write it yourself from what you read; do
+not paste the raw file.
 
-- For `confirm_profile_sources`, `confirm_profile_summary`, `confirm_profile`,
-  `confirm_stage0`, each ordered `answer_rubric_question` (`clear_yes`, then
-  `dealbreakers`, then `preferences`), and `confirm_rubric`: advance only after
-  `wait-for-action` returns `status: confirmed`, then read the returned action
-  and the full durable state. The three rubric answers must remain strictly
-  ordered. Build or mark drafts only after their preceding confirmation.
-- Do not mark `Run your first job search` complete because `/ftja-run` was
-  merely suggested — it needs a real completed run. Do not mark `Review your
-  first results` complete until that run has an observable result surface or
-  run artifact; a valid empty result must be verified and explained, never
-  fabricated.
-
-### Routine chat copy
-
-The native checklist carries progress. Normal successful chat output is one or
-two short sentences: state only what was just verified when useful and the
-single next user action (or that no action is needed yet). Keep recovery and
-timeout detail only in failure messages. Do not repeat the whole checklist or
-web-card fields in ordinary prose.
-
-## File-driven onboarding contract
-
-The local web onboarding is a viewer and decision surface, not a wizard. Never
-advance it with a `Next` button and never ask the user to repeat structured
-answers in chat. The setup chat is the driver; it writes the local files and
-`onboarding-state.json`, while the browser polls that state and shows only the
-current stage.
-
-Use the repository helper for every transition:
+Show the summary in the chat and ask whether it is right. Apply what the
+user corrects and show it again, until they approve. Then save:
 
 ```bash
-venv/bin/python -m ftja.onboarding . init
-venv/bin/python -m ftja.onboarding . message agent "..."
-venv/bin/python -m ftja.onboarding . set-state --stage profile --phase profile_summary --status waiting --json '{"profile":{"summary":"...","sources":[...]}}'
+venv/bin/python -m ftja.onboarding . profile --source profile/<resume file> --summary-file profile/summary.draft.md
 ```
 
-The web sends decisions to `POST /api/onboarding-action`. The server is the
-onboarding state machine: it validates the current stage and revision, rejects
-stale or out-of-order actions, writes the next `onboarding-state.json` state
-atomically, and records every web action in `onboarding-action.json`. The action
-types are `set_profile_sources`, `confirm_profile_sources`,
-`set_profile_summary`, `confirm_profile_summary`, `set_profile_draft`,
-`confirm_profile`, `set_stage0_draft`, `confirm_stage0`,
-`answer_rubric_question`, and `confirm_rubric`. The agent/LLM may produce drafts,
-but it must not choose the next stage or promote unconfirmed data into active
-configuration.
+### Step 2: search settings
 
+Propose these from the approved profile, as a short list the user can
+correct in one reply. Do not save before they agree.
 
-The only onboarding order is:
+- **Job titles** (`titles`): the roles the profile targets. They are sent
+  to LinkedIn as written. There is no exact-phrase setting and quoting a
+  title does not enforce it: LinkedIn's logged-out search matches by
+  meaning ("founder in residence" also returns "Entrepreneur In
+  Residence"). A phrase that has to appear in the posting goes in the
+  code filter's keywords instead.
+- **Locations** (`locations`): start from the country the user is based
+  in. Propose every place the profile says they want; if they mention more
+  than one region, don't silently keep only the first. A run searches
+  every title in every location (3 titles in 3 locations make 9
+  searches), so say what that does to the length of a run. There is no
+  remote-only setting: LinkedIn ignores its workplace filter for
+  logged-out searches. A candidate who wants remote roles sets up the
+  **Remote check** afterwards on the Pipeline tab (`/ftja-remote`); say
+  so when they mention remote work.
+- **Posted within** (`hours_old`): default 24 hours.
+- **Max results per search** (`results_wanted`): 1 to 1000, default 100,
+  per title in each location. A run scrapes every search up to this cap,
+  merges everything into one list, and only then filters and judges it.
+  Raising it widens coverage per title; it does not add titles.
+- **Title must match** (`title_must_match`, default `false`): with `true`,
+  the code filter keeps a posting only if its title contains the search
+  term that found it, in any word form. Offer it when the user wants
+  exactly the titles they named, and say what it costs: differently named
+  versions of the same job are dropped unless added as titles.
 
-1. **Profile** — wait for the resume file (portfolio and folder sources are
-   switched off in the viewer during the beta), write a concise
-   `profile/summary.md`, get an explicit profile-summary confirmation, then
-   propose editable job titles. Propose location from
-   the user's country as a starting point, but use **Europe** in the public
-   example; propose non-remote and postings from the past 24 hours as defaults.
-   Do not save these defaults until the user confirms them in the web card.
-2. **Rubric** — propose keywords, readable languages, and exclude words for
-   Stage 0. After confirmation, the web asks exactly one judgment question at a
-   time (clear yes, dealbreakers, then preferences). Wait for each answer before
-   proceeding. The web then shows the rubric as one line per criterion, built from the
-   three answers by code (each "clear yes" line is its own pass criterion —
-   a job passes on any one), for a final confirmation; do not write or
-   rewrite that list yourself, and do not show separate Stage 1 or Stage 2
-   confirmation cards.
-3. **Run** — after the rubric is confirmed the web opens the Pipeline tab with
-   a banner asking for one last review of everything on it. Your last chat
-   message must say the same, in one or two sentences: setup is finished, and
-   once they have reviewed the Pipeline tab they should type `/ftja-run` in
-   this FTJA-connected session to start the first run. The existing
-   Results/Pipeline surfaces remain the source of truth and update from local
-   files.
-4. **Learn** — record apply/skip decisions and reasons in Results. On a later
-   interactive run, propose rubric changes for approval; never silently apply
-   them.
+### Step 3: the code-based filter
 
-A stage is complete only after the corresponding local action has been read and
-its next state has been written. The browser must be safe to reload: it should
-resume from `onboarding-state.json`, not localStorage or a guessed step.
+Propose these from the profile too, again as one short list to correct:
 
-## Web-driven profile sources
+- **Languages** (`languages`): ISO 639-1 codes (`["en", "fr"]`) of the
+  languages the user can actually read a posting in. A posting whose text
+  is in none of them is dropped, and so is one that plainly requires
+  fluency in a language not on the list ("Fluent in German and English"),
+  so a language requirement needs no exclude word (and a bare language
+  name there would also drop "the German market").
+- **Keywords** (`keywords`, with `keyword_language`): the phrases that must
+  appear in a sentence of the posting for it to reach Stage 1. Stage 1
+  reads only the sentences around them and judges those against the
+  rubric, so every keyword has to be a word that shows up where a posting
+  talks about what the rubric is about.
+  - Write them **in every language in `languages`**: a posting written in
+    French is caught only by French keywords. Do not translate word for
+    word; give the terms postings in that language really use, and list
+    the word forms yourself (singular and plural, masculine and feminine).
+    Record each keyword's language in `keyword_language`
+    (`{"prototypage": "fr"}`); a name that is the same in every language
+    ("LLM", "Cursor") goes under the first language.
+  - A keyword matches whole words and their forms ("remote" matches
+    "remotely", not "premote"), so write full words, never a fragment. A
+    keyword in capitals ("UTC") matches only those capitals.
+  - Do not put remote-work words ("remote", "hybrid", "on-site",
+    "télétravail") in the keywords: Stage 1 would then judge benefit and
+    location sentences against a rubric that is about the role. That is
+    the Remote check's job.
+  - Two sources matter; ask about each separately:
+    **concrete tool names** the target roles use (for AI-builder roles:
+    Cursor, Replit, v0.dev, Lovable, Bolt.new, Windsurf, Supabase, Vercel,
+    Claude Code, Codex, OpenAI API, "vibe coding"), which are a much
+    stronger signal than topic words and easy to miss; and **role
+    phrases** specific to the target roles ("0 to 1", "solo founder",
+    "entrepreneur in residence", "venture builder"), concrete phrases
+    rather than vague topics.
+- **Exclude words** (`exclude_keywords`): any word here anywhere in the
+  posting drops it, with no phrase matching. Ask: "is there anything, a
+  language or otherwise, that should get a posting dropped outright if it
+  appears?" A tool, a company, an industry all work. It may stay empty.
 
-The web view is the only source-material input surface. Never use
-`AskUserQuestion` to ask where a resume or portfolio lives, and never ask
-for an absolute source path in chat. In this same turn, write the
-source-material instruction as your response text, then immediately run the
-blocking `wait-for-action --type confirm_profile_sources` command below —
-don't end the turn or ask the user to click before that command is running.
-The web card's recovery phrase is a fallback for a delayed turn, not the
-normal startup path. If a user message arrives saying they already acted,
-run the same wait command immediately anyway; it recovers the most recent
-valid action from the connected state instead of asking them to click again.
+When the user agrees, write both steps to `.ftja-run/setup-search.json`
+and save them in one command:
 
-```bash
-venv/bin/python -m ftja.onboarding . wait-for-action --type confirm_profile_sources --timeout 900
-```
-
-Do not continue the profile interview, write a summary, or ask another source
-question until that command returns `status: confirmed`. When it returns, read
-every path from `onboarding-state.json` and continue in this same setup session.
-If it returns `status: timeout`, tell the user to type `I uploaded my background
-files, continue the setup` in the FTJA setup chat and then resume from the state
-file. If the user adds more sources before confirming, re-read the full source
-list before writing `profile/summary.md`.
-
-Read every path from `onboarding-state.json`, then inspect/copy the selected
-sources into the gitignored `profile/` folder as needed. This folder is a
-private local cache and derived workspace for repeatable daily runs; it is
-not an upload, public snapshot, or Git commit. Do not require a
-resume/portfolio label: the UI uses the selected file or folder name.
-
-Mark bridge status `working` before reading and summarizing the files (see
-"Narrate long operations"), then write `profile/summary.md`. The web must
-then show the summary for an explicit `Confirm profile summary` decision.
-Send a short review instruction as your response text, then wait:
-
-```bash
-venv/bin/python -m ftja.onboarding . wait-for-action --type confirm_profile_summary --timeout 900
-```
-
-Only after that action returns `status: confirmed`, read the confirmed profile
-summary and create **one structured proposal covering both upcoming deterministic
-screens**:
-
-1. scraping/search settings: titles, location, published-within, and results
-   wanted;
-2. Stage 0: matching keywords, readable languages, and hard-exclude words.
-
-Do not show either screen until this combined proposal has been written to
-`onboarding-state.json`. This is a required protocol step, not optional LLM
-judgment. The LLM may derive candidate values from the profile, but the state
-machine validates their JSON shape and rejects missing required fields. Never
-write empty title, keyword, or language arrays, `...` placeholders, or generic
-blank defaults.
-
-Use profile evidence: target roles become search titles; the candidate's base
-location becomes the initial location; target roles and product/AI work become
-matching keywords; languages the candidate can actually read become ISO 639-1
-language filters; explicit dealbreakers or clearly non-target work become
-exclude words. Excludes may be empty only when the profile provides no defensible
-negative signal. Do not invent unsupported values merely to satisfy validation;
-ask one focused follow-up first when required evidence is absent.
-
-Write the complete combined proposal in a single command **before** instructing
-the user to review search settings:
-
-```bash
-venv/bin/python -m ftja.onboarding . set-state --stage profile --phase title_proposal --status waiting --json '{"profile":{"titles":["Product Builder","AI Product Manager","Founding Product Manager"],"criteria":{"search_terms":["Product Builder","AI Product Manager","Founding Product Manager"],"location":"France","hours_old":24,"results_wanted":100,"keywords":{"tier1":["AI product","LLM","Product Builder","produit IA","chef de produit IA"],"tier1_language":{"AI product":"en","Product Builder":"en","produit IA":"fr","chef de produit IA":"fr"}},"languages":["en","fr"],"exclude_keywords":["pure sales"]}},"cards":{"stage0":{"keywords":["AI product","LLM","Product Builder","produit IA","chef de produit IA"],"keyword_language":{"AI product":"en","Product Builder":"en","produit IA":"fr","chef de produit IA":"fr"},"languages":["en","fr"],"exclude_keywords":["pure sales"]}}}'
-```
-
-The `set-state` helper records drafts only. It must leave the state at
-`profile/title_proposal`; it must never call `confirm_profile` or move to Stage 0.
-Verify all of the following by reading `onboarding-state.json` back (do not
-open the browser to check — the web polls and renders that same file, and a
-separate navigate/screenshot here is a slow, redundant round trip, not extra
-safety; see "Move quickly through routine steps"):
-
-- state is still `profile/title_proposal`;
-- the search-settings card contains the proposed titles and location;
-- `cards.stage0` already contains non-empty keywords and languages, with
-  keywords in every one of those languages and `keyword_language` saying
-  which language each is in.
-
-Tell the user both upcoming screens were prefilled from the confirmed profile and
-remain editable. Then wait for `confirm_profile`. When it returns, the state
-machine must transition to `rubric/stage0` while preserving the already-populated
-`cards.stage0`; confirm that in the returned state, not by reopening the browser.
-Never insert a blank intermediate Stage 0 state.
-
-Before each card, write the instruction as your response text, then run only
-the matching command:
-
-```bash
-venv/bin/python -m ftja.onboarding . wait-for-action --type confirm_profile --timeout 900
-venv/bin/python -m ftja.onboarding . wait-for-action --type confirm_stage0 --type request_stage0_keywords --timeout 900
-venv/bin/python -m ftja.onboarding . wait-for-action --type answer_rubric_question --timeout 900
-venv/bin/python -m ftja.onboarding . wait-for-action --type confirm_rubric --timeout 900
-```
-
-**The filter card can ask you for keywords.** On the code-based filter
-card the user can add a language they read and press "Add <language>
-keywords with my agent" (or type "add <language> keywords to the filter"
-in the chat). The wait then returns `request_stage0_keywords` with
-`action.language`. Do not treat it as a confirmation:
-
-1. Read `cards.stage0` from `onboarding-state.json`: it holds the card as
-   the user has it now (`keywords`, `keyword_language`, `languages`).
-2. Write the keywords a posting **in that language** would use for the
-   same things the existing keywords catch. Do not translate word for
-   word; give the terms postings in that language really use, list the
-   word forms yourself (singular and plural, masculine and feminine), skip
-   names that are the same in every language, and add no place names.
-3. Save the card with the new keywords appended and each of them recorded
-   under that language, leaving everything else as it was:
-
-   ```bash
-   venv/bin/python -m ftja.onboarding . set-state --stage rubric --phase stage0 --status waiting --json '{"cards":{"stage0":{"keywords":[<all existing>, <the new ones>],"keyword_language":{<existing entries>, "<new keyword>":"<language code>"},"languages":[<as on the card>],"exclude_keywords":[<as on the card>]}}}'
-   ```
-
-4. Say in one line what you added, then run the same wait command again.
-   The card shows the new keywords by itself.
-
-Use only the command for the card currently shown. The helper watches the
-connected project folder and also recovers an action that completed immediately
-before the helper started, so a delayed chat turn does not lose a web decision.
-There are three sequential `answer_rubric_question` actions; after each one,
-re-read the state so the next web question remains the source of truth. After
-`status: confirmed`, read the returned `action` and the full
-`onboarding-state.json` before writing
-the next draft or message. Never assume that a changed web card reached the
-setup chat without the helper result. If a later wait times out, tell the user
-the matching recovery phrase shown by the web card (for example, `I confirmed
-my search settings, continue the setup`) and do not claim that the chat resumed.
-
-
-## What you need to learn
-
-**For `criteria.json` (Rubric stage, after Profile — Stage 0 deterministic, used by `ftja/scrape.py` and
-`ftja/filter_stage0.py`):**
-- `search_terms`: list of LinkedIn search strings (e.g. `["Product Manager", "Founding PM"]`)
-- `location`, `hours_old` — this is the ONLY place location is
-  controlled. There is no remote-only setting: LinkedIn ignores its
-  workplace filter for logged-out searches, so a candidate who wants remote
-  roles gets them through the **Remote check**, a separate stage they set
-  up afterwards on the Pipeline tab (`/ftja-remote`); say so when they
-  mention remote work. Do not put remote-work words ("remote", "hybrid",
-  "on-site", "télétravail", ...) in `keywords.tier1`: Stage 1 would then
-  read benefit and location sentences and judge them against a rubric that
-  is about the role. The one exception is a rubric that itself has a
-  remote criterion in its Pass or Fail section. Do not write `is_remote`
-  to `criteria.json`.
-- `locations` (optional list, e.g. `["France", "Germany", "Switzerland"]`):
-  for a candidate who wants more than one place. `/ftja-run` then searches
-  every search term in every location (3 titles × 3 locations = 9
-  searches, each up to `results_wanted`), so say what that does to the
-  length of a run. When `locations` is set it is used instead of
-  `location`. The search-settings card takes several: propose every place
-  the candidate's profile says they want (`"locations": ["France",
-  "Germany"]` in the `criteria` you pass to `set-state`, next to
-  `location`), and the user adds or removes them on the card. If the
-  candidate mentions more than one region, don't silently scope to just
-  the first one they said.
-- `results_wanted`: the max results scraped per search, that is per title
-  in each location (the "Max results per search" field on the
-  search-settings card, 1-1000,
-  default 100). `/ftja-run` scrapes every title up to this cap, merges all
-  of them into one list, and only then runs the code-based filter and LLM
-  judgment once over the merged set — it does not finish one title through
-  judgment before starting the next. Raising this widens per-title
-  coverage; it does not change how many titles get searched.
-- `exclude_keywords`: a blunt bare-word exclusion list — if any of these
-  words appear ANYWHERE in the JD (title or body), the job is dropped, no
-  phrase-matching ("fluent in X", "X required") involved. Ask what to put
-  here — it doesn't have to be languages; a tool, a company, an industry,
-  anything the candidate wants to hard-exclude works. Ask: "is there anything
-  — a language or otherwise — that should get this posting dropped outright
-  if it appears?"
-- `languages`: ISO 639-1 codes (e.g. `["en","fr","ko"]`) of languages the
-  candidate can actually work in. A JD whose own text isn't detected as one
-  of these gets dropped at Stage 0 (via `langdetect`) even if it never
-  explicitly states a language *requirement* — ask "what languages can you
-  actually read a posting in?" Stage 0 also drops a JD that plainly requires
-  fluency in a language NOT on this list ("Fluent in German and English"),
-  so a language requirement does not need an `exclude_keywords` entry — and
-  a bare language name there would also drop "the German market".
-- `keywords.tier1`: the keyword phrases that must appear in a JD sentence
-  for it to even reach Stage 1. Stage 1 reads only the sentences around
-  them and judges those against the rubric's Pass and Fail, so every
-  keyword has to be a word that shows up where a posting talks about what
-  those criteria are about. **Write them in every language in
-  `languages`, not only English**: a posting written in French is caught
-  only by French keywords, so a candidate who reads English and French
-  gets both sets. Do not translate word for word; give the terms postings
-  in that language really use, and, since word forms are only folded the
-  English way, list the forms yourself (singular and plural, masculine and
-  feminine). Record which language each keyword is in as
-  `keywords.tier1_language` (`{"prototypage": "fr"}`), and in the Stage 0
-  card as `keyword_language`; a name that is the same in every language
-  ("LLM", "Cursor") goes under the first. A keyword matches whole words and their
-  forms ("remote" matches "remotely", not "premote"; "time zone" matches
-  "time zones"), so write full words, never a fragment like "tele". A
-  keyword in capitals ("UTC") matches only those capitals. Include the
-  words where a FAIL criterion would be stated as well as a pass one (for
-  a remote search: "hybrid", "on-site", country names), so Stage 1 is shown
-  those sentences. Two useful sources, both matter — ask about
-  each separately, don't let one crowd out the other:
-  - **Concrete AI-builder tool names**: Cursor, Replit, v0.dev, Lovable,
-    Bolt.new, Windsurf, Antigravity, Base44, Supabase, Firebase, Vercel,
-    Claude Code, Gemini CLI, Codex, OpenAI API, "vibe coding" — a JD naming
-    a specific tool is a much stronger, higher-precision signal than a
-    vague topic word, and is easy to under-cover if you only ask "what
-    words describe the role you want" (a real gap found in FTJA's first
-    keyword list: it leaned entirely on phrase/concept terms like "MVP" /
-    "prototyping" and missed almost all of these).
-  - **Role/phrase concepts specific to the candidate's target roles**: e.g.
-    "0 to 1", "solo founder", "entrepreneur in residence", "venture
-    builder" — ask for concrete phrases, not vague topics ("prototyping",
-    not just "AI").
-
-**For `rubric.md` (Rubric stage, after Profile — read by the judgment workers):**
-- What makes a role a clear yes for them (be specific — role type, seniority,
-  what they'd actually be doing day to day)
-- Dealbreakers (things that auto-fail regardless of everything else)
-- Preferences that matter but aren't dealbreakers (comp range, remote policy,
-  company stage, etc.)
-- The web source picker is the only way to provide profile sources. It accepts
-  one or more files (folders are switched off during the beta) and records
-  local paths without uploading contents. Read those paths from `onboarding-state.json`; do not ask for them
-  in chat and do not require a resume/portfolio label.
-
-## Write the files
-
-`criteria.json` — structured, machine-read:
 ```json
 {
-  "search_terms": ["..."],
-  "location": "...",
-  "hours_old": 72,
+  "titles": ["AI Product Manager", "Product Builder"],
+  "locations": ["France"],
+  "hours_old": 24,
   "results_wanted": 100,
-  "exclude_keywords": ["..."],
-  "languages": ["en", "fr", "ko"],
-  "keywords": {"tier1": ["...", "..."]}
+  "title_must_match": false,
+  "filter": {
+    "languages": ["en", "fr"],
+    "keywords": ["AI product", "LLM", "produit IA"],
+    "keyword_language": {"AI product": "en", "LLM": "en", "produit IA": "fr"},
+    "exclude_keywords": []
+  }
 }
 ```
 
-Search terms are sent to LinkedIn as written. There is no exact-phrase
-setting and quoting a term does not enforce it: LinkedIn's logged-out
-search matches by meaning ("founder in residence" also returns
-"Entrepreneur In Residence"). A phrase that has to appear in the posting
-goes in `keywords.tier1`, which Stage 0 checks against the text. Do not
-write `exact_phrase_search` to `criteria.json`.
+```bash
+venv/bin/python -m ftja.onboarding . search --json-file .ftja-run/setup-search.json
+```
 
-`title_must_match` (default `false`): with `true`, Stage 0 keeps a posting
-only if its title contains the search term that found it, in any word form
-("Product Manager" keeps "Senior Product Managers"; a posting found by the
-"AI Specialist" search has to say that, not "Product Manager"). LinkedIn
-returns related titles too ("Entrepreneur In Residence" brings back
-"Co-Founder"), so offer this when the candidate wants exactly the titles
-they named, and say what it costs: differently named versions of the same
-job are dropped unless they are added as search terms.
+### Step 4: three questions about the ideal role
 
-`rubric.md` — free-form markdown, written in the user's own words as much as
-possible (this is what the Stage 2 subagent reads verbatim — write it as
-instructions TO that subagent, e.g. "Pass if..." / "Fail if..." sections),
-covering: clear-yes signals, dealbreakers, preferences.
+Ask these one at a time, in this order, and wait for each answer before
+asking the next. Follow up when an answer is too vague to judge a posting
+by (role type, seniority, what they would do day to day).
 
-`profile/summary.md` — a condensed distillation of the resume/portfolio you
-just read (a few hundred words: role history highlights, key skills/tools,
-notable achievements — whatever a judge would need to assess fit). **Not
-optional**: Stage 2 reads this file on every job, every day, instead of the
-raw resume/portfolio — the first real run measured ~44-86k tokens/call
-reading the full files directly, and this is the fix. Write it yourself
-from what you already read in `profile/`, don't just copy-paste the raw
-files. If the candidate's background changes materially later, this file
-should be regenerated (mention that if `/ftja-tune` ever touches profile
-info).
+1. **What makes a role a clear yes?** (`clear_yes`)
+2. **What should rule a role out?** (`dealbreakers`): non-negotiables
+   that need judgment beyond the code filter.
+3. **What would make a good role even better?** (`preferences`): what
+   should rank otherwise good roles.
 
-After writing all three, do not git-add or commit the user's criteria, rubric, profile, or run data. These files are intentionally gitignored in the public FTJA workspace. If the user wants version history, they can opt into a separate private repository.
+Keep the user's own words. One criterion per line: a line break, a bullet
+or a semicolon starts a new one. Each "clear yes" line stands on its own (a
+posting passes on any one of them), so put things that must hold together
+on the same line. Write the three answers to `.ftja-run/setup-answers.json`
+(`{"clear_yes": "...", "dealbreakers": "...", "preferences": "..."}`) and
+run:
 
-Tell the user both `rubric.md`/`criteria.json` are ready to review/edit by
-hand if they want, and that `/ftja-run` is the next step (recommend a
-manual run first — M1 in SPEC.md — before setting up the launchd schedule).
-Once a run produces passed/failed jobs, the same server's Results tab is
-where they record apply/skip decisions — see `/ftja-review` for how those
-decisions feed back into criteria.json/rubric.md.
+```bash
+venv/bin/python -m ftja.onboarding . rubric --json-file .ftja-run/setup-answers.json
+```
+
+The command prints the rubric list that code built from the answers. Show
+it to the user as it is printed: do not rewrite, merge or reorder the
+criteria yourself. If they want a change, change the answer it came from
+and run the command again.
+
+### Step 5: write the files and open the viewer
+
+When the user is happy with the rubric list:
+
+```bash
+venv/bin/python -m ftja.onboarding . finish
+```
+
+This writes `criteria.json`, `rubric.md`, `rubric-criteria.json`,
+`profile/summary.md` and `profile/sources.json`. Do not git-add or commit
+any of them, or the files in `profile/`: they are gitignored on purpose. If
+the user wants version history, they can opt into a separate private
+repository.
+
+Then start the viewer, unless `http://127.0.0.1:8765/` already answers
+(check with `curl -s`; Windows `Invoke-WebRequest -UseBasicParsing`). If it
+answers, make sure it is this folder's viewer: `/api/version` returns the
+`project_dir` it shows. If another folder's FTJA viewer holds the port,
+tell the user and ask before stopping it.
+
+- In the Claude desktop app, create or merge `.claude/launch.json` with
+  `{"name": "ftja", "runtimeExecutable": "venv/bin/python", "runtimeArgs":
+  ["-m", "ftja.server"], "port": 8765}` (Windows: `"runtimeExecutable":
+  "venv\\Scripts\\python.exe"`) and call
+  `mcp__Claude_Browser__preview_start` with that `name`.
+- Without that tool, start it in the background:
+  `nohup venv/bin/python -m ftja.server > .ftja-run/server.log 2>&1 &`
+  (Windows: `Start-Process venv\Scripts\python.exe -ArgumentList '-m',
+  'ftja.server' -WindowStyle Hidden`).
+
+Open `http://127.0.0.1:8765/#pipeline` (macOS `open`, Windows
+`Start-Process`). Retry a failed start once with a different approach; do
+not loop on the same command.
+
+End with two or three sentences: setup is done; the Pipeline tab shows
+every setting and anything there can be edited directly; once it looks
+right, type `/ftja-run` in this chat to run the first search. Mention that
+`/ftja-run` is best run by hand a first time before scheduling it, and that
+the Results tab is where they record apply/skip decisions afterwards (see
+`/ftja-review` for how those decisions feed back into the rubric).
+
+## Setting up again
+
+For "set up again" / "reset rubric" / "redo onboarding", run
+`venv/bin/python -m ftja.onboarding . reset` and start from Step 1. The
+existing `criteria.json` and `rubric.md` stay in place until `finish`
+overwrites them; say so before starting.

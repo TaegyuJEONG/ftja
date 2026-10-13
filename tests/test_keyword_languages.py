@@ -5,9 +5,8 @@ import os
 
 import pytest
 
-from ftja import keywords, live, remote, run_bridge
+from ftja import keywords, live, remote
 from ftja.filter_stage0 import filter_stage0
-from ftja.onboarding import validate_stage0_draft
 
 JOBS = [
     {"job_url": "https://x/en", "title": "Product Builder", "company": "Alpha", "location": "Paris",
@@ -98,33 +97,16 @@ def test_keywords_go_into_the_remote_draft_while_the_user_is_going_through_one(t
     assert remote.load_config(os.path.join(root, remote.CONFIG_FILE)) is None  # still only a draft
 
 
-def test_one_request_at_a_time_and_the_button_reaches_a_waiting_session(tmp_path):
-    import threading
-    import time
+def test_one_request_at_a_time_kept_in_the_folder_for_the_command(tmp_path):
     root = criteria(tmp_path, ["en", "fr"], ["prototype"])
     remote.write_request(root, {})  # the Remote check's setup is being asked for
     with pytest.raises(ValueError):
         keywords.write_request(root, [{"target": "stage1", "language": "fr"}])
     remote.discard_draft(root)
-    assert run_bridge.request_keywords(root) == {"listening": False}
-
-    result = {}
-    waiter = threading.Thread(target=lambda: result.update(run_bridge.wait_for_continue(root, "run", timeout_seconds=10)))
-    waiter.start()
-    for _ in range(50):
-        if run_bridge.listening(root)["listening"]:
-            break
-        time.sleep(0.05)
-    assert run_bridge.request_keywords(root) == {"listening": True}
-    waiter.join(timeout=5)
-    assert result == {"status": "keywords", "run_id": "run"}
-
-
-def test_onboarding_keeps_the_language_of_each_proposed_keyword():
-    card = validate_stage0_draft({"keywords": ["prototype", "prototypage"], "languages": ["en", "fr"],
-                                  "keyword_language": {"prototype": "en", "prototypage": "FR", "gone": "fr"}})
-    assert card["keyword_language"] == {"prototype": "en", "prototypage": "fr"}
-    assert "keyword_language" not in validate_stage0_draft({"keywords": ["prototype"], "languages": ["en"]})  # as before
+    keywords.write_request(root, [{"target": "stage1", "language": "fr"}])
+    # /ftja-keywords, typed in the chat, reads it from here
+    assert keywords.read_request(root)["status"] == "requested"
+    assert keywords.read_request(root)["items"][0]["language"] == "fr"
 
 
 def test_a_run_judges_with_the_keywords_of_the_languages_read_at_its_start(tmp_path, monkeypatch):
@@ -145,44 +127,3 @@ def test_a_run_judges_with_the_keywords_of_the_languages_read_at_its_start(tmp_p
     acquire(str(tmp_path / ".ftja.lock"))
     run_dir = live.start(str(tmp_path))["run_dir"]
     assert "télétravail" not in remote.all_keywords(live._remote_config(run_dir))  # French is not read: switched off for this run
-
-
-def test_onboarding_search_settings_take_several_locations_and_keep_keyword_languages(tmp_path):
-    from ftja.onboarding import apply_action, read_state, write_state
-    root = str(tmp_path)
-    write_state(root, stage="profile", phase="title_proposal", allowed_actions=["set_profile_draft", "confirm_profile"],
-                profile={"summary_confirmed": True, "criteria": {}}, cards={})
-    stage0 = {"keywords": ["prototype", "prototypage"], "languages": ["en", "fr"], "exclude_keywords": [],
-              "keyword_language": {"prototypage": "fr"}}
-    apply_action(root, {"type": "set_profile_draft", "titles": ["Product Builder"], "location": "France", "stage0": stage0})
-    assert "locations" not in read_state(root)["profile"]["criteria"]  # one location, as before
-    after = apply_action(root, {"type": "confirm_profile", "titles": ["Product Builder"],
-                                "locations": ["France", "Germany", " "], "location": "ignored", "title_must_match": True})
-    criteria = after["profile"]["criteria"]
-    assert criteria["locations"] == ["France", "Germany"] and criteria["location"] == "France, Germany"
-    assert criteria["title_must_match"] is True
-    assert criteria["keywords"] == {"tier1": ["prototype", "prototypage"], "tier1_language": {"prototypage": "fr"}}
-    assert [s["location"] for s in live.searches(criteria)] == ["France", "Germany"]  # a run searches each
-
-
-def test_the_filter_card_asks_the_setup_agent_for_one_languages_keywords(tmp_path):
-    from ftja.onboarding import OnboardingError, apply_action, read_state, write_state
-    root = str(tmp_path)
-    card = {"keywords": ["prototype"], "languages": ["en"], "exclude_keywords": []}
-    write_state(root, stage="rubric", phase="stage0", allowed_actions=["confirm_stage0", "request_stage0_keywords"],
-                profile={"criteria": {}}, cards={"stage0": card})
-    with pytest.raises(OnboardingError):
-        apply_action(root, {"type": "request_stage0_keywords", "language": "ko"})  # not among the languages yet
-    # the user added Korean and a keyword on the card, then pressed the button: the card as it is comes along
-    edited = {"keywords": ["prototype", "MVP"], "languages": ["en", "ko"], "exclude_keywords": [], "keyword_language": {"prototype": "en"}}
-    state = apply_action(root, {"type": "request_stage0_keywords", "language": "ko", "card": edited})
-    stage0 = state["cards"]["stage0"]
-    assert stage0["pending_languages"] == ["ko"] and stage0["keywords"] == ["prototype", "MVP"] and state["phase"] == "stage0"
-    # the agent writes them into the card: nothing is waiting any more
-    after = apply_action(root, {"type": "set_stage0_draft", "card": {
-        "keywords": ["prototype", "MVP", "프로토타입"], "keyword_language": {"prototype": "en", "프로토타입": "ko"}}})
-    assert "pending_languages" not in after["cards"]["stage0"] and after["cards"]["stage0"]["languages"] == ["en", "ko"]
-    done = apply_action(root, {"type": "confirm_stage0", "keywords": ["prototype", "MVP", "프로토타입"], "languages": ["en", "ko"],
-                               "exclude_keywords": [], "keyword_language": {"prototype": "en", "프로토타입": "ko"}})
-    assert done["profile"]["criteria"]["keywords"] == {"tier1": ["prototype", "MVP", "프로토타입"],
-                                                       "tier1_language": {"prototype": "en", "프로토타입": "ko"}}

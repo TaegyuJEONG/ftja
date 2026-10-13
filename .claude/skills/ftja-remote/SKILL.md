@@ -243,6 +243,3 @@ Tell the user, in their language and briefly:
 - if `criteria.json`'s `stages.remote` is not true: that the check is
   still switched off, and the switch is on that same section. Do not
   switch it on yourself.
-
-If you were called from `/ftja-run`'s wait (`{"status": "remote"}`), go
-back to that wait afterwards.

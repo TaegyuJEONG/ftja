@@ -43,13 +43,13 @@ class ServerLocalOnlyTests(unittest.TestCase):
         return self.request("POST", "/api/config", {"Content-Type": "application/json", **headers}, body)
 
     def test_the_viewers_own_requests_are_served(self):
-        self.assertEqual(self.request("GET", "/api/onboarding"), 200)
-        self.assertEqual(self.request("GET", "/api/onboarding", {"Host": f"localhost:{self.port}"}), 200)
+        self.assertEqual(self.request("GET", "/api/setup"), 200)
+        self.assertEqual(self.request("GET", "/api/setup", {"Host": f"localhost:{self.port}"}), 200)
         self.assertEqual(self.save_rubric(Origin=f"http://127.0.0.1:{self.port}"), 200)
         self.assertEqual(self.save_rubric(), 200)  # an agent's own curl sends no Origin
 
     def test_a_rebound_host_name_cannot_read_the_profile(self):
-        self.assertEqual(self.request("GET", "/api/onboarding", {"Host": f"attacker.example:{self.port}"}), 403)
+        self.assertEqual(self.request("GET", "/api/setup", {"Host": f"attacker.example:{self.port}"}), 403)
         self.assertEqual(self.request("GET", "/api/pipeline", {"Host": "attacker.example"}), 403)
 
     def test_another_site_cannot_rewrite_the_rubric(self):

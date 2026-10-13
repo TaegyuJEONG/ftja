@@ -20,7 +20,6 @@ import csv
 import io
 import json
 import os
-from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
@@ -31,8 +30,7 @@ from ftja import remote as remote_check
 from ftja import keywords as keyword_languages
 from ftja.verdict import DEFAULT_CRITERIA_PATH, criteria_status, load_criteria, save_criteria
 from ftja.runs_view import list_runs
-from ftja import runs_store, run_bridge
-from ftja.onboarding import OnboardingError, apply_action, bridge_is_ready, build_checklist, is_repeat, live_bridge, read_bridge, read_state, write_action, write_state
+from ftja import runs_store
 
 DEFAULT_PORT = 8765
 APP_HTML_PATH = os.path.join(os.path.dirname(__file__), "app.html")
@@ -48,28 +46,6 @@ VALUE_ASSETS = {
 }
 PAGE_SIZE = 10
 LOCAL_HOSTS = {"127.0.0.1", "localhost", "::1"}
-ONBOARDING_STATE = "onboarding-state.json"
-
-
-def _onboarding_state(project_dir: str) -> dict:
-    path = os.path.join(project_dir, ONBOARDING_STATE)
-    if not os.path.exists(path):
-        return {"step": "background", "status": "not_started"}
-    try:
-        with open(path, encoding="utf-8-sig") as f:
-            value = json.load(f)
-        return value if isinstance(value, dict) else {"step": "background", "status": "not_started"}
-    except (OSError, json.JSONDecodeError):
-        return {"step": "background", "status": "error"}
-
-
-def _write_onboarding_state(project_dir: str, state: dict):
-    path = os.path.join(project_dir, ONBOARDING_STATE)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump({**state, "updated_at": datetime.now(timezone.utc).isoformat()}, f, ensure_ascii=False, indent=2)
-        f.write("\n")
-
-
 def _rubric_criteria(project_dir: str) -> dict:
     """The rubric as a list of criteria, for the Pipeline tab's editor.
     `rubric_criteria` is null until /ftja-run has split rubric.md once
@@ -149,8 +125,7 @@ def _remote_setup(project_dir: str) -> dict:
     saved = remote_check.load_config(os.path.join(project_dir, remote_check.CONFIG_FILE))
     return {"config": saved or remote_check.default_config(), "saved": saved is not None,
             "draft": remote_check.load_draft(project_dir),  # the agent's, until the user confirms it
-            "request": remote_check.read_request(project_dir),
-            "listening": run_bridge.listening(project_dir)["listening"]}
+            "request": remote_check.read_request(project_dir)}
 
 
 def _keyword_languages(project_dir: str) -> dict:
@@ -159,8 +134,7 @@ def _keyword_languages(project_dir: str) -> dict:
     found = keyword_languages.gaps(project_dir)
     return {"read": found["languages_the_user_reads"],
             "missing": {"stage1": found["stage1"]["missing"], "remote": found["remote"]["missing"]},
-            "request": keyword_languages.read_request(project_dir),
-            "listening": run_bridge.listening(project_dir)["listening"]}
+            "request": keyword_languages.read_request(project_dir)}
 
 
 def _remote_table(rows: list[dict]) -> str:
@@ -208,26 +182,6 @@ def make_handler(db_path: str, project_dir: str):
             self.send_header("Cache-Control", "no-store")
             self.end_headers()
             self.wfile.write(body)
-
-        def _pick_profile_source(self, kind="file"):
-            if kind not in {"file", "folder"}:
-                self._send_json(400, {"error": "source kind must be file or folder"})
-                return
-            if not osutil.can_pick():
-                self._send_json(501, {"error": "choosing a file here works on macOS and Windows only"})
-                return
-            path = osutil.pick_path(kind)
-            if path is None:
-                self._send_json(204, {})
-                return
-            if not os.path.exists(path):
-                self._send_json(400, {"error": "the selected source no longer exists"})
-                return
-            self._send_json(200, {
-                "path": path,
-                "label": os.path.basename(os.path.normpath(path)),
-                "kind": kind,
-            })
 
         def _local_request(self, write: bool = False) -> bool:
             """Refuse requests that did not come from this viewer's own page.
@@ -300,9 +254,6 @@ def make_handler(db_path: str, project_dir: str):
                 # project_dir: which FTJA folder this viewer is showing. /ftja-run
                 # compares it with its own folder, since two clones share the port.
                 self._send_json(200, {**version.check(project_dir), "project_dir": os.path.realpath(project_dir)})
-            elif path == "/api/run-bridge":
-                # is an agent session waiting for the Continue to Stage 2 button?
-                self._send_json(200, run_bridge.listening(project_dir))
             elif path == "/api/storage":
                 self._send_json(200, runs_store.storage(project_dir, db_path))
             elif path == "/api/delete-run-preview":
@@ -353,18 +304,12 @@ def make_handler(db_path: str, project_dir: str):
                     self._send_json(400, {"error": "run_id required"})
                     return
                 self._send_json(200, _fetch_jobs(db_path, run_id, status, page))
-            elif path == "/api/onboarding":
-                config = read_config(project_dir)
-                state = read_state(project_dir)
+            elif path == "/api/setup":
+                # Has setup written the files a run needs? Until it has, the
+                # page says to finish setup in the chat.
                 self._send_json(200, {
-                    "state": state,
-                    "bridge": live_bridge(project_dir),
-                    "checklist": build_checklist(state, project_dir),
-                    "has_onboarding_state": os.path.isfile(os.path.join(project_dir, ONBOARDING_STATE)),
                     "has_criteria": os.path.isfile(os.path.join(project_dir, "criteria.json")),
                     "has_rubric": os.path.isfile(os.path.join(project_dir, "rubric.md")),
-                    "has_profile": bool(config.get("profile_sources")) or bool(config.get("profile_md")),
-                    "config": config,
                 })
             elif path == "/api/pipeline":
                 self._send_json(200, {
@@ -385,22 +330,7 @@ def make_handler(db_path: str, project_dir: str):
                 self._send_json(400, {"error": "invalid JSON body"})
                 return
 
-            if self.path == "/api/pick-profile-source":
-                kind = str(data.get("kind") or "file")
-                self._pick_profile_source(kind)
-            elif self.path == "/api/continue-run":
-                run_id = str(data.get("run_id") or "")
-                run_dir = live.run_dir_for(project_dir, run_id)
-                if not live.awaiting_stage2(run_dir):
-                    self._send_json(400, {"error": "this run is not waiting for another stage"})
-                    return
-                to = str(data.get("to") or "stage2")
-                last = live.stops_after(run_dir)
-                if to not in live.STAGES or last not in live.STAGES or live.STAGES.index(to) <= live.STAGES.index(last):
-                    self._send_json(400, {"error": "this run cannot go on to that stage"})
-                    return
-                self._send_json(200, {"ok": True, **run_bridge.request_continue(project_dir, run_id, to)})
-            elif self.path == "/api/remote-check":
+            if self.path == "/api/remote-check":
                 # Pipeline tab's Remote check editor: the whole setup at once.
                 try:
                     remote_check.save_config(project_dir, data.get("config"))
@@ -410,15 +340,14 @@ def make_handler(db_path: str, project_dir: str):
                 remote_check.discard_draft(project_dir)  # confirmed: the draft has become the setup
                 self._send_json(200, {"ok": True, **_remote_setup(project_dir)})
             elif self.path == "/api/keywords-request":
-                # "Add French keywords with my agent": kept for the agent, and
-                # handed to a session that is waiting, if one is.
+                # "Add French keywords": kept in the project folder for
+                # /ftja-keywords, which the user types in the chat.
                 try:
                     keyword_languages.write_request(project_dir, data.get("items") or [])
                 except (TypeError, ValueError, KeyError, OSError) as e:
                     self._send_json(409, {"error": str(e)})
                     return
-                heard = run_bridge.request_keywords(project_dir)
-                self._send_json(200, {"ok": True, **_keyword_languages(project_dir), **heard})
+                self._send_json(200, {"ok": True, **_keyword_languages(project_dir)})
             elif self.path == "/api/keywords-confirm":
                 # the user went through the agent's keywords: add them
                 added = keyword_languages.add_keywords(project_dir, data.get("items") or [])
@@ -432,8 +361,8 @@ def make_handler(db_path: str, project_dir: str):
                     remote_check.discard_draft(project_dir)
                 self._send_json(200, {"ok": True, **_remote_setup(project_dir)})
             elif self.path == "/api/remote-generate":
-                # The Generate button: keep the four answers for the agent, and
-                # hand the request to a session that is waiting, if one is.
+                # The Generate button: keep the four answers in the project
+                # folder for /ftja-remote, which the user types in the chat.
                 try:
                     if keyword_languages.pending(project_dir):
                         raise ValueError("your agent is writing keywords for a new language; finish that first")
@@ -441,8 +370,7 @@ def make_handler(db_path: str, project_dir: str):
                 except (TypeError, ValueError, OSError) as e:
                     self._send_json(400, {"error": str(e)})
                     return
-                heard = run_bridge.request_remote(project_dir)
-                self._send_json(200, {"ok": True, **_remote_setup(project_dir), **heard})
+                self._send_json(200, {"ok": True, **_remote_setup(project_dir)})
             elif self.path == "/api/open-folder":
                 # Opens this viewer's own folder in Finder or Explorer. The path
                 # is never taken from the request, so nothing else can be opened.
@@ -509,51 +437,6 @@ def make_handler(db_path: str, project_dir: str):
                     return
                 self._send_json(200, {"ok": True, **_rubric_criteria(project_dir),
                                       "rubric_md": read_config(project_dir)["rubric_md"]})
-            elif self.path == "/api/onboarding-action":
-                if is_repeat(project_dir, data):
-                    state = read_state(project_dir)
-                    self._send_json(200, {"ok": True, "repeat": True, "state": state, "bridge": live_bridge(project_dir),
-                                          "checklist": build_checklist(state, project_dir)})
-                    return
-                if not bridge_is_ready(project_dir):
-                    bridge = read_bridge(project_dir)
-                    reason = (
-                        f"the setup agent is busy ({bridge.get('label') or 'working'})"
-                        if bridge.get("status") == "working"
-                        else "setup bridge is not listening; the setup chat must start wait-for-action first"
-                    )
-                    self._send_json(409, {
-                        "error": reason,
-                        "state": read_state(project_dir),
-                        "bridge": bridge,
-                    })
-                    return
-                try:
-                    state = apply_action(project_dir, data)
-                    write_action(project_dir, data)
-                except (OnboardingError, TypeError, ValueError, OSError) as e:
-                    self._send_json(409, {"error": str(e), "state": read_state(project_dir)})
-                    return
-                self._send_json(200, {"ok": True, "state": state, "bridge": live_bridge(project_dir), "checklist": build_checklist(state, project_dir)})
-            elif self.path == "/api/onboarding":
-                criteria = data.get("criteria")
-                rubric_md = data.get("rubric_md")
-                profile_md = data.get("profile_md")
-                profile_sources = data.get("profile_sources")
-                state = data.get("state")
-                if state is not None:
-                    self._send_json(409, {"error": "onboarding state changes must use /api/onboarding-action"})
-                    return
-                if criteria is None and rubric_md is None and profile_md is None and profile_sources is None:
-                    self._send_json(400, {"error": "at least one onboarding field required"})
-                    return
-                try:
-                    write_config(project_dir, criteria=criteria, rubric_md=rubric_md,
-                                 profile_md=profile_md, profile_sources=profile_sources)
-                except (TypeError, ValueError, OSError) as e:
-                    self._send_json(400, {"error": f"invalid onboarding data: {e}"})
-                    return
-                self._send_json(200, {"ok": True, "state": _onboarding_state(project_dir)})
             elif self.path == "/api/config":
                 # Pipeline tab's Save buttons — writes whichever of
                 # criteria/rubric_md/profile_md was included, same as
