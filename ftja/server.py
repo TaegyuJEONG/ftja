@@ -187,13 +187,23 @@ def _remote_table(rows: list[dict]) -> str:
 
 def make_handler(db_path: str, project_dir: str):
     class Handler(BaseHTTPRequestHandler):
+        # Keep connections open between requests. The page asks something
+        # every second or so; a new connection each time left thousands of
+        # closing ones behind on Windows, and new ones then failed to open.
+        protocol_version = "HTTP/1.1"
+        timeout = 60  # an idle connection is dropped; the browser opens another
+
         def log_message(self, fmt, *args):
             pass  # quiet; this is a local single-user tool
 
         def _send_json(self, status: int, payload):
-            body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+            body = b"" if status == 204 else json.dumps(payload, ensure_ascii=False).encode("utf-8")
+            if status >= 400:
+                self.close_connection = True  # the request's body may not have been read
             self.send_response(status)
             self.send_header("Content-Type", "application/json; charset=utf-8")
+            if status >= 400:
+                self.send_header("Connection", "close")
             self.send_header("Content-Length", str(len(body)))
             self.send_header("Cache-Control", "no-store")
             self.end_headers()
@@ -572,6 +582,7 @@ class ViewerServer(ThreadingHTTPServer):
     that lets a second viewer listen on a port that is already taken: both
     then answer, each request going to either one."""
     allow_reuse_address = not osutil.WINDOWS
+    request_queue_size = 128  # the default of 5 turns a burst of requests away
 
     def server_bind(self):
         if osutil.WINDOWS:

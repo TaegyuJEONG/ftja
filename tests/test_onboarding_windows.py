@@ -79,3 +79,25 @@ def test_a_second_viewer_cannot_take_a_port_that_is_in_use(viewer):
     project, server, _ = viewer
     with pytest.raises(OSError):
         ViewerServer(("127.0.0.1", server.server_port), make_handler(os.path.join(project, "seen.db"), project))
+
+
+def test_one_connection_serves_many_requests(viewer):
+    # A new connection per request left thousands of closing ones on Windows.
+    import http.client
+    _, server, _ = viewer
+    connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=5)
+    try:
+        for path in ("/api/onboarding", "/", "/api/onboarding", "/api/version", "/api/onboarding"):
+            connection.request("GET", path)
+            response = connection.getresponse()
+            assert response.status == 200 and response.version == 11 and not response.will_close
+            response.read()
+        port = connection.sock.getsockname()[1]
+        connection.request("GET", "/api/onboarding")
+        connection.getresponse().read()
+        assert connection.sock.getsockname()[1] == port  # still the same connection
+        connection.request("POST", "/api/onboarding-action", body=b"{", headers={"Content-Type": "application/json"})
+        refused = connection.getresponse()
+        assert refused.status == 400 and refused.will_close
+    finally:
+        connection.close()

@@ -1462,7 +1462,9 @@ async function maybeStartOnboarding() {
   // set up already: open on Results, where runs are (and where a run in progress shows)
   if (onboardingIsComplete(onboardingState)) { openMainView('results'); return true; }
   document.body.classList.add('onboarding-active'); document.querySelectorAll('.main-tab, .view:not(#view-onboarding)').forEach(x => x.style.display = 'none'); document.getElementById('view-onboarding').classList.add('active');
-  await refreshOnboarding(true); onboardingRefreshTimer = setInterval(() => refreshOnboarding(false).catch(() => {}), 1200); return true;
+  await refreshOnboarding(true); onboardingRefreshTimer = setInterval(() => { if (!document.hidden) refreshOnboarding(false).catch(() => {}); }, 1200);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && onboardingRefreshTimer) refreshOnboarding(false).catch(() => {}); });  // a tab nobody is looking at asks nothing
+  return true;
 }
 
 // ---- top-level tabs ----

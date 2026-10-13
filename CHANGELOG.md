@@ -34,6 +34,12 @@ digests — are never touched by an update.
   agent's wait was stopped, the page kept offering Confirm and then
   answered "setup bridge is not listening". It now shows that it is
   waiting for the agent.
+- **The page no longer stalls.** It asked the viewer something every
+  second over a new connection each time. On Windows the closed ones piled
+  up in the thousands, and then about one request in five could not
+  connect at all: the page loaded slowly, stayed on its grey waiting lines,
+  or lost a click. The viewer now keeps a few connections open and reuses
+  them, and a tab you are not looking at asks nothing.
 - **Still Mac only:** scheduled runs and the "run finished" notification.
 - The Windows code is covered by tests but has had little use on real
   Windows PCs yet. If something stops, please report the message you see.
