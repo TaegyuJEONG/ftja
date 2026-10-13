@@ -453,3 +453,124 @@ Korean needs a morphological analyser, a much heavier dependency.
 Decided 2026-10-12: listing the forms is enough to start with. Take it up
 when a run shows postings in a second language being dropped for a missing
 word form.
+
+## Setup in the chat
+
+### What it is
+
+`/ftja-setup` done entirely in the chat: the resume, the profile summary,
+the search settings, the code filter and the three questions, with the web
+view opened only at the end. The page stops handing requests to a waiting
+agent session and shows the command to type instead.
+
+### Where it is
+
+Written and tested on the `chat-onboarding` branch, commit `68ac5fb`, as
+0.4.0. Not merged. The four commits under it on that branch are the Windows
+work (0.3.1: file chooser, process check, UTF-8 files, the onboarding
+fixes, the viewer's connection handling) and are not part of this item.
+
+### Why it is parked
+
+Decided 2026-10-13: what a remote job seeker needs first is a search that
+returns the titles they asked for, then Windows onboarding. The title
+search was made on `chat-onboarding` first and carried over to `main`
+without the chat setup; when this is taken up again, that branch has to be
+brought up to date with `main` before anything else.
+
+## More job boards than LinkedIn
+
+### Problem
+
+FTJA searches LinkedIn only (`SITES = ["linkedin"]` in `ftja/scrape.py`).
+jobspy also reads Indeed, Glassdoor, ZipRecruiter, Bayt, Naukri, BDJobs and,
+from 1.3.0, HelloWork (France). Google Jobs is listed as unavailable.
+
+### What is already in place
+
+- jobspy is called from `ftja/scrape.py` and nowhere else.
+- Stage 0, `seen.db` and the digests read `job_url`, `title`, `company`,
+  `location` and `description`, which jobspy returns for every board.
+- Reposts are grouped by company, title and description, not by URL, so a
+  posting on two boards should be merged. Not tried: boards format the
+  description differently.
+- The tests never call a job board; they write `scrape/<n>.json` themselves.
+  Nothing tests `ftja/scrape.py` against a live board.
+
+### What it takes
+
+- Move from jobspy 1.1.82 to 1.3.0 first. In October 2026 upstream fixed
+  every board's scraper (remote flag, `hours_old`, paging). In 1.3.0
+  `linkedin_fetch_description` is `fetch_description`, LinkedIn's `job_type`
+  is ignored with a warning, and the private page fetch the title-first
+  scrape uses is renamed from `_get_job_details` to `_fetch_details`.
+- Indeed and Glassdoor need `country_indeed`. The search settings have
+  locations only, so a country has to be derived from them or asked for.
+- The batch of 10 with an offset loop, and the gap between search requests,
+  were measured on LinkedIn. Each board needs its own loop: `results_wanted`
+  is per board and page sizes and limits differ (Glassdoor: about 2 requests
+  a second; ZipRecruiter: US and Canada only).
+- Text written for LinkedIn: "Scraping LinkedIn" and the removal of
+  `is_remote` in `ftja/app.html`, the title rule's explanation, the
+  `/ftja-run` and `/ftja-setup` skills.
+- A live check per board and country: result counts, description format,
+  repost merging, blocking. This is where the time goes, not the code.
+
+### Proposed first step
+
+Indeed alone. Its search results carry the description, so there is no page
+fetch per posting; upstream's README says it has no rate limiting; its
+search accepts quotes and `-` (it also searches the description, so it
+returns more unrelated postings).
+
+### Why it is parked
+
+Decided 2026-10-13: the title-first scrape came first. Take this up as its
+own change, after the jobspy upgrade.
+
+
+## Show the titles a search left out
+
+### Problem
+
+A search scrapes only postings whose title contains its term. A user who
+searches "Product Manager" does not see that LinkedIn also returned 40
+"Product Owner" postings, so they cannot tell which titles to add.
+
+### What is already in place
+
+Every search writes the titles it left out, with how many of each, to
+`.ftja-run/<run>/scrape/<n>.skipped.json`. Nothing reads the file yet, and
+it goes when the run folder is pruned.
+
+### Proposed design
+
+On the run's funnel, under each search term: "Also returned, not scraped:
+Product Owner (42), Chef de produit (31), …", each with a button that adds
+it as a search term. Group titles that differ only in seniority or case.
+Keep the top titles in the run record so they outlive the run folder.
+
+### Why it is parked
+
+Decided 2026-10-13: the rule and its explanation shipped first, with the
+titles recorded so this needs no new scraping.
+
+
+## Ask before judging a large run
+
+### Problem
+
+Tokens are spent in the Remote check, Stage 1 and Stage 2, not in the
+scrape. With no cap per search, a broad term over a long period can pass
+hundreds of postings to the model without the user having chosen that.
+
+### Proposed design
+
+After Stage 0, when more postings than a threshold wait to be judged, stop
+and say how many, as a run that stops after Stage 0 already does. The user
+continues with `/ftja-run continue` or narrows the search.
+
+### Why it is parked
+
+Decided 2026-10-13: a daily run over 24 hours is small. Take it up when a
+run's token count surprises someone.
