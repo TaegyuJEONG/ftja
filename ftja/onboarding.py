@@ -447,9 +447,18 @@ def _path(project_dir: str, name: str) -> str:
 
 def read_json(project_dir: str, name: str, fallback: Any) -> Any:
     try:
-        with open(_path(project_dir, name), encoding="utf-8-sig") as f:
-            return json.load(f)
-    except (OSError, json.JSONDecodeError):
+        # Windows refuses to open a file in the instant another process is
+        # renaming over it. Reading that as "no file" would hand back an
+        # empty state (revision 0), so wait for the rename to finish.
+        for attempt in range(20):
+            try:
+                with open(_path(project_dir, name), encoding="utf-8-sig") as f:
+                    return json.load(f)
+            except PermissionError:
+                if not osutil.WINDOWS or attempt == 19:
+                    raise
+                time.sleep(0.05)
+    except (OSError, ValueError):
         return fallback
 
 
@@ -540,6 +549,30 @@ def bridge_is_ready(project_dir: str) -> bool:
     return osutil.pid_alive(bridge.get("pid"))
 
 
+def live_bridge(project_dir: str) -> dict[str, Any]:
+    """The bridge as the web should see it. A wait that was killed leaves
+    "listening" behind in its file; shown as it is, the page offers a button
+    that the server then refuses."""
+    bridge = read_bridge(project_dir)
+    if bridge.get("status") == "listening" and not osutil.pid_alive(bridge.get("pid")):
+        bridge = {**bridge, "status": "offline", "action_types": [], "pid": None}
+    return bridge
+
+
+def is_repeat(project_dir: str, action: dict[str, Any]) -> bool:
+    """Is this the action that was just applied, sent a second time (a
+    double click, or a page that had not caught up yet)? It is already done:
+    answering "stale revision" would report a failure that did not happen."""
+    last = read_action(project_dir)
+    if not last or not isinstance(action, dict) or action.get("expected_revision") is None:
+        return False
+    try:
+        applied = int(read_state(project_dir).get("revision", 0)) == int(action["expected_revision"]) + 1
+    except (TypeError, ValueError):
+        return False
+    return applied and {k: v for k, v in last.items() if k != "at"} == action
+
+
 def read_action(project_dir: str) -> dict[str, Any] | None:
     action = read_json(project_dir, ACTION_FILE, None)
     return action if isinstance(action, dict) else None
@@ -614,6 +647,7 @@ def main() -> None:
     set_state.add_argument("--status", default="waiting")
     set_state.add_argument("--message", default="")
     set_state.add_argument("--json", default="{}")
+    set_state.add_argument("--json-file", help="read the JSON from this file; PowerShell mangles quoted JSON on the command line")
     wait = sub.add_parser("wait-for-source-confirm", help="Wait for the web source Confirm action")
     wait.add_argument("--timeout", type=int, default=900)
     wait_action = sub.add_parser("wait-for-action", help="Wait for a web action")
@@ -643,7 +677,11 @@ def main() -> None:
     elif args.command == "checklist":
         print(json.dumps(build_checklist(read_state(args.project_dir), args.project_dir), ensure_ascii=False, indent=2))
     else:
-        payload = json.loads(args.json)
+        if args.json_file:
+            with open(args.json_file, encoding="utf-8-sig") as f:
+                payload = json.load(f)
+        else:
+            payload = json.loads(args.json)
         state = read_state(args.project_dir)
         profile = payload.get("profile") or {}
         if (state["stage"], state["phase"]) == ("profile", "sources"):

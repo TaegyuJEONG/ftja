@@ -22,9 +22,18 @@ digests — are never touched by an update.
     correctly. Every file is UTF-8 now, on every system.
   - Saving no longer fails when the page reads a file at the same moment
     your agent rewrites it.
+  - Only one viewer can run on the port. Windows used to let a second
+    one start alongside the first, and the page then got answers from both.
   - The setup, run and update instructions your agent follows name the
     Windows commands, and setup offers to install Git and Python when the
     PC has neither.
+- **A decision sent twice is done once.** Clicking Confirm twice, or on a
+  page that had just been redrawn, showed "stale onboarding revision"
+  although the first click had worked. Now the second one is ignored.
+- **A button is only live when your agent is really waiting.** If the
+  agent's wait was stopped, the page kept offering Confirm and then
+  answered "setup bridge is not listening". It now shows that it is
+  waiting for the agent.
 - **Still Mac only:** scheduled runs and the "run finished" notification.
 - The Windows code is covered by tests but has had little use on real
   Windows PCs yet. If something stops, please report the message you see.

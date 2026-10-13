@@ -1137,10 +1137,27 @@ function renderOnboarding() {
   if (preserveScroll) requestAnimationFrame(() => window.scrollTo(0, scrollY));
 }
 let staleBridgeStamp = null;
+// One decision at a time. A poll can redraw the card while a request is on
+// its way, and the redrawn button is enabled again: a second click would
+// send the same decision twice, and the second one came back as an error.
+let onboardingActionInFlight = false;
 async function postOnboardingAction(type, payload = {}) {
+  if (onboardingActionInFlight) return;
+  onboardingActionInFlight = true;
+  try {
+    return await sendOnboardingAction(type, payload);
+  } finally {
+    onboardingActionInFlight = false;
+  }
+}
+async function sendOnboardingAction(type, payload) {
   const res = await fetch('/api/onboarding-action', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({type, expected_revision: onboardingState?.revision ?? 0, ...payload})});
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body.error || 'Could not send this decision to the setup chat.');
+  if (!res.ok) {
+    // The page was behind: show what is true now, so the next click is sent from there.
+    if (body.state && /^stale/.test(body.error || '')) { onboardingState = {...body.state, bridge: onboardingState?.bridge || {status: 'offline'}}; onboardingVersion = null; renderOnboarding(); }
+    throw new Error(body.error || 'Could not send this decision to the setup chat.');
+  }
   if (body.state) {
     // The bridge in this response is the one the setup chat's PREVIOUS wait
     // left behind: that process only notices this action (and flips the

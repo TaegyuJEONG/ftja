@@ -32,7 +32,7 @@ from ftja import keywords as keyword_languages
 from ftja.verdict import DEFAULT_CRITERIA_PATH, criteria_status, load_criteria, save_criteria
 from ftja.runs_view import list_runs
 from ftja import runs_store, run_bridge
-from ftja.onboarding import OnboardingError, apply_action, bridge_is_ready, build_checklist, read_bridge, read_state, write_action, write_state
+from ftja.onboarding import OnboardingError, apply_action, bridge_is_ready, build_checklist, is_repeat, live_bridge, read_bridge, read_state, write_action, write_state
 
 DEFAULT_PORT = 8765
 APP_HTML_PATH = os.path.join(os.path.dirname(__file__), "app.html")
@@ -348,7 +348,7 @@ def make_handler(db_path: str, project_dir: str):
                 state = read_state(project_dir)
                 self._send_json(200, {
                     "state": state,
-                    "bridge": read_bridge(project_dir),
+                    "bridge": live_bridge(project_dir),
                     "checklist": build_checklist(state, project_dir),
                     "has_onboarding_state": os.path.isfile(os.path.join(project_dir, ONBOARDING_STATE)),
                     "has_criteria": os.path.isfile(os.path.join(project_dir, "criteria.json")),
@@ -500,6 +500,11 @@ def make_handler(db_path: str, project_dir: str):
                 self._send_json(200, {"ok": True, **_rubric_criteria(project_dir),
                                       "rubric_md": read_config(project_dir)["rubric_md"]})
             elif self.path == "/api/onboarding-action":
+                if is_repeat(project_dir, data):
+                    state = read_state(project_dir)
+                    self._send_json(200, {"ok": True, "repeat": True, "state": state, "bridge": live_bridge(project_dir),
+                                          "checklist": build_checklist(state, project_dir)})
+                    return
                 if not bridge_is_ready(project_dir):
                     bridge = read_bridge(project_dir)
                     reason = (
@@ -519,7 +524,7 @@ def make_handler(db_path: str, project_dir: str):
                 except (OnboardingError, TypeError, ValueError, OSError) as e:
                     self._send_json(409, {"error": str(e), "state": read_state(project_dir)})
                     return
-                self._send_json(200, {"ok": True, "state": state, "bridge": read_bridge(project_dir), "checklist": build_checklist(state, project_dir)})
+                self._send_json(200, {"ok": True, "state": state, "bridge": live_bridge(project_dir), "checklist": build_checklist(state, project_dir)})
             elif self.path == "/api/onboarding":
                 criteria = data.get("criteria")
                 rubric_md = data.get("rubric_md")
@@ -562,6 +567,19 @@ def make_handler(db_path: str, project_dir: str):
     return Handler
 
 
+class ViewerServer(ThreadingHTTPServer):
+    """One viewer per port. http.server asks for SO_REUSEADDR, and on Windows
+    that lets a second viewer listen on a port that is already taken: both
+    then answer, each request going to either one."""
+    allow_reuse_address = not osutil.WINDOWS
+
+    def server_bind(self):
+        if osutil.WINDOWS:
+            import socket
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        super().server_bind()
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=DEFAULT_PORT)
@@ -569,7 +587,7 @@ def main():
     ap.add_argument("--project-dir", default=".")
     args = ap.parse_args()
 
-    server = ThreadingHTTPServer(("127.0.0.1", args.port), make_handler(args.db, args.project_dir))
+    server = ViewerServer(("127.0.0.1", args.port), make_handler(args.db, args.project_dir))
     url = f"http://127.0.0.1:{args.port}"
     print(f"FTJA review server running at {url} (Ctrl+C to stop)")
     try:

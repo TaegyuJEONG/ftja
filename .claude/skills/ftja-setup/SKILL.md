@@ -39,7 +39,10 @@ checklist, or start any `wait-for-action` call in this turn.
    **On Windows** the commands are `python -m venv venv` and
    `venv\Scripts\pip install -r requirements.txt`, and for the rest of this
    skill every `venv/bin/python` is `venv\Scripts\python`, run in
-   PowerShell. A fresh Windows PC often has neither Git nor Python (a
+   PowerShell. PowerShell strips the quotes out of JSON given on the
+   command line, so wherever this skill shows `set-state ... --json '{...}'`,
+   write that JSON to a file under `.ftja-run/` with your file-writing tool
+   and pass `--json-file <that file>` in its place. A fresh Windows PC often has neither Git nor Python (a
    `python` that only opens the Microsoft Store is not Python): ask once,
    for both together, before installing them with `winget install --id
    Git.Git -e` and `winget install --id Python.Python.3.12 -e`.
