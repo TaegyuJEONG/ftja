@@ -73,12 +73,15 @@ language, with the numbers you have:
 
 - **Before scraping**: that the run has started, how many searches it has
   (every search term in every location: 3 terms × 4 locations is 12
-  searches) and up to how many results each, roughly how long that will
-  take (LinkedIn yields about 70 postings a minute, so 4 searches × 1000 is
-  up to an hour; 4 × 100 is about 6 minutes), and that they can watch it at
-  `http://127.0.0.1:8765` (Results tab). If the estimate is over 15
-  minutes, add that lowering "Max results per search" in the Pipeline
-  tab, or searching fewer locations, makes it shorter.
+  searches), that each search scrapes every posting whose title contains
+  its term and ends when LinkedIn's results stop containing it, roughly
+  how long that will take (a posting that matches takes about 3 seconds,
+  so a search with 100 of them is about 6 minutes; reading LinkedIn's
+  results to find them adds up to 10 minutes for a common title, and a
+  title with no match ends in about a minute and a half), and that they can watch it at
+  `http://127.0.0.1:8765` (Results tab). The number of matches is not
+  known beforehand: say so, and that a shorter "Posted within" or fewer
+  locations makes a run shorter.
 - **After each search**: how many it found and how many searches remain.
   Run the scrape one search per command so you can say this; do not
   chain all of them into one long command that stays silent until the
@@ -247,9 +250,9 @@ LinkedIn's own search UI shows for the same term — that's the Acceptance
 Criteria #2 check, not something to automate here). Location is not part
 of Stage 0 — it's already deterministic at scrape time.
 
-What the filter does, all in code with no LLM call: with `title_must_match`
-set, first drops a posting whose title does not contain the search term
-that found it; drops a JD not written
+What the filter does, all in code with no LLM call (titles are already
+settled: the scrape keeps only postings whose title contains the search
+term that found them); drops a JD not written
 in a language the candidate reads (langdetect against `criteria.json`'s
 `languages`); drops a JD that plainly requires a language outside that list
 ("Fluent in German and English"), keeping anything ambiguous ("German is a

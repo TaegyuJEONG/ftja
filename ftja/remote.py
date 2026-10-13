@@ -429,7 +429,7 @@ def _latest_scrape(project_dir: str) -> list[dict]:
         scrape_dir = os.path.join(run_dir, "scrape")
         jobs: dict[str, dict] = {}
         for name in os.listdir(scrape_dir) if os.path.isdir(scrape_dir) else []:
-            if name.endswith(".json") and not name.endswith(".progress.json"):
+            if name.endswith(".json") and not name.endswith((".progress.json", ".skipped.json")):
                 for job in _read(os.path.join(scrape_dir, name)) or []:
                     if job.get("job_url"):
                         jobs.setdefault(job["job_url"], job)

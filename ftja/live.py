@@ -15,7 +15,9 @@ Layout:
   rubric-criteria.json,    copies taken at start — the rubric can be edited in
   rubric.md                the viewer mid-run; this run judges against the copies
   scrape/<n>.json          jobs scraped for search term n
-  scrape/<n>.progress.json {term, count, wanted, done}, rewritten every batch
+  scrape/<n>.progress.json {term, count, read, done}, rewritten every batch: `count` postings
+                           scraped, among `read` search results
+  scrape/<n>.skipped.json  {title: how many}, the titles search n returned that lack its term
   remote-check.json        copy of the Remote check's setup, when that stage is on
   stage0.json, stage0-dropped.json, stage0-counts.json
   rc/manifest.json         jobs sent to the Remote check; rc/<n>.txt prompt, rc/<n>.out.json answers
@@ -50,8 +52,7 @@ from ftja.verdict import (DEFAULT_CRITERIA_PATH, STATUS_FOR_VERDICT, clean_extra
 
 RUNS_DIR = ".ftja-run"
 KEEP_RUNS = 5
-SNAPSHOT_KEYS = ("search_terms", "location", "locations", "hours_old", "results_wanted", "title_must_match",
-                 "stage1_only")
+SNAPSHOT_KEYS = ("search_terms", "location", "locations", "hours_old", "stage1_only")
 STAGES = ("remote", "stage1", "stage2")
 STAGE_NAMES = {"remote": "the Remote check", "stage1": "Stage 1", "stage2": "Stage 2"}
 NO_KEYWORD_REASON = "None of your Stage 1 keywords appears in this posting."
@@ -194,7 +195,7 @@ def start(project_dir: str = ".") -> dict:
     plan = searches(snapshot)
     for n, search in enumerate(plan):
         _write_json(os.path.join(run_dir, "scrape", f"{n}.progress.json"),
-                    {**search, "count": 0, "wanted": snapshot.get("results_wanted"), "done": False})
+                    {**search, "count": 0, "read": 0, "done": False})
     return {**run, "run_dir": run_dir, "searches": plan, "stages": stages}
 
 
@@ -206,18 +207,22 @@ def scrape_term(run_dir: str, n: int) -> int:
     snapshot = _read_json(os.path.join(run_dir, "run.json"))["criteria_snapshot"]
     search = searches(snapshot)[n]
     term = search["term"]
-    wanted = int(snapshot.get("results_wanted") or 100)
     progress_path = os.path.join(run_dir, "scrape", f"{n}.progress.json")
 
-    def report(count: int, done: bool = False):
-        _write_json(progress_path, {**search, "count": count, "wanted": wanted, "done": done})
+    def report(count: int, read: int, done: bool = False):
+        _write_json(progress_path, {**search, "count": count, "read": read, "done": done})
 
+    skipped: list[str] = []
     jobs = scrape(search_term=term, location=search["location"],
-                  results_wanted=wanted,
                   hours_old=int(snapshot.get("hours_old") or 72),
-                  on_batch=report)
+                  on_batch=report, skipped=skipped)
+    tally: dict[str, int] = {}
+    for title in skipped:
+        tally[title] = tally.get(title, 0) + 1
+    _write_json(os.path.join(run_dir, "scrape", f"{n}.skipped.json"),
+                dict(sorted(tally.items(), key=lambda item: -item[1])))
     _write_json(os.path.join(run_dir, "scrape", f"{n}.json"), clean_jobs(jobs))
-    report(len(jobs), done=True)
+    report(len(jobs), len(jobs) + len(skipped), done=True)
     return len(jobs)
 
 
@@ -231,7 +236,7 @@ def stage0(run_dir: str, project_dir: str = ".", db_path: str = "seen.db") -> di
     scrape_dir = os.path.join(run_dir, "scrape")
     terms = [search["term"] for search in searches((_read_json(os.path.join(run_dir, "run.json"), {}) or {}).get("criteria_snapshot") or {})]
     for name in sorted(os.listdir(scrape_dir), key=lambda s: (len(s), s)):
-        if name.endswith(".json") and not name.endswith(".progress.json"):
+        if name.endswith(".json") and not name.endswith((".progress.json", ".skipped.json")):
             n = name[:-len(".json")]
             term = terms[int(n)] if n.isdigit() and int(n) < len(terms) else None  # scrape/<n>.json is search n
             for job in _read_json(os.path.join(scrape_dir, name), []):
@@ -697,7 +702,8 @@ def assemble_results(run_dir: str) -> dict:
              "stage2_pending": waiting, "continued_at": run.get("continued_at"),
              "stages": stages, "stopped_after": stop,
              "scraped_count": counts.get("scraped"), "stage0_dropped": counts.get("dropped"),
-             "scraped_by_term": [{"term": p["term"], "location": p.get("location") or "", "count": p["count"]}
+             "scraped_by_term": [{"term": p["term"], "location": p.get("location") or "", "count": p["count"],
+                                  **({"read": p["read"]} if p.get("read") is not None else {})}  # how many search results it read
                                  for p in _scrape_progress(run_dir)],
              "already_seen_skipped": (counts.get("dropped") or {}).get("already_seen")}
     _write_json(os.path.join(run_dir, "stats.json"), stats)
