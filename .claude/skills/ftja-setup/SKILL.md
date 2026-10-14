@@ -9,21 +9,28 @@ Interview the user conversationally (not a rigid form — follow up, don't
 just fire a checklist) to produce two files at the project root. Do not
 guess at answers; if the user is vague, ask a follow-up.
 
-This runs in two turns. Turn 1 connects the workspace and opens the web view
-on its own, then stops and asks one question. Turn 2 (triggered by the
-user's reply) creates the native checklist and drives the actual interview.
-Do not collapse these into one turn — see "Why two turns" below.
+This runs in two turns. Turn 1 installs FTJA in a folder and connects the
+session to it, then stops and asks one question. Turn 2 (triggered by the
+user's reply) starts the web view from that folder, creates the native
+checklist and drives the actual interview. Do not collapse these into one
+turn — see "Why two turns" below.
 
-## Turn 1: connect and open the web view
+**First, the platform.** Read `windows.md` (Windows) or `mac.md` (macOS),
+next to this file, before running any command, and follow it in every
+step. The commands below are the macOS forms; on Windows use the forms
+`windows.md` gives.
 
-Do this without asking the user anything mid-way, then end the turn with
-exactly one question. Do not check for native task tools, create the
-checklist, or start any `wait-for-action` call in this turn.
+## Turn 1: install and connect
+
+Do this without asking the user anything mid-way (except to install Git or
+Python, as the platform file says), then end the turn with exactly one
+question. Do not check for native task tools, create the checklist, start
+the server, or start any `wait-for-action` call in this turn.
 
 1. Resolve the absolute path of the cloned FTJA repository from the actual
    session context. Preserve the user's path and capitalization exactly; do
    not guess between similarly named folders. Clone it first if it isn't
-   cloned yet.
+   cloned yet (Git first, as the platform file says).
 2. Create or merge `<workspace>/.claude/settings.local.json`, preserving
    existing JSON keys and `env` values, with
    `"CLAUDE_CODE_ENABLE_TODO_TOOLS": "1"`. Do this now, in this turn, even
@@ -34,52 +41,44 @@ checklist, or start any `wait-for-action` call in this turn.
    session folder is not connected; do not continue with a scratch
    workspace.
 4. Create the repository's Python environment (`venv`) and install
-   dependencies if they don't already exist, using the repository's own
-   commands.
-   **On Windows** the commands are `python -m venv venv` and
-   `venv\Scripts\pip install -r requirements.txt`, and for the rest of this
-   skill every `venv/bin/python` is `venv\Scripts\python`, run in
-   PowerShell. PowerShell strips the quotes out of JSON given on the
-   command line, so wherever this skill shows `set-state ... --json '{...}'`,
-   write that JSON to a file under `.ftja-run/` with your file-writing tool
-   and pass `--json-file <that file>` in its place. A fresh Windows PC often has neither Git nor Python (a
-   `python` that only opens the Microsoft Store is not Python): ask once,
-   for both together, before installing them with `winget install --id
-   Git.Git -e` and `winget install --id Python.Python.3.12 -e`.
-   Python is often installed but not on the PATH, and a PATH changed by an
-   install does not reach this shell. Before calling Python missing, and
-   again after installing it, look for it in this order and create the
-   `venv` with the first one that prints a version: `py -3 --version`, then
-   `$env:LOCALAPPDATA\Programs\Python\Python3*\python.exe --version`
-   (newest folder first). If `winget` answers that Python is already
-   installed, do not try again; look in those places.
-5. Initialize or resume `onboarding-state.json` from that connected folder.
-6. Start the local server from that folder if `http://127.0.0.1:8765/` is
-   not responding. Verify it with `curl` (Windows: `Invoke-WebRequest
-   -UseBasicParsing`) before proceeding. If another
-   project's FTJA server already holds port 8765, tell the user and ask
-   before stopping it — don't silently kill another workspace's server.
-   Start it via `mcp__Claude_Browser__preview_start` with a `name`, not a
-   background shell command: create or merge `.claude/launch.json` with a
-   configuration such as `{"name": "ftja", "runtimeExecutable":
-   "venv/bin/python", "runtimeArgs": ["-m", "ftja.server"], "port": 8765}`
-   (on Windows the `runtimeExecutable` is `"venv\\Scripts\\python.exe"`),
-   then call `preview_start` with that `name`. This is a one-shot, purpose-
-   built launch path; a background `Bash`/`nohup` command doing the same
-   thing is more failure-prone (it needs its own PID tracking) and, live,
-   has been the actual site of long, silent multi-minute stalls in this
-   step — see "Move quickly through routine steps" for why that matters.
-7. Open the viewer immediately, next to this chat. Call
-   `mcp__Claude_Browser__preview_start` with `http://127.0.0.1:8765`, then
-   call `mcp__Claude_Browser__get_page_text` to verify the page. On macOS
-   also run `open http://127.0.0.1:8765` (on Windows `Start-Process
-   http://127.0.0.1:8765`) so the user gets a visible browser
-   without needing to click an `Open` card. Do not describe the viewer as
+   dependencies if they don't already exist, with the Python the platform
+   file finds (3.10 or newer). Run every command with the FTJA folder's
+   absolute path, since the session's own folder only changes when this
+   turn ends.
+5. End the turn by asking exactly one question, e.g.: "FTJA is installed in
+   <path>. Ready to open it and start onboarding?" Say nothing about
+   background files, checklists, or next steps yet; that all belongs to
+   turn 2.
+
+## Turn 2, first: open the web view
+
+Any affirmative reply to turn 1's question starts turn 2. The session is now
+in the FTJA folder; do these before the checklist.
+
+1. Initialize or resume `onboarding-state.json`.
+2. Start the local server if `http://127.0.0.1:8765/` is not responding.
+   Check it with a time limit (`curl -s --max-time 3`; Windows: the form in
+   `windows.md`). If another project's FTJA server already holds port 8765,
+   tell the user and ask before stopping it — don't silently kill another
+   workspace's server. Start it via `mcp__Claude_Browser__preview_start`
+   with a `name`, not a background shell command: create or merge
+   `.claude/launch.json` in the FTJA folder with a configuration such as
+   `{"name": "ftja", "runtimeExecutable": "venv/bin/python",
+   "runtimeArgs": ["-m", "ftja.server"], "port": 8765}` (Windows:
+   `"venv\\Scripts\\python.exe"`), then call `preview_start` with that
+   `name`. `preview_start` reads `launch.json` from the session's folder,
+   which is why this waits for turn 2: in turn 1 that is still the scratch
+   folder the session started in. A background `Bash`/`nohup` command doing
+   the same thing is more failure-prone (it needs its own PID tracking)
+   and, live, has been the actual site of long, silent multi-minute stalls
+   in this step — see "Move quickly through routine steps".
+3. Open the viewer next to this chat with
+   `mcp__Claude_Browser__preview_start` on `http://127.0.0.1:8765`, then
+   verify it with `mcp__Claude_Browser__get_page_text`. Also open it in the
+   user's browser (`open http://127.0.0.1:8765`; Windows: `Start-Process`).
+   Do not describe the viewer as
    open until a navigation/page-text check succeeds.
-8. End the turn by asking exactly one question, e.g.: "I've opened the FTJA
-   web view next to this chat — ready to start onboarding?" Say nothing
-   about background files, checklists, or next steps yet; that all belongs
-   to turn 2.
+   Then continue straight to the checklist below, without asking anything.
 
 ### Why two turns
 
@@ -126,9 +125,6 @@ extra tool calls each:
 
 ## Turn 2 onward: the native checklist
 
-Any affirmative reply to turn 1's question starts this section — do not
-require exact wording.
-
 ### Client-native task list
 
 - Verify `TaskCreate` and `TaskUpdate` are available in the current session
@@ -144,7 +140,7 @@ require exact wording.
   mechanism, not a planning mode.
 
 Create these 8 items, in this order. Each is something the *user* does or
-reviews — infrastructure from turn 1 (clone, connect, server, browser) is
+reviews — the infrastructure (clone, connect, server, browser) is
 already done and does not belong on this list:
 
 1. `Add your background files`

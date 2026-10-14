@@ -10,6 +10,14 @@ digests — are never touched by an update.
 ### What changes for you after updating
 
 - **On a Mac, nothing changes.**
+- **Setup finds a Python that works.** FTJA needs Python 3.10 or newer.
+  On a Mac, the Python that comes with macOS (3.9) is too old, and setup
+  now looks for a newer one or offers to install it. On Windows, setup
+  finds a Python that is installed but not on the PATH instead of trying
+  to install it again.
+- **Setup no longer stalls on Windows.** Every check of the web view has a
+  3-second limit, commands run in PowerShell only, and their output is
+  never cut short (which ended them with an error).
 - **Locations are suggested in English, whatever your browser's language.**
   A French browser suggested "Royaume-Uni", which LinkedIn does not know:
   it searched the United States instead, without saying so. If your

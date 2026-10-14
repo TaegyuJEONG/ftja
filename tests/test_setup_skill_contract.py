@@ -70,7 +70,9 @@ class SetupSkillContractTests(unittest.TestCase):
 
     def test_setup_is_split_into_two_turns(self) -> None:
         for skill in (self.claude, self.codex):
-            self.assertIn("Turn 1: connect and open the web view", skill)
+            # Turn 1's title differs between the copies: the Claude Code one
+            # installs and connects, and opens the web view in turn 2.
+            self.assertIn("## Turn 1: ", skill)
             self.assertIn("Turn 2 onward: the native checklist", skill)
             self.assertIn("Why two turns", skill)
             self.assertIn("only take effect once this turn ends", skill)

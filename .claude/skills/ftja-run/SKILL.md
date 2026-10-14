@@ -10,7 +10,7 @@ these steps in order. Every python call below uses `venv/bin/python` — if
 `venv/` doesn't exist yet, run `python3 -m venv venv && venv/bin/pip install -r requirements.txt` first.
 
 **On Windows**, read every `venv/bin/python` below as `venv\Scripts\python`
-(and `venv/bin/pip` as `venv\Scripts\pip`), and run commands in PowerShell.
+(and `venv/bin/pip` as `venv\Scripts\pip`), and run commands in PowerShell. The rules for each system (one shell, time limits, never cutting a command's output short) are in `.claude/skills/ftja-setup/windows.md` and `mac.md`: read the one for this system first.
 Create a missing `venv` with `python -m venv venv; venv\Scripts\pip install -r requirements.txt`.
 Where a step uses `curl`, `lsof` or `open`, use the Windows form it names.
 
@@ -48,8 +48,8 @@ FTJA repository before running anything:
 3. Make sure the viewer on port 8765 is THIS folder's. Every FTJA clone
    uses the same port, so a viewer that answers may be showing another
    folder's data, and this run would never appear in it.
-   `curl -s http://127.0.0.1:8765/api/version` returns `project_dir`
-   (Windows: `Invoke-RestMethod http://127.0.0.1:8765/api/version`).
+   `curl -s --max-time 3 http://127.0.0.1:8765/api/version` returns `project_dir`
+   (Windows: `Invoke-RestMethod -TimeoutSec 3 http://127.0.0.1:8765/api/version`).
    - It matches `pwd`: the viewer is fine, go on.
    - No answer: start it from this folder (`venv/bin/python -m ftja.server`,
      in the background) and verify with `curl`.

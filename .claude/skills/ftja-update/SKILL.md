@@ -12,7 +12,7 @@ user pulls. This skill does that pull safely. The user's own files
 touches them.
 
 **On Windows**, read every `venv/bin/python` below as `venv\Scripts\python`
-(and `venv/bin/pip` as `venv\Scripts\pip`), and run commands in PowerShell.
+(and `venv/bin/pip` as `venv\Scripts\pip`), and run commands in PowerShell. The rules for each system (one shell, time limits, never cutting a command's output short) are in `.claude/skills/ftja-setup/windows.md` and `mac.md`: read the one for this system first.
 
 ## 1. Where things stand
 
