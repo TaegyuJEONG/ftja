@@ -9,9 +9,11 @@ worth your attention, with the reason for each one.
 
 <sub>Click the recording to watch it full size.</sub>
 
-> **Beta.** Built and tested with **Claude Code on macOS**. Windows is
-> supported but newer and less tested; scheduled runs and the "run
-> finished" notification are macOS only. Codex and other agents come next. Until then, fork it and make it yours.
+> **Beta.** Built and tested with **Claude Code on macOS and Windows**.
+> Scheduled runs and the "run finished" notification are macOS only.
+> Linux is not supported yet: most of it should work, but it is untested
+> and the resume chooser does not open there. Codex and other agents come
+> next. Until then, fork it and make it yours.
 
 ## What it does
 
@@ -29,7 +31,8 @@ is a folder on your computer and a set of skills your agent follows.
 
 ## Get started
 
-You need a Mac and [Claude Code](https://claude.com/claude-code).
+You need a Mac or a Windows PC and [Claude Code](https://claude.com/claude-code).
+Setup installs Git and Python if your computer does not have them yet.
 
 1. Open **https://ftja.vercel.app** and copy the setup prompt, or
    copy it from here:

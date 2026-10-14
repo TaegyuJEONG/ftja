@@ -574,3 +574,38 @@ continues with `/ftja-run continue` or narrows the search.
 
 Decided 2026-10-13: a daily run over 24 hours is small. Take it up when a
 run's token count surprises someone.
+
+## Scheduled runs on macOS and Windows
+
+### Status
+
+Not started. Scheduled runs have not been tested end to end on macOS either.
+
+### Problem
+
+A daily run is the product's promise, but today it exists only as
+`com.ftja.run.example.plist`, a launchd file the user installs by hand
+(`claude --print /ftja-run`). It has never been run end to end, it does not
+exist on Windows, and the "run finished" notification (`ftja/notify.py`,
+`osascript`) is macOS only.
+
+### Options
+
+- **Claude Code desktop app scheduled tasks** (preferred to try first): one
+  mechanism on macOS and Windows, runs on the user's computer where the FTJA
+  folder is, and the run stays visible in the app as a session. Needs the
+  app open. Setup could register it for the user.
+- **OS schedulers** (launchd, Windows Task Scheduler): run with the app
+  closed, but headless `claude --print` needs every permission allowed in
+  advance and fails silently otherwise; two implementations to keep.
+- Cloud routines (`/schedule`) do not fit: the user's criteria, profile and
+  `seen.db` are only on their computer.
+
+### To do
+
+1. Check on macOS and Windows how desktop scheduled tasks behave when the
+   computer sleeps or the app is closed at the scheduled time.
+2. Implement the chosen mechanism, and offer it at the end of setup.
+3. A "run finished" notification on Windows, if the mechanism does not
+   already show one.
+4. Test a real scheduled run end to end on macOS and on Windows.
