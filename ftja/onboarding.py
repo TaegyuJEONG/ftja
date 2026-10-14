@@ -723,6 +723,11 @@ def main() -> None:
             raise OnboardingError("set-state cannot bypass the onboarding state machine")
         if args.message:
             add_message(args.project_dir, "agent", args.message)
+        # say where onboarding is now: an agent that reads the answer as JSON
+        # got nothing before, and reported a save that worked as failed
+        saved = read_state(args.project_dir)
+        print(json.dumps({"saved": True, **{k: saved.get(k) for k in ("stage", "phase", "status", "allowed_actions", "revision")}},
+                         ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":

@@ -72,6 +72,8 @@ def test_set_state_reads_its_json_from_a_file(tmp_path):
                            "--json-file", str(payload)], cwd=root, capture_output=True, text=True)
     assert done.returncode == 0, done.stderr
     assert read_state(project)["profile"]["sources"][0]["path"] == str(payload)
+    # it answers with where onboarding is now, so an agent reading it as JSON gets an answer
+    assert json.loads(done.stdout)["saved"] is True
 
 
 @pytest.mark.skipif(not osutil.WINDOWS, reason="only Windows lets two servers share a port")
