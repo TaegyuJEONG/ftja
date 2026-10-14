@@ -143,14 +143,14 @@ def test_extras_keep_only_what_the_jd_says():
 
 
 def test_saving_the_list_rewrites_rubric_md_and_keeps_ids(tmp_path):
-    (tmp_path / "rubric.md").write_text("# hand-written\n")
+    (tmp_path / "rubric.md").write_text("# hand-written\n", encoding="utf-8")
     edited = [dict(d) for d in DEFS] + [{"kind": "fail", "label": "Needs a car!", "text": "Driving licence required."}]
     edited[2]["label"] = "Founder or first hire"
     data = save_criteria(str(tmp_path), edited, {"pass": "Decide from the evidence.", "bogus": "x"})
 
     assert [c["id"] for c in data["criteria"]] == [d["id"] for d in DEFS] + ["needs_a_car"]
-    assert (tmp_path / "rubric.md.bak").read_text() == "# hand-written\n"
-    md = (tmp_path / "rubric.md").read_text()
+    assert (tmp_path / "rubric.md.bak").read_text(encoding="utf-8") == "# hand-written\n"
+    md = (tmp_path / "rubric.md").read_text(encoding="utf-8")
     assert md == render_rubric_md(data)
     assert "- All of:\n  - **Direct build** — Builds it personally.\n  - **AI use**" in md
     assert "- **Founder or first hire** — Founder-level ownership." in md
@@ -160,10 +160,10 @@ def test_saving_the_list_rewrites_rubric_md_and_keeps_ids(tmp_path):
     assert criteria_status(path, str(tmp_path / "rubric.md")) == "ok"
     assert load_criteria(path)["criteria"][0]["group"] == "builder"
 
-    (tmp_path / "rubric.md").write_text(md + "\nedited as text\n")
+    (tmp_path / "rubric.md").write_text(md + "\nedited as text\n", encoding="utf-8")
     assert criteria_status(path, str(tmp_path / "rubric.md")) == "stale"
     save_criteria(str(tmp_path), data["criteria"], data["notes"])  # the backup is only taken once
-    assert (tmp_path / "rubric.md.bak").read_text() == "# hand-written\n"
+    assert (tmp_path / "rubric.md.bak").read_text(encoding="utf-8") == "# hand-written\n"
 
     with pytest.raises(ValueError):
         save_criteria(str(tmp_path), [{"kind": "fail", "label": "Only a fail"}])
@@ -182,7 +182,7 @@ def test_validate_criteria():
 @pytest.fixture
 def project(tmp_path, monkeypatch):
     monkeypatch.setattr(finalize_mod, "notify", lambda *a, **k: None)
-    (tmp_path / "rubric.md").write_text("# rubric\n")
+    (tmp_path / "rubric.md").write_text("# rubric\n", encoding="utf-8")
     return tmp_path
 
 
@@ -223,15 +223,15 @@ def test_finalize_sets_status_from_criteria_and_stores_the_jd(project):
     assert "Direct build: met" in stored[4]
     assert stage1_description is None
 
-    digest = (project / summary["digest_path"].split("/")[-1]).read_text()
+    digest = (project / summary["digest_path"].split("/")[-1]).read_text(encoding="utf-8")
     assert "1 passed, 1 to review" in digest and "# To review (1)" in digest
     assert "**Pass**\n- Met — Direct build: Builds with Cursor." in digest and "- 2 not applicable" in digest
     assert "*Builds dev tools.*" in digest and "- Meets — Must: Uses Cursor (Daily.)" in digest
     assert "**Notes**\n- Permanent contract." in digest
-    rejected = (project / summary["rejected_path"].split("/")[-1]).read_text()
+    rejected = (project / summary["rejected_path"].split("/")[-1]).read_text(encoding="utf-8")
     assert "**Pass**\n- Met — Direct build" in rejected and "- 2 not met" in rejected and "**Reason**: No builder signal." in rejected
 
-    run = json.loads((project / "runs.jsonl").read_text())
+    run = json.loads((project / "runs.jsonl").read_text(encoding="utf-8"))
     assert (run["stage2_pass"], run["stage2_review"], run["stage2_fail"]) == (1, 1, 1)
 
 
@@ -240,7 +240,7 @@ def test_finalize_reports_stage2_jobs_without_jd_text(project, capsys):
                                     db_path=str(project / "seen.db"), out_dir=str(project), definitions=DEFS)
     assert summary["quotes_unchecked"] == 1
     assert "no JD text" in capsys.readouterr().err
-    assert "without JD text" in (project / "run.log").read_text()
+    assert "without JD text" in (project / "run.log").read_text(encoding="utf-8")
 
 
 def test_a_quote_may_come_from_the_title_line(project):

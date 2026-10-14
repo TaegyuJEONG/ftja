@@ -1,6 +1,8 @@
-"""macOS notification, best-effort. Never raises — a notification failure
-must not stop a run from writing its digest and log."""
+"""Desktop notification, best-effort, macOS only for now: on other systems
+it does nothing. Never raises — a notification failure must not stop a run
+from writing its digest and log."""
 import subprocess
+import sys
 
 
 def _as_applescript_string(s: str) -> str:
@@ -9,6 +11,8 @@ def _as_applescript_string(s: str) -> str:
 
 
 def notify(title: str, message: str):
+    if sys.platform != "darwin":
+        return
     try:
         script = (
             f"display notification {_as_applescript_string(message)} "

@@ -48,6 +48,8 @@ import re
 import time
 from datetime import datetime, timezone
 
+from ftja import osutil
+
 from ftja.text_blocks import find_matched_with_context, keyword_matcher, split_sentences, stem, tokenize
 
 CONFIG_FILE = "remote-check.json"
@@ -179,7 +181,7 @@ def default_config() -> dict:
 
 def _read(path: str):
     try:
-        with open(path) as f:
+        with open(path, encoding="utf-8-sig") as f:
             return json.load(f)
     except (OSError, json.JSONDecodeError):
         return None
@@ -187,10 +189,10 @@ def _read(path: str):
 
 def _write(path: str, value):
     tmp = path + ".tmp"
-    with open(tmp, "w") as f:
+    with open(tmp, "w", encoding="utf-8") as f:
         json.dump(value, f, ensure_ascii=False, indent=2)
         f.write("\n")
-    os.replace(tmp, path)
+    osutil.replace(tmp, path)
 
 
 def load_config(path: str) -> dict | None:
@@ -469,7 +471,7 @@ def main():
     elif args.cmd == "fail":
         out = set_request_status(args.project_dir, "failed", args.error)
     elif args.cmd == "save":
-        with open(args.file) as f:
+        with open(args.file, encoding="utf-8-sig") as f:
             data = json.load(f)
         try:
             config = save_draft(args.project_dir, data)
@@ -481,7 +483,7 @@ def main():
     else:
         config = config_or_default(args.project_dir)
         if args.file:
-            with open(args.file) as f:
+            with open(args.file, encoding="utf-8-sig") as f:
                 config = validate_config(json.load(f))
         jobs = _read(args.jobs) if args.jobs else _latest_scrape(args.project_dir)
         out = coverage(jobs or [], config)

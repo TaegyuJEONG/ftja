@@ -19,7 +19,7 @@ JOBS = [
 
 def criteria(tmp_path, languages, tier1, marked=None):
     block = {"tier1": tier1, **({"tier1_language": marked} if marked else {})}
-    (tmp_path / "criteria.json").write_text(json.dumps({"languages": languages, "keywords": block}))
+    (tmp_path / "criteria.json").write_text(json.dumps({"languages": languages, "keywords": block}), encoding="utf-8")
     return str(tmp_path)
 
 
@@ -67,12 +67,12 @@ def test_the_page_asks_the_agent_proposes_and_the_user_confirms(tmp_path):
     keywords.propose(root, [{"target": "stage1", "language": "fr", "keywords": ["prototypage", "maquette", "maquette"]}])
     request = keywords.read_request(root)
     assert request["status"] == "drafted" and request["items"][0]["keywords"] == ["prototypage", "maquette"]
-    saved = json.load(open(os.path.join(root, "criteria.json")))
+    saved = json.load(open(os.path.join(root, "criteria.json"), encoding="utf-8"))
     assert saved["keywords"]["tier1"] == ["prototype"]  # nothing is added until the user confirms
 
     # the user drops one on the page and confirms
     keywords.add_keywords(root, [{"target": "stage1", "language": "fr", "keywords": ["prototypage"]}])
-    saved = json.load(open(os.path.join(root, "criteria.json")))
+    saved = json.load(open(os.path.join(root, "criteria.json"), encoding="utf-8"))
     assert saved["keywords"] == {"tier1": ["prototype", "prototypage"], "tier1_language": {"prototypage": "fr"}}
     assert keywords.read_request(root)["status"] == "none" and keywords.gaps(root)["stage1"]["missing"] == []
 

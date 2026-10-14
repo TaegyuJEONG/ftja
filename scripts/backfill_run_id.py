@@ -34,7 +34,7 @@ DATE_TO_RUN_ID = {
 
 
 def backfill_runs_jsonl():
-    with open(RUNS_PATH) as f:
+    with open(RUNS_PATH, encoding="utf-8") as f:
         lines = [json.loads(line) for line in f if line.strip()]
 
     assert len(lines) == 3, f"expected exactly 3 existing run records, found {len(lines)} - check before rerunning"
@@ -42,7 +42,7 @@ def backfill_runs_jsonl():
     lines[1]["run_id"] = RUN2_ID
     lines[2]["run_id"] = RUN3_ID
 
-    with open(RUNS_PATH, "w") as f:
+    with open(RUNS_PATH, "w", encoding="utf-8") as f:
         for r in lines:
             f.write(json.dumps(r, ensure_ascii=False) + "\n")
     print(f"runs.jsonl: assigned run_id to {len(lines)} records")

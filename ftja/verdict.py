@@ -107,7 +107,7 @@ def _group_of(c: dict) -> str:
 
 
 def load_criteria(path: str = DEFAULT_CRITERIA_PATH) -> dict:
-    with open(path) as f:
+    with open(path, encoding="utf-8-sig") as f:
         data = json.load(f)
     problems = validate_criteria(data)
     if problems:
@@ -227,10 +227,10 @@ def save_criteria(project_dir: str, criteria: list[dict], notes: dict | None = N
     backup = rubric_path + ".bak"
     if os.path.exists(rubric_path) and not os.path.exists(backup):
         shutil.copyfile(rubric_path, backup)
-    with open(rubric_path, "w") as f:
+    with open(rubric_path, "w", encoding="utf-8") as f:
         f.write(render_rubric_md(data))
     data = {"rubric_version": rubric_version(rubric_path), **data}
-    with open(os.path.join(project_dir, DEFAULT_CRITERIA_PATH), "w") as f:
+    with open(os.path.join(project_dir, DEFAULT_CRITERIA_PATH), "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
         f.write("\n")
     return data

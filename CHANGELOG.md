@@ -5,6 +5,64 @@ What changed in each version, newest first. If you cloned FTJA earlier, run
 these. Your own files — `criteria.json`, `rubric.md`, `profile/`, `seen.db`,
 digests — are never touched by an update.
 
+## 0.3.2 — 2026-10-14
+
+### What changes for you after updating
+
+- **Setup finds a Python that works.** FTJA needs Python 3.10 or newer.
+  On a Mac, the Python that comes with macOS (3.9) is too old, and setup
+  now looks for a newer one or offers to install it. On Windows, setup
+  finds a Python that is installed but not on the PATH instead of trying
+  to install it again.
+- **Setup no longer stalls on Windows.** Every check of the web view has a
+  3-second limit, commands run in PowerShell only, and their output is
+  never cut short (which ended them with an error).
+- **Setup opens the web view before its first question again**, and starts
+  the viewer from your FTJA folder. On Windows it used to start it through
+  a settings file in a temporary folder.
+- **The page says when its viewer has stopped.** If the viewer stops (the
+  computer slept, the window that started it closed), the page now says so
+  at the top, with how to start it again: ask the Claude Code session
+  connected to your FTJA folder to start the FTJA viewer, or run the
+  command it shows. The page comes back on its own once the viewer runs.
+- **Locations are suggested in English, whatever your browser's language.**
+  A French browser suggested "Royaume-Uni", which LinkedIn does not know:
+  it searched the United States instead, without saying so. If your
+  location is not in English, change it on the Pipeline tab.
+- **FTJA now works on Windows.** Before, setup stopped at the first step:
+  "Add resume" answered "supported on macOS only".
+  - "Add resume" opens the Windows file chooser.
+  - The folder name at the bottom of the page opens the folder in Explorer.
+  - The page knows when your agent is waiting for your click. The check
+    used before could interrupt the agent's wait on Windows, or always
+    report that no agent was there, which keeps the buttons switched off.
+  - Postings, keywords and résumés with letters outside your Windows
+    language (Korean, French accents, a long dash) are read and written
+    correctly. Every file is UTF-8 now, on every system.
+  - Saving no longer fails when the page reads a file at the same moment
+    your agent rewrites it.
+  - Only one viewer can run on the port. Windows used to let a second
+    one start alongside the first, and the page then got answers from both.
+  - The setup, run and update instructions your agent follows name the
+    Windows commands, and setup offers to install Git and Python when the
+    PC has neither.
+- **A decision sent twice is done once.** Clicking Confirm twice, or on a
+  page that had just been redrawn, showed "stale onboarding revision"
+  although the first click had worked. Now the second one is ignored.
+- **A button is only live when your agent is really waiting.** If the
+  agent's wait was stopped, the page kept offering Confirm and then
+  answered "setup bridge is not listening". It now shows that it is
+  waiting for the agent.
+- **The page no longer stalls.** It asked the viewer something every
+  second over a new connection each time. On Windows the closed ones piled
+  up in the thousands, and then about one request in five could not
+  connect at all: the page loaded slowly, stayed on its grey waiting lines,
+  or lost a click. The viewer now keeps a few connections open and reuses
+  them, and a tab you are not looking at asks nothing.
+- **Still Mac only:** scheduled runs and the "run finished" notification.
+- The Windows code is covered by tests but has had little use on real
+  Windows PCs yet. If something stops, please report the message you see.
+
 ## 0.3.1 — 2026-10-13
 
 ### What changes for you after updating

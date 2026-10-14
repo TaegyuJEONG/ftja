@@ -288,6 +288,7 @@ select { -webkit-appearance: none; appearance: none; background-image: url("data
   padding: 9px 14px; margin: -14px 0 24px;
 }
 .update-banner code { font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; }
+.server-down-banner { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; margin: 0; font-size: 13px; padding: 12px 18px; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
 
 /* a run in progress */
 .run-item .live-badge, .badge.judging {
@@ -730,6 +731,7 @@ select.sort-select {
 </div>
 
 <div id="update-banner" class="update-banner" hidden></div>
+<div id="server-down-banner" class="update-banner server-down-banner" hidden></div>
 <div id="view-results" class="view">
   <div class="no-run-banner" data-no-run-banner><span>→</span><div><b>You haven't run FTJA yet.</b>Type <code>/ftja-run</code> in the Claude Code session connected to this FTJA folder. Results appear here as the run goes.</div></div>
   <div class="results-layout">
@@ -1136,10 +1138,27 @@ function renderOnboarding() {
   if (preserveScroll) requestAnimationFrame(() => window.scrollTo(0, scrollY));
 }
 let staleBridgeStamp = null;
+// One decision at a time. A poll can redraw the card while a request is on
+// its way, and the redrawn button is enabled again: a second click would
+// send the same decision twice, and the second one came back as an error.
+let onboardingActionInFlight = false;
 async function postOnboardingAction(type, payload = {}) {
+  if (onboardingActionInFlight) return;
+  onboardingActionInFlight = true;
+  try {
+    return await sendOnboardingAction(type, payload);
+  } finally {
+    onboardingActionInFlight = false;
+  }
+}
+async function sendOnboardingAction(type, payload) {
   const res = await fetch('/api/onboarding-action', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({type, expected_revision: onboardingState?.revision ?? 0, ...payload})});
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body.error || 'Could not send this decision to the setup chat.');
+  if (!res.ok) {
+    // The page was behind: show what is true now, so the next click is sent from there.
+    if (body.state && /^stale/.test(body.error || '')) { onboardingState = {...body.state, bridge: onboardingState?.bridge || {status: 'offline'}}; onboardingVersion = null; renderOnboarding(); }
+    throw new Error(body.error || 'Could not send this decision to the setup chat.');
+  }
   if (body.state) {
     // The bridge in this response is the one the setup chat's PREVIOUS wait
     // left behind: that process only notices this action (and flips the
@@ -1293,9 +1312,11 @@ function locationLabelFromNominatim(item) {
 // saved to criteria.json's `location` matches what the scraper expects.
 // Backed by OpenStreetMap's free Nominatim search — no API key, debounced,
 // and a plain-text location still works fine if this fails or is offline.
+// Names in English whatever the browser's language: LinkedIn does not know
+// "Royaume-Uni" and silently searches the United States instead.
 async function fetchLocationOptions(query) {
   try {
-    const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=6&q=${encodeURIComponent(query)}`;
+    const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=6&accept-language=en&q=${encodeURIComponent(query)}`;
     const res = await fetch(url, {headers: {Accept: 'application/json'}});
     if (!res.ok) return [];
     const data = await res.json();
@@ -1440,7 +1461,9 @@ async function maybeStartOnboarding() {
   // set up already: open on Results, where runs are (and where a run in progress shows)
   if (onboardingIsComplete(onboardingState)) { openMainView('results'); return true; }
   document.body.classList.add('onboarding-active'); document.querySelectorAll('.main-tab, .view:not(#view-onboarding)').forEach(x => x.style.display = 'none'); document.getElementById('view-onboarding').classList.add('active');
-  await refreshOnboarding(true); onboardingRefreshTimer = setInterval(() => refreshOnboarding(false).catch(() => {}), 1200); return true;
+  await refreshOnboarding(true); onboardingRefreshTimer = setInterval(() => { if (!document.hidden) refreshOnboarding(false).catch(() => {}); }, 1200);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && onboardingRefreshTimer) refreshOnboarding(false).catch(() => {}); });  // a tab nobody is looking at asks nothing
+  return true;
 }
 
 // ---- top-level tabs ----
@@ -3557,11 +3580,32 @@ document.addEventListener('click', (e) => {
 // The tab named in the address when the page loaded is the one to open: a refresh stays where it was.
 const startTab = location.hash === '#pipeline' ? 'pipeline' : 'results';
 (async () => { const onboarding = await maybeStartOnboarding(); if (!document.body.classList.contains('onboarding-active')) openMainView(startTab); setInterval(pollLive, 1500); pollLive(); setInterval(pollRemote, 2500); pollRemote(); })();
+// The viewer runs only while its server does. When the server stops (the
+// computer slept, the window that started it closed), say so and how to
+// start it again, instead of a page that silently stops changing. Each
+// check gives up after 3 seconds: on Windows a request to a stopped server
+// can wait much longer before failing.
+let serverMisses = 0;
+async function checkServer() {
+  let up = false;
+  try { up = (await fetch('/api/ping', {cache: 'no-store', signal: AbortSignal.timeout(3000)})).ok; } catch (e) {}
+  serverMisses = up ? 0 : serverMisses + 1;
+  const banner = document.getElementById('server-down-banner');
+  if (serverMisses >= 2 && banner.hidden) {
+    const command = /Windows/.test(navigator.userAgent) ? 'venv\\Scripts\\python -m ftja.server' : 'venv/bin/python -m ftja.server';
+    banner.innerHTML = `<b>FTJA's viewer has stopped.</b> To see this page again, ask the Claude Code session connected to this FTJA folder to "start the FTJA viewer", or type <code>${command}</code> in a terminal in the FTJA folder. This page comes back on its own once it is running.`;
+    banner.hidden = false;
+  } else if (up && !banner.hidden) {
+    location.reload();  // everything the page shows may have changed meanwhile
+  }
+}
+setInterval(() => { if (!document.hidden) checkServer(); }, 5000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) checkServer(); });
 // A clone only changes when its owner pulls; say so when there is something to pull.
 fetch('/api/version').then(r => r.json()).then(v => {
   // two clones share the port: say which folder's data this is
   document.querySelectorAll('.subtitle').forEach(el => {
-    el.innerHTML = `Fine Tune Job Agent · ${esc(v.current)} · <button class="storage-btn" type="button" data-open-folder title="Open this folder in Finder">${esc(v.project_dir)}</button> · <button class="storage-btn" type="button" data-storage></button>`;
+    el.innerHTML = `Fine Tune Job Agent · ${esc(v.current)} · <button class="storage-btn" type="button" data-open-folder title="Open this folder">${esc(v.project_dir)}</button> · <button class="storage-btn" type="button" data-storage></button>`;
   });
   refreshStorage();
   if (!v.update_available) return;

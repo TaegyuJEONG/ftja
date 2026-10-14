@@ -32,7 +32,7 @@ def is_locked(lock_path: str) -> bool:
 
 
 def acquire(lock_path: str):
-    with open(lock_path, "w") as f:
+    with open(lock_path, "w", encoding="utf-8") as f:
         f.write(str(os.getpid()))  # informational only, not used for liveness
 
 

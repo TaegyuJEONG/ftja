@@ -169,7 +169,7 @@ def main():
     cleaned = clean_jobs(jobs)
     out = json.dumps(cleaned, ensure_ascii=False, indent=2)
     if args.out:
-        with open(args.out, "w") as f:
+        with open(args.out, "w", encoding="utf-8") as f:
             f.write(out)
         print(f"Wrote {len(cleaned)} jobs to {args.out}", file=sys.stderr)
     else:

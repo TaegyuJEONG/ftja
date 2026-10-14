@@ -33,8 +33,8 @@ class ProfileSourceTests(unittest.TestCase):
                     headers={"Content-Type": "application/json"},
                     method="POST",
                 )
-                with patch("ftja.server.sys.platform", "darwin"), patch(
-                    "ftja.server.subprocess.run", return_value=completed
+                with patch("ftja.osutil.MAC", True), patch("ftja.osutil.WINDOWS", False), patch(
+                    "ftja.osutil.subprocess.run", return_value=completed
                 ) as run:
                     with urlopen(request, timeout=3) as response:
                         payload = json.load(response)
@@ -106,10 +106,10 @@ class ProfileSourceTests(unittest.TestCase):
                     "sources": [{"path": str(source), "kind": "file"}],
                 })
                 self.assertEqual(first["state"]["revision"], 1)
-                self.assertEqual(json.loads((Path(tmp) / "onboarding-action.json").read_text())["type"], "set_profile_sources")
+                self.assertEqual(json.loads((Path(tmp) / "onboarding-action.json").read_text(encoding="utf-8"))["type"], "set_profile_sources")
                 second = post({"type": "confirm_profile_sources", "expected_revision": 1})
                 self.assertTrue(second["state"]["profile"]["sources_confirmed"])
-                action = json.loads((Path(tmp) / "onboarding-action.json").read_text())
+                action = json.loads((Path(tmp) / "onboarding-action.json").read_text(encoding="utf-8"))
                 self.assertEqual(action["type"], "confirm_profile_sources")
                 # The checklist item flips to done in the same response, so the
                 # web doesn't have to wait for the next poll to show progress.
@@ -134,7 +134,7 @@ class ProfileSourceTests(unittest.TestCase):
             self.assertTrue(sources[0]["exists"])
 
     def test_onboarding_ui_offers_a_resume_and_holds_folders_for_after_the_beta(self):
-        html = Path(__file__).parents[1].joinpath("ftja", "app.html").read_text()
+        html = Path(__file__).parents[1].joinpath("ftja", "app.html").read_text(encoding="utf-8")
         self.assertIn("Add your background.", html)
         self.assertIn("Fine-tune your job search.", html)
         self.assertIn("Your search settings", html)
@@ -168,7 +168,7 @@ class ProfileSourceTests(unittest.TestCase):
 
     def test_public_demo_uses_the_canonical_landing_source(self):
         root = Path(__file__).parents[1]
-        landing = root.joinpath("landing.html").read_text()
+        landing = root.joinpath("landing.html").read_text(encoding="utf-8")
         self.assertFalse(root.joinpath("index.html").exists())
         for text in ["Review your profile summary.", "Confirm profile summary", "Fine-tune your job search.", "Suggested job titles", "Published within", "Confirm search settings"]:
             self.assertIn(text, landing)

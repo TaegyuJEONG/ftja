@@ -16,13 +16,13 @@ from ftja.state import connect
 
 
 def _read(path, default=""):
-    return open(path).read() if os.path.exists(path) else default
+    return open(path, encoding="utf-8-sig").read() if os.path.exists(path) else default
 
 
 def _read_json(path, default=None):
     if not os.path.exists(path):
         return default
-    with open(path) as f:
+    with open(path, encoding="utf-8-sig") as f:
         return json.load(f)
 
 
@@ -88,15 +88,15 @@ def write_config(project_dir: str = ".", criteria: dict | None = None,
     the file, so nothing here git-commits; that stays a deliberate, separate
     step (see /ftja-tune's one-conversational-update-per-commit discipline)."""
     if criteria is not None:
-        with open(f"{project_dir}/criteria.json", "w") as f:
+        with open(f"{project_dir}/criteria.json", "w", encoding="utf-8") as f:
             json.dump(criteria, f, ensure_ascii=False, indent=2)
             f.write("\n")
     if rubric_md is not None:
-        with open(f"{project_dir}/rubric.md", "w") as f:
+        with open(f"{project_dir}/rubric.md", "w", encoding="utf-8") as f:
             f.write(rubric_md)
     if profile_md is not None:
         os.makedirs(f"{project_dir}/profile", exist_ok=True)
-        with open(f"{project_dir}/profile/summary.md", "w") as f:
+        with open(f"{project_dir}/profile/summary.md", "w", encoding="utf-8") as f:
             f.write(profile_md)
     if profile_sources is not None:
         os.makedirs(f"{project_dir}/profile", exist_ok=True)
@@ -113,7 +113,7 @@ def write_config(project_dir: str = ".", criteria: dict | None = None,
                 "kind": "folder" if source.get("kind") == "folder" or os.path.isdir(path) else "file",
                 "enabled": source.get("enabled", True) is not False,
             })
-        with open(f"{project_dir}/profile/sources.json", "w") as f:
+        with open(f"{project_dir}/profile/sources.json", "w", encoding="utf-8") as f:
             json.dump(clean_sources, f, ensure_ascii=False, indent=2)
             f.write("\n")
 
