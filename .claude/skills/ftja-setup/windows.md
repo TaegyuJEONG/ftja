@@ -36,6 +36,14 @@ command that mixes them can stall or be cut short.
   (`-TimeoutSec 3`). Without one, a check while no server is running can
   wait for minutes.
 
+## Start the viewer
+
+From the FTJA folder (it keeps running after the command returns):
+
+```powershell
+Start-Process -FilePath "<FTJA folder>\venv\Scripts\python.exe" -ArgumentList "-m","ftja.server" -WorkingDirectory "<FTJA folder>" -WindowStyle Hidden
+```
+
 ## Git and Python
 
 A fresh Windows PC often has neither. A `python` that answers "Python est

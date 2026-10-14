@@ -18,6 +18,9 @@ digests — are never touched by an update.
 - **Setup no longer stalls on Windows.** Every check of the web view has a
   3-second limit, commands run in PowerShell only, and their output is
   never cut short (which ended them with an error).
+- **Setup opens the web view before its first question again**, and starts
+  the viewer from your FTJA folder. On Windows it used to start it through
+  a settings file in a temporary folder.
 - **The page says when its viewer has stopped.** If the viewer stops (the
   computer slept, the window that started it closed), the page now says so
   at the top, with how to start it again: ask the Claude Code session

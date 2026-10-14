@@ -11,6 +11,16 @@ in the skills are already the macOS forms.
   whole output; if it is long, write it to a file and read the part you
   need.
 
+## Start the viewer
+
+From the FTJA folder (it keeps running after the command returns):
+
+```bash
+cd "<FTJA folder>" && nohup venv/bin/python -m ftja.server > .ftja-run/viewer.log 2>&1 &
+```
+
+(`mkdir -p .ftja-run` first if the folder does not exist yet.)
+
 ## Git and Python
 
 FTJA needs Git and Python 3.10 or newer. The Python that comes with macOS

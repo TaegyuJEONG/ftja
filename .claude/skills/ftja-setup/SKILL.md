@@ -9,23 +9,26 @@ Interview the user conversationally (not a rigid form — follow up, don't
 just fire a checklist) to produce two files at the project root. Do not
 guess at answers; if the user is vague, ask a follow-up.
 
-This runs in two turns. Turn 1 installs FTJA in a folder and connects the
-session to it, then stops and asks one question. Turn 2 (triggered by the
-user's reply) starts the web view from that folder, creates the native
-checklist and drives the actual interview. Do not collapse these into one
-turn — see "Why two turns" below.
+This runs in two turns. Turn 1 installs FTJA in a folder, connects the
+session to it and opens the web view, then stops and asks one question.
+Turn 2 (triggered by the user's reply) creates the native checklist and
+drives the actual interview. Do not collapse these into one turn — see
+"Why two turns" below.
 
 **First, the platform.** Read `windows.md` (Windows) or `mac.md` (macOS),
 next to this file, before running any command, and follow it in every
 step. The commands below are the macOS forms; on Windows use the forms
 `windows.md` gives.
 
-## Turn 1: install and connect
+## Turn 1: install, connect and open the web view
 
 Do this without asking the user anything mid-way (except to install Git or
 Python, as the platform file says), then end the turn with exactly one
-question. Do not check for native task tools, create the checklist, start
-the server, or start any `wait-for-action` call in this turn.
+question. Do not check for native task tools, create the checklist, or
+start any `wait-for-action` call in this turn.
+
+The session's own folder only changes when this turn ends: run every
+command in this turn on the FTJA folder's absolute path.
 
 1. Resolve the absolute path of the cloned FTJA repository from the actual
    session context. Preserve the user's path and capitalization exactly; do
@@ -42,43 +45,30 @@ the server, or start any `wait-for-action` call in this turn.
    workspace.
 4. Create the repository's Python environment (`venv`) and install
    dependencies if they don't already exist, with the Python the platform
-   file finds (3.10 or newer). Run every command with the FTJA folder's
-   absolute path, since the session's own folder only changes when this
-   turn ends.
-5. End the turn by asking exactly one question, e.g.: "FTJA is installed in
-   <path>. Ready to open it and start onboarding?" Say nothing about
-   background files, checklists, or next steps yet; that all belongs to
-   turn 2.
-
-## Turn 2, first: open the web view
-
-Any affirmative reply to turn 1's question starts turn 2. The session is now
-in the FTJA folder; do these before the checklist.
-
-1. Initialize or resume `onboarding-state.json`.
-2. Start the local server if `http://127.0.0.1:8765/` is not responding.
-   Check it with a time limit (`curl -s --max-time 3`; Windows: the form in
-   `windows.md`). If another project's FTJA server already holds port 8765,
-   tell the user and ask before stopping it — don't silently kill another
-   workspace's server. Start it via `mcp__Claude_Browser__preview_start`
-   with a `name`, not a background shell command: create or merge
-   `.claude/launch.json` in the FTJA folder with a configuration such as
-   `{"name": "ftja", "runtimeExecutable": "venv/bin/python",
-   "runtimeArgs": ["-m", "ftja.server"], "port": 8765}` (Windows:
-   `"venv\\Scripts\\python.exe"`), then call `preview_start` with that
-   `name`. `preview_start` reads `launch.json` from the session's folder,
-   which is why this waits for turn 2: in turn 1 that is still the scratch
-   folder the session started in. A background `Bash`/`nohup` command doing
-   the same thing is more failure-prone (it needs its own PID tracking)
-   and, live, has been the actual site of long, silent multi-minute stalls
-   in this step — see "Move quickly through routine steps".
-3. Open the viewer next to this chat with
-   `mcp__Claude_Browser__preview_start` on `http://127.0.0.1:8765`, then
-   verify it with `mcp__Claude_Browser__get_page_text`. Also open it in the
-   user's browser (`open http://127.0.0.1:8765`; Windows: `Start-Process`).
-   Do not describe the viewer as
-   open until a navigation/page-text check succeeds.
-   Then continue straight to the checklist below, without asking anything.
+   file finds (3.10 or newer).
+5. Initialize or resume `onboarding-state.json` in the FTJA folder.
+6. Start the local server if `http://127.0.0.1:8765/api/ping` does not
+   answer within 3 seconds. If another project's FTJA server already holds
+   port 8765 (`/api/version` names another `project_dir`), tell the user
+   and ask before stopping it — don't silently kill another workspace's
+   server. Start it from the FTJA folder with the platform file's "Start
+   the viewer" command, which returns at once and leaves the server
+   running, then check `/api/ping` again (3-second limit, a few tries over
+   about 10 seconds). Do not use `.claude/launch.json` or
+   `preview_start` with a `name`: the browser pane reads `launch.json` from
+   the folder the session started in (a scratch folder), even after the
+   session has moved, so it cannot start a server in the FTJA folder.
+7. Open the viewer next to this chat with
+   `mcp__Claude_Browser__preview_start` with the `url`
+   `http://127.0.0.1:8765` (a URL needs no `launch.json`), then verify it
+   with `mcp__Claude_Browser__get_page_text`. Also open it in the user's
+   browser (`open http://127.0.0.1:8765`; Windows: `Start-Process`). Do not
+   describe the viewer as open until a navigation/page-text check
+   succeeds.
+8. End the turn by asking exactly one question, e.g.: "I've opened the FTJA
+   web view next to this chat — ready to start onboarding?" Say nothing
+   about background files, checklists, or next steps yet; that all belongs
+   to turn 2.
 
 ### Why two turns
 
@@ -109,9 +99,10 @@ extra tool calls each:
 
 - Retrying a failed tool call more than once or two before trying a
   genuinely different approach. If a call is refused or errors, don't loop
-  on the identical call — the isolated fix above (`preview_start` +
-  `launch.json` for the server) exists because that exact retry loop was
-  observed live on a plain background server-start command.
+  on the identical call. Start the server with the platform file's one
+  command, which returns at once, and check it with a time limit; a
+  server-start command left waiting in the foreground, or a check without
+  a limit, has been the site of long, silent stalls in this step.
 - Re-verifying something in the browser (navigate, screenshot, a second
   `read_page`) right after writing it to `onboarding-state.json`. The web's
   poll-and-render loop is exercised by this project's own test suite; once

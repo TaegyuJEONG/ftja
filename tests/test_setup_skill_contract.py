@@ -102,7 +102,7 @@ class SetupSkillContractTests(unittest.TestCase):
     def test_infrastructure_evidence_is_still_required_in_turn_one(self) -> None:
         for skill in (self.claude, self.codex):
             self.assertIn("Folder access granted", skill)
-            self.assertIn("`http://127.0.0.1:8765/`", skill)
+            self.assertIn("http://127.0.0.1:8765/", skill)
             self.assertIn("navigation/page-text check succeeds", skill)
 
     def test_web_confirmations_advance_only_after_durable_evidence(self) -> None:
