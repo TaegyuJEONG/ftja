@@ -1311,9 +1311,11 @@ function locationLabelFromNominatim(item) {
 // saved to criteria.json's `location` matches what the scraper expects.
 // Backed by OpenStreetMap's free Nominatim search — no API key, debounced,
 // and a plain-text location still works fine if this fails or is offline.
+// Names in English whatever the browser's language: LinkedIn does not know
+// "Royaume-Uni" and silently searches the United States instead.
 async function fetchLocationOptions(query) {
   try {
-    const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=6&q=${encodeURIComponent(query)}`;
+    const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=6&accept-language=en&q=${encodeURIComponent(query)}`;
     const res = await fetch(url, {headers: {Accept: 'application/json'}});
     if (!res.ok) return [];
     const data = await res.json();

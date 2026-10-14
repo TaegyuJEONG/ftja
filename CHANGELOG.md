@@ -10,6 +10,10 @@ digests — are never touched by an update.
 ### What changes for you after updating
 
 - **On a Mac, nothing changes.**
+- **Locations are suggested in English, whatever your browser's language.**
+  A French browser suggested "Royaume-Uni", which LinkedIn does not know:
+  it searched the United States instead, without saying so. If your
+  location is not in English, change it on the Pipeline tab.
 - **FTJA now works on Windows.** Before, setup stopped at the first step:
   "Add resume" answered "supported on macOS only".
   - "Add resume" opens the Windows file chooser.
