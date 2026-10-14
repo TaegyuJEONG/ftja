@@ -8,8 +8,8 @@ guaranteed. (Caveat: if criteria.json's `location` is a single string like
 passed to scrape.py — e.g. Singapore, Dubai — are never scraped in the
 first place. That's a scrape-config gap, not something this filter can fix.)
 
-With `title_must_match` set in criteria.json, a job is first dropped unless
-its title contains the search term that found it (see title_matches_search).
+Titles are not filtered here either: the scrape keeps only postings whose
+title contains the search term (title_matches_search, used by ftja/scrape.py).
 
 Keeps a scraped job only if, in order:
   1. the JD's own written language is one the candidate reads (criteria.languages)
@@ -285,8 +285,6 @@ def filter_stage0(jobs: list[dict], criteria: dict, dropped_jobs: list[dict] | N
     if marked:  # a keyword of a language the candidate no longer reads is switched off (see ftja.keywords)
         from ftja.keywords import active
         tier1 = active(tier1, marked, languages)
-    search_terms = criteria.get("search_terms") or []
-    title_rule = bool(criteria.get("title_must_match")) and bool(search_terms)
 
     passed = []
     dropped = {"language": 0, "no_tier1_hit": 0, "exclude_keyword": 0, "language_requirement": 0}
@@ -296,12 +294,7 @@ def filter_stage0(jobs: list[dict], criteria: dict, dropped_jobs: list[dict] | N
         from ftja.remote import blocks_for as remote_blocks_for
         if remote.get("drop_without_keywords", True):
             dropped["no_remote_keyword"] = 0
-    if title_rule:
-        dropped = {"title_mismatch": 0, **dropped}
     for job in jobs:
-        if title_rule and not title_matches_search(job, search_terms):
-            dropped["title_mismatch"] += 1
-            continue
         if not passes_language(job, languages):
             dropped["language"] += 1
             continue

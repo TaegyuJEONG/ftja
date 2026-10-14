@@ -5,11 +5,10 @@ What changed in each version, newest first. If you cloned FTJA earlier, run
 these. Your own files — `criteria.json`, `rubric.md`, `profile/`, `seen.db`,
 digests — are never touched by an update.
 
-## 0.3.1 — 2026-10-13
+## 0.3.2 — 2026-10-14
 
 ### What changes for you after updating
 
-- **On a Mac, nothing changes.**
 - **Setup finds a Python that works.** FTJA needs Python 3.10 or newer.
   On a Mac, the Python that comes with macOS (3.9) is too old, and setup
   now looks for a newer one or offers to install it. On Windows, setup
@@ -63,6 +62,43 @@ digests — are never touched by an update.
 - **Still Mac only:** scheduled runs and the "run finished" notification.
 - The Windows code is covered by tests but has had little use on real
   Windows PCs yet. If something stops, please report the message you see.
+
+## 0.3.1 — 2026-10-13
+
+### What changes for you after updating
+
+- **Only postings whose title contains your search term are scraped.**
+  "Product Manager" finds "Senior Product Manager" and "AI Product
+  Manager"; it no longer brings back "Product Owner", "Strategy Lead" or
+  "Chef de produit", which LinkedIn's search returns alongside. If you
+  want those, add each as its own search term. This used to be a setting,
+  off unless you ticked it: it is now how every search works, so check
+  your search terms after updating.
+- **"Max results per search" is gone.** A search scrapes every matching
+  posting and ends when LinkedIn's results stop containing the term. Both
+  old settings are ignored if your `criteria.json` still has them.
+- **Runs are shorter.** The pages of postings that do not match are no
+  longer read, and those were most of a scrape's time: the same search
+  (Product Manager, France, 24 hours) took 17 minutes before and a little
+  over 4 now.
+- **A run shows how many postings it searched through.** Next to each
+  search term: how many postings were scraped, and out of how many
+  LinkedIn returned for that search ("37 of 298").
+- **A title LinkedIn does not know well is found less often.** Its
+  logged-out search puts matching titles first for a common title, and
+  not for a rare one ("Venture Builder"): some postings that exist are
+  never returned to FTJA. This was true before too; it is now visible.
+
+### Under the hood
+
+- The title is checked on the search results, before a posting's page is
+  fetched. A search ends after 15 result pages in a row without a
+  matching title, or at LinkedIn's limit of 1,000 results.
+- Search requests are spaced 3 to 7 seconds apart; with less, LinkedIn
+  answered 429.
+- The titles a search left out are written to
+  `.ftja-run/<run>/scrape/<n>.skipped.json`. Nothing shows them yet.
+- Stage 0 no longer checks titles; the scrape has done it.
 
 ## 0.3.0 — 2026-10-12
 

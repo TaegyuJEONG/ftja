@@ -319,7 +319,7 @@ Write the complete combined proposal in a single command **before** instructing
 the user to review search settings:
 
 ```bash
-venv/bin/python -m ftja.onboarding . set-state --stage profile --phase title_proposal --status waiting --json '{"profile":{"titles":["Product Builder","AI Product Manager","Founding Product Manager"],"criteria":{"search_terms":["Product Builder","AI Product Manager","Founding Product Manager"],"location":"France","hours_old":24,"results_wanted":100,"keywords":{"tier1":["AI product","LLM","Product Builder","produit IA","chef de produit IA"],"tier1_language":{"AI product":"en","Product Builder":"en","produit IA":"fr","chef de produit IA":"fr"}},"languages":["en","fr"],"exclude_keywords":["pure sales"]}},"cards":{"stage0":{"keywords":["AI product","LLM","Product Builder","produit IA","chef de produit IA"],"keyword_language":{"AI product":"en","Product Builder":"en","produit IA":"fr","chef de produit IA":"fr"},"languages":["en","fr"],"exclude_keywords":["pure sales"]}}}'
+venv/bin/python -m ftja.onboarding . set-state --stage profile --phase title_proposal --status waiting --json '{"profile":{"titles":["Product Builder","AI Product Manager","Founding Product Manager"],"criteria":{"search_terms":["Product Builder","AI Product Manager","Founding Product Manager"],"location":"France","hours_old":24,"keywords":{"tier1":["AI product","LLM","Product Builder","produit IA","chef de produit IA"],"tier1_language":{"AI product":"en","Product Builder":"en","produit IA":"fr","chef de produit IA":"fr"}},"languages":["en","fr"],"exclude_keywords":["pure sales"]}},"cards":{"stage0":{"keywords":["AI product","LLM","Product Builder","produit IA","chef de produit IA"],"keyword_language":{"AI product":"en","Product Builder":"en","produit IA":"fr","chef de produit IA":"fr"},"languages":["en","fr"],"exclude_keywords":["pure sales"]}}}'
 ```
 
 The `set-state` helper records drafts only. It must leave the state at
@@ -406,7 +406,7 @@ my search settings, continue the setup`) and do not claim that the chat resumed.
 - `locations` (optional list, e.g. `["France", "Germany", "Switzerland"]`):
   for a candidate who wants more than one place. `/ftja-run` then searches
   every search term in every location (3 titles × 3 locations = 9
-  searches, each up to `results_wanted`), so say what that does to the
+  searches), so say what that does to the
   length of a run. When `locations` is set it is used instead of
   `location`. The search-settings card takes several: propose every place
   the candidate's profile says they want (`"locations": ["France",
@@ -414,14 +414,21 @@ my search settings, continue the setup`) and do not claim that the chat resumed.
   `location`), and the user adds or removes them on the card. If the
   candidate mentions more than one region, don't silently scope to just
   the first one they said.
-- `results_wanted`: the max results scraped per search, that is per title
-  in each location (the "Max results per search" field on the
-  search-settings card, 1-1000,
-  default 100). `/ftja-run` scrapes every title up to this cap, merges all
-  of them into one list, and only then runs the code-based filter and LLM
-  judgment once over the merged set — it does not finish one title through
-  judgment before starting the next. Raising this widens per-title
-  coverage; it does not change how many titles get searched.
+- Titles are the whole search: only postings whose title contains a
+  search term are scraped, as a run of whole words in any word form and
+  any case. "Product Manager" finds "Senior Product Manager", "AI Product
+  Manager" and "Product Managers (m/f/d)", and does not find "Product
+  Owner", "Product Marketing Manager", "Head of Product" or "Chef de
+  produit". LinkedIn's own search matches by meaning and would return
+  those too; FTJA leaves them out. Tell the user this rule in one sentence
+  with an example from their own titles, then propose the other names the
+  same job goes by for them to pick from: common variants and the title in
+  each language they read for the places they search. Each one they keep
+  is its own title. There is no cap per search: `/ftja-run` scrapes every
+  matching posting of every title, merges them into one list, and only
+  then runs the code-based filter and LLM judgment once over the merged
+  set. Do not write `results_wanted` or `title_must_match` to
+  `criteria.json`.
 - `exclude_keywords`: a blunt bare-word exclusion list — if any of these
   words appear ANYWHERE in the JD (title or body), the job is dropped, no
   phrase-matching ("fluent in X", "X required") involved. Ask what to put
@@ -490,28 +497,17 @@ my search settings, continue the setup`) and do not claim that the chat resumed.
   "search_terms": ["..."],
   "location": "...",
   "hours_old": 72,
-  "results_wanted": 100,
   "exclude_keywords": ["..."],
   "languages": ["en", "fr", "ko"],
   "keywords": {"tier1": ["...", "..."]}
 }
 ```
 
-Search terms are sent to LinkedIn as written. There is no exact-phrase
-setting and quoting a term does not enforce it: LinkedIn's logged-out
-search matches by meaning ("founder in residence" also returns
-"Entrepreneur In Residence"). A phrase that has to appear in the posting
-goes in `keywords.tier1`, which Stage 0 checks against the text. Do not
-write `exact_phrase_search` to `criteria.json`.
-
-`title_must_match` (default `false`): with `true`, Stage 0 keeps a posting
-only if its title contains the search term that found it, in any word form
-("Product Manager" keeps "Senior Product Managers"; a posting found by the
-"AI Specialist" search has to say that, not "Product Manager"). LinkedIn
-returns related titles too ("Entrepreneur In Residence" brings back
-"Co-Founder"), so offer this when the candidate wants exactly the titles
-they named, and say what it costs: differently named versions of the same
-job are dropped unless they are added as search terms.
+Search terms are sent to LinkedIn as written, and a posting is scraped
+only if its title contains the term that found it (see the search
+settings above). Quoting a term changes nothing. A phrase that has to
+appear in the posting's text goes in `keywords.tier1`, which Stage 0
+checks. Do not write `exact_phrase_search` to `criteria.json`.
 
 `rubric.md` — free-form markdown, written in the user's own words as much as
 possible (this is what the Stage 2 subagent reads verbatim — write it as

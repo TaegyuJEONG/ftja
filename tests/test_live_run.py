@@ -54,8 +54,9 @@ def test_a_run_from_start_to_finish_as_the_viewer_sees_it(project, capsys):
     # what scrape_term writes, without calling LinkedIn
     for n, jobs in enumerate([JOBS[:2], JOBS[1:]]):  # job 2 comes back for both terms
         live._write_json(os.path.join(run_dir, "scrape", f"{n}.json"), jobs)
+        live._write_json(os.path.join(run_dir, "scrape", f"{n}.skipped.json"), {"Strategy Lead": 3})  # titles left out: not jobs
         live._write_json(os.path.join(run_dir, "scrape", f"{n}.progress.json"),
-                         {"term": state["scrape"]["terms"][n]["term"], "count": len(jobs), "wanted": 50, "done": True})
+                         {"term": state["scrape"]["terms"][n]["term"], "count": len(jobs), "read": 40, "done": True})
     assert live.state(project)["scrape"] == {**live.state(project)["scrape"], "total": 4, "done": True}
 
     counts = live.stage0(run_dir, project, db)
@@ -147,7 +148,7 @@ def test_a_run_from_start_to_finish_as_the_viewer_sees_it(project, capsys):
     assert rows["Beta"][:2] == ("stage1_fail", "Engineers do the prototyping.")
     record = json.loads(open(os.path.join(project, "runs.jsonl"), encoding="utf-8").read())
     assert record["run_id"] == run["run_id"] and record["total_tokens"] == 1234 and record["duration_seconds"] >= 0
-    assert record["scraped_count"] == 3 and record["scraped_by_term"][0] == {"term": "Product Builder", "location": "", "count": 2}
+    assert record["scraped_count"] == 3 and record["scraped_by_term"][0] == {"term": "Product Builder", "location": "", "count": 2, "read": 40}  # 2 scraped among 40 search results
     with connect(db) as conn:  # the same posting under a second URL, and a job from before reasons existed
         from ftja.state import mark_seen
         mark_seen(conn, job_url="https://x/2-repost", status="stage1_fail", stage_reached=1, title="Product Manager",

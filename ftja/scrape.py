@@ -6,29 +6,49 @@ re-validating against a live run.
 """
 import argparse
 import json
+import random
 import sys
+import time
 
 from jobspy import scrape_jobs
 
 SITES = ["linkedin"]
 BATCH_SIZE = 10
+# Seconds between two search requests, jobspy's own wait between search
+# pages (its delay and band_delay). With 2s, a search whose titles all
+# missed got a 429 on its third page (measured 2026-10-13).
+SEARCH_PAGE_GAP = (3.0, 7.0)
+SEARCH_RESULTS_CAP = 1000  # LinkedIn returns no search results past this; jobspy stops there too
+# This many batches in a row without a matching title end the search.
+# Matches are not all at the front: measured 2026-10-13 over the first 40
+# batches, "AI Specialist" (European Union, a week) had 9 matching titles
+# with up to 12 batches between two of them, and "Product Manager" (24
+# hours) still had 4 in the 40th. A search with no match at all spends
+# about a minute and a half finding that out.
+NO_MATCH_PAGES = 15
 
 
-def scrape(search_term: str, location: str,
-           results_wanted: int = 100, hours_old: int = 72, job_type: str = "",
-           on_batch=None) -> list[dict]:
-    """Scrape up to `results_wanted` LinkedIn listings for one search term.
+def scrape(search_term: str, location: str, hours_old: int = 72, job_type: str = "",
+           on_batch=None, skipped: list | None = None) -> list[dict]:
+    """Scrape the LinkedIn listings whose title contains `search_term`.
 
-    Batches in groups of BATCH_SIZE with an offset loop (throttle, not a
-    jobspy requirement) and stops early if a batch comes back empty.
+    LinkedIn's logged-out search matches by meaning: a search for
+    "Entrepreneur In Residence" also returns "Co-Founder" and "Strategy
+    Lead", and quoting the term changes nothing (measured on 20 postings per
+    search, `"venture builder"` in quotes returned none that contain that
+    phrase). So the title is checked here, on the search results, which
+    already carry it (see title_matches_search): a posting whose title does
+    not contain the term is left out as if the search had not returned it,
+    and its page is never fetched. jobspy has no such option. It fetches
+    every posting's page, one request each, which is most of a scrape's
+    time.
 
-    The search term is sent as typed. There is no exact-phrase option:
-    quoting a term does not make LinkedIn's logged-out search match the
-    phrase. Measured on 20 postings per search, `"venture builder"` in
-    quotes returned none that contain that phrase, and `"founder in
-    residence"` returned 3, next to titles like "Entrepreneur In Residence".
-    Its search matches by meaning. A phrase that has to be in the posting is
-    enforced by Stage 0's tier1 keywords, which read the text.
+    There is no number of results to ask for. The search is read in batches
+    of BATCH_SIZE (the throttle, not a jobspy requirement) until a batch
+    comes back empty, NO_MATCH_PAGES batches in a row hold no matching
+    title, or SEARCH_RESULTS_CAP is reached. The pages that are skipped no
+    longer space the search requests out, so those are kept SEARCH_PAGE_GAP
+    apart.
 
     There is no remote-only option. LinkedIn ignores its workplace filter
     (f_WT) for requests that are not logged in, which is what this scraper
@@ -36,22 +56,29 @@ def scrape(search_term: str, location: str,
     filter set to remote, hybrid, on-site or left out. Whether a role is
     remote is judged from the posting's text, by the keywords and the rubric.
 
-    on_batch(count_so_far), if given, is called after every batch — the
-    live view's "scraped so far" number.
+    on_batch(count_so_far, read_so_far), if given, is called after every
+    batch — the live view's "scraped so far" number, and how many search
+    results it was found among. `skipped`, if given, collects the titles
+    that were left out.
     """
+    from ftja.filter_stage0 import title_matches_search
+
     search_term = search_term.strip()
     jobs: list[dict] = []
+    details = _details_fetcher()
+    seen_urls: set = set()
+    pages_without_match = 0
 
-    for offset in range(0, results_wanted, BATCH_SIZE):
-        num_to_fetch = min(BATCH_SIZE, results_wanted - offset)
+    for offset in range(0, SEARCH_RESULTS_CAP, BATCH_SIZE):
+        started = time.monotonic()
         kwargs = {
             "site_name": SITES,
             "search_term": search_term,
             "location": location,
-            "results_wanted": num_to_fetch,
+            "results_wanted": BATCH_SIZE,
             "hours_old": hours_old,
             "offset": offset,
-            "linkedin_fetch_description": True,
+            "linkedin_fetch_description": False,
             "verbose": 1,
         }
         if job_type and job_type.strip():
@@ -61,11 +88,49 @@ def scrape(search_term: str, location: str,
         if df is None or df.empty:
             break
 
-        jobs.extend(df.to_dict(orient="records"))
+        batch = [job for job in df.to_dict(orient="records") if job.get("job_url") not in seen_urls]
+        seen_urls.update(job.get("job_url") for job in batch)
+        matched = [job for job in batch if title_matches_search({"title": job.get("title")}, [search_term])]
+        if skipped is not None:
+            skipped.extend(str(job.get("title") or "") for job in batch if job not in matched)
+        for job in matched:
+            job.update(details(job))
+        jobs.extend(matched)
         if on_batch:
-            on_batch(len(jobs))
+            on_batch(len(jobs), len(seen_urls))
+        pages_without_match = 0 if matched else pages_without_match + 1
+        if pages_without_match >= NO_MATCH_PAGES:
+            break
+        if offset + BATCH_SIZE < SEARCH_RESULTS_CAP:
+            time.sleep(max(0.0, random.uniform(*SEARCH_PAGE_GAP) - (time.monotonic() - started)))
 
     return jobs
+
+
+def _details_fetcher():
+    """What jobspy's `linkedin_fetch_description` adds to a job, for one job at a time:
+    jobspy's own page fetch (a private method — jobspy is pinned in
+    requirements.txt), with its values shaped the way scrape_jobs shapes them.
+    A page that cannot be read adds nothing."""
+    from jobspy.linkedin import LinkedIn
+    from jobspy.model import ScraperInput, Site
+    from jobspy.util import extract_emails_from_text
+
+    scraper = LinkedIn()
+    scraper.scraper_input = ScraperInput(site_type=[Site.LINKEDIN])  # markdown descriptions, as scrape_jobs asks for
+
+    def details(job: dict) -> dict:
+        job_id = str(job.get("job_url") or "").rstrip("/").split("/")[-1]
+        found = scraper._get_job_details(job_id) if job_id else {}
+        if not found:
+            return {}
+        emails = extract_emails_from_text(found.get("description"))
+        return {**found,
+                "job_type": ", ".join(t.value[0] for t in found["job_type"]) if found.get("job_type") else None,
+                "job_level": (found.get("job_level") or "").lower(),
+                "emails": ", ".join(emails) if emails else None}
+
+    return details
 
 
 def clean_jobs(jobs: list[dict]) -> list[dict]:
@@ -89,7 +154,6 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--search-term", required=True)
     ap.add_argument("--location", default="")
-    ap.add_argument("--results-wanted", type=int, default=100)
     ap.add_argument("--hours-old", type=int, default=72)
     ap.add_argument("--job-type", default="")
     ap.add_argument("--out", default="")
@@ -98,7 +162,6 @@ def main():
     jobs = scrape(
         search_term=args.search_term,
         location=args.location,
-        results_wanted=args.results_wanted,
         hours_old=args.hours_old,
         job_type=args.job_type,
     )

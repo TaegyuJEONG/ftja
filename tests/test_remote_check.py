@@ -62,6 +62,7 @@ def set_stages(project, **stages):
 
 def scrape(run_dir, jobs=JOBS):
     live._write_json(os.path.join(run_dir, "scrape", "0.json"), jobs)
+    live._write_json(os.path.join(run_dir, "scrape", "0.skipped.json"), {"Strategy Lead": 3})  # titles left out: not jobs
 
 
 def finalize(run_dir, project, capsys):

@@ -790,7 +790,7 @@ function fmtDate(iso) { return iso ? iso.slice(0, 10) : "no date recorded"; }
 let onboardingState = null;
 let onboardingChecklist = [];
 let onboardingVersion = '';
-let onboardingDraft = {titles: [], location: '', hours_old: 24, results_wanted: 100, tier1: [], exclude_keywords: [], languages: ['en']};
+let onboardingDraft = {titles: [], location: '', hours_old: 24, tier1: [], exclude_keywords: [], languages: ['en']};
 const ONBOARDING_STEPS = ['Profile', 'Rubric', 'Run', 'Learn'];
 
 function onboardingStepIndex(state) {
@@ -1020,8 +1020,7 @@ function profileCard(state) {
 
   if (phase === 'title_proposal') {
     if (!ready) return onboardingPendingCard('Your search settings', 'Deriving suggested job titles and keywords from your profile…', 'confirm_profile');
-    const resultsWanted = onboardingDraft.results_wanted || profile.criteria?.results_wanted || 100;
-    return `<div class="onboarding-card profile-search-card"><h3>Your search settings</h3><div class="onboarding-field profile-title-field"><label>Suggested job titles</label>${onboardingTags(titles, 'titles')}<div class="profile-title-add-row"><input id="title-input" type="text" placeholder="Add a job title"><button class="save-btn" type="button" data-title-add>Add</button></div></div><div class="onboarding-field profile-title-field"><label>Locations</label><div class="onboarding-pills">${(onboardingDraft.locations || []).map((v, i) => `<span class="onboarding-pill">${esc(v)} <button type="button" data-remove="locations" data-index="${i}" aria-label="Remove ${esc(v)}">×</button></span>`).join('')}</div><div class="profile-title-add-row"><div class="onboarding-input-wrap" style="flex:1"><input id="profile-location" type="text" autocomplete="off" placeholder="Add a location, e.g. Paris, France"><div class="onboarding-language-options" id="location-options" role="listbox"></div></div><button class="save-btn" type="button" data-location-add>Add</button></div></div><div class="profile-search-grid"><div class="onboarding-field"><label for="profile-hours">Published within</label><select id="profile-hours"><option value="24" ${onboardingDraft.hours_old === 24 ? 'selected' : ''}>Past 24 hours (recommended)</option><option value="72" ${onboardingDraft.hours_old === 72 ? 'selected' : ''}>Past 72 hours</option><option value="168" ${onboardingDraft.hours_old === 168 ? 'selected' : ''}>Past 7 days</option></select></div><div class="onboarding-field"><label for="profile-results-wanted">Max results per search (title × location)</label><input id="profile-results-wanted" type="number" min="1" max="1000" step="10" value="${esc(resultsWanted)}"></div></div><label class="check-row"><input type="checkbox" id="profile-title-match" ${onboardingDraft.title_must_match ? 'checked' : ''}><span><b>Title must contain the search term</b> — keeps only postings whose title includes it.</span></label><p class="profile-field-hint">For a daily run, FTJA recommends the past 24 hours. FTJA searches every title in every location (3 titles × 2 locations make 6 searches), up to this many results each, then runs everything together through the code-based filter and judgment.</p><div class="onboarding-actions profile-confirm-actions"><button class="primary" type="button" data-confirm-profile>Confirm search settings</button></div></div>`;
+    return `<div class="onboarding-card profile-search-card"><h3>Your search settings</h3><div class="onboarding-field profile-title-field"><label>Suggested job titles</label>${onboardingTags(titles, 'titles')}<div class="profile-title-add-row"><input id="title-input" type="text" placeholder="Add a job title"><button class="save-btn" type="button" data-title-add>Add</button></div></div><div class="onboarding-field profile-title-field"><label>Locations</label><div class="onboarding-pills">${(onboardingDraft.locations || []).map((v, i) => `<span class="onboarding-pill">${esc(v)} <button type="button" data-remove="locations" data-index="${i}" aria-label="Remove ${esc(v)}">×</button></span>`).join('')}</div><div class="profile-title-add-row"><div class="onboarding-input-wrap" style="flex:1"><input id="profile-location" type="text" autocomplete="off" placeholder="Add a location, e.g. Paris, France"><div class="onboarding-language-options" id="location-options" role="listbox"></div></div><button class="save-btn" type="button" data-location-add>Add</button></div></div><div class="profile-search-grid"><div class="onboarding-field"><label for="profile-hours">Published within</label><select id="profile-hours"><option value="24" ${onboardingDraft.hours_old === 24 ? 'selected' : ''}>Past 24 hours (recommended)</option><option value="72" ${onboardingDraft.hours_old === 72 ? 'selected' : ''}>Past 72 hours</option><option value="168" ${onboardingDraft.hours_old === 168 ? 'selected' : ''}>Past 7 days</option></select></div></div><p class="profile-field-hint">Only postings whose title contains one of your job titles are scraped: <b>Product Manager</b> finds "Senior Product Manager" and "AI Product Manager", not "Product Owner" or "Chef de produit". Add each title you want as its own. For a daily run, FTJA recommends the past 24 hours. FTJA searches every title in every location (3 titles × 2 locations make 6 searches), then runs everything together through the code-based filter and judgment.</p><div class="onboarding-actions profile-confirm-actions"><button class="primary" type="button" data-confirm-profile>Confirm search settings</button></div></div>`;
   }
   if (phase === 'scrape_card') {
     return `<div class="onboarding-card profile-search-card"><h3>Your search settings</h3><div class="onboarding-field profile-title-field"><label>Suggested job titles</label>${onboardingTags(titles, 'titles', false)}</div><div class="onboarding-summary"><b>Search settings ready</b>Review the settings above before your next run.</div></div>`;
@@ -1364,14 +1363,10 @@ function addOnboardingLocation(raw) {
   const current = [...(onboardingDraft.locations || [])];
   if (!current.some(item => item.toLowerCase() === value.toLowerCase())) current.push(value);
   onboardingDraft.locations = current;
-  const box = document.getElementById('profile-title-match');
-  if (box) onboardingDraft.title_must_match = box.checked;  // kept across the redraw
   renderOnboarding();
 }
 function bindOnboarding() {
   bindOnboardingKeywords();
-  const titleMatch = document.getElementById('profile-title-match');
-  if (titleMatch) titleMatch.addEventListener('change', () => { onboardingDraft.title_must_match = titleMatch.checked; });
   const addLocation = document.querySelector('[data-location-add]');
   if (addLocation) {
     const input = document.getElementById('profile-location');
@@ -1402,7 +1397,7 @@ function bindOnboarding() {
   const confirmSources = document.querySelector('[data-confirm-profile-sources]'); if (confirmSources) confirmSources.addEventListener('click', () => submitOnboardingAction(confirmSources, 'confirm_profile_sources'));
   const saveSummary = document.querySelector('[data-save-profile-summary]'); if (saveSummary) saveSummary.addEventListener('click', () => { const summary = document.querySelector('[data-profile-summary]').value.trim(); profileSummaryDraft = summary; submitOnboardingAction(saveSummary, 'set_profile_summary', {summary}); });
   const confirmSummary = document.querySelector('[data-confirm-profile-summary]'); if (confirmSummary) confirmSummary.addEventListener('click', () => submitOnboardingAction(confirmSummary, 'confirm_profile_summary'));
-  const confirmProfile = document.querySelector('[data-confirm-profile]'); if (confirmProfile) confirmProfile.addEventListener('click', () => submitOnboardingAction(confirmProfile, 'confirm_profile', {titles: onboardingDraft.titles, ...onboardingLocationsPayload(), title_must_match: document.getElementById('profile-title-match').checked, hours_old: Number(document.getElementById('profile-hours').value), results_wanted: Number(document.getElementById('profile-results-wanted').value) || 100}));
+  const confirmProfile = document.querySelector('[data-confirm-profile]'); if (confirmProfile) confirmProfile.addEventListener('click', () => submitOnboardingAction(confirmProfile, 'confirm_profile', {titles: onboardingDraft.titles, ...onboardingLocationsPayload(), hours_old: Number(document.getElementById('profile-hours').value)}));
   const confirmStage0 = document.querySelector('[data-confirm-stage0]'); if (confirmStage0) confirmStage0.addEventListener('click', () => submitOnboardingAction(confirmStage0, 'confirm_stage0', {keywords: onboardingDraft.tier1, languages: onboardingDraft.languages, exclude_keywords: onboardingDraft.exclude_keywords, keyword_language: onboardingDraft.keyword_language || {}}));
   const answerQuestion = document.querySelector('[data-answer-rubric-question]'); if (answerQuestion) answerQuestion.addEventListener('click', () => submitOnboardingAction(answerQuestion, 'answer_rubric_question', {question_id: answerQuestion.dataset.questionId, answer: document.getElementById('rubric-answer').value.trim()}));
   const confirmRubric = document.querySelector('[data-confirm-rubric]');
@@ -1455,7 +1450,7 @@ async function refreshOnboarding(force = false) {
   onboardingDraft = {...onboardingDraft, titles: profile.titles || onboardingDraft.titles, location: criteria.location || onboardingDraft.location,
     // kept while the card is being edited; otherwise what the agent proposed (one location or several)
     locations: (onboardingDraft.locations || []).length ? onboardingDraft.locations : ((criteria.locations || []).length ? criteria.locations : (criteria.location ? [criteria.location] : [])),
-    title_must_match: onboardingDraft.title_must_match ?? !!criteria.title_must_match, hours_old: criteria.hours_old || onboardingDraft.hours_old, results_wanted: criteria.results_wanted || onboardingDraft.results_wanted, tier1: stage0Keywords, languages: stage0Languages, exclude_keywords: stage0Excludes, keyword_language: stage0.keyword_language || criteria.keywords?.tier1_language || onboardingDraft.keyword_language || {}};
+    hours_old: criteria.hours_old || onboardingDraft.hours_old, tier1: stage0Keywords, languages: stage0Languages, exclude_keywords: stage0Excludes, keyword_language: stage0.keyword_language || criteria.keywords?.tier1_language || onboardingDraft.keyword_language || {}};
   renderOnboarding();
 }
 async function maybeStartOnboarding() {
@@ -1561,7 +1556,7 @@ function runStages(snapshot, given) {
 
 // The run's funnel, for a finished run (numbers from runs.jsonl) and for a
 // run in progress (numbers from /api/live) alike. `v`:
-//   {runId, live, scraped, terms: [{term, count, wanted, done}]|null, cs,
+//   {runId, live, scraped, terms: [{term, count, read, wanted, done}]|null, cs,
 //    stages: ['remote', 'stage1', 'stage2'] (the ones this run does),
 //    stage0: {passed, dropped}|null, skip, remote: {pass, fail, pending}|null,
 //    stage1: {pass, fail, pending}|null, stage2: {passed, review, fail, pending}|null,
@@ -1569,22 +1564,28 @@ function runStages(snapshot, given) {
 function funnelHtml(v) {
   const cs = v.cs || {};
   const wanted = cs.results_wanted;
-  let scrape = `<div class="line">Scraped <b>${count('scraped', v.scraped)}</b></div>`;
+  // `read`: the search results LinkedIn returned, of which the ones whose title contains the term were scraped
+  const read = v.terms && v.terms.length && v.terms.every(t => t.read != null) ? v.terms.reduce((n, t) => n + t.read, 0) : null;
+  let scrape = `<div class="line">Scraped <b>${count('scraped', v.scraped)}</b>${read != null
+    ? ` — title contains the search term, out of <b>${count('read', read)}</b> postings LinkedIn returned` : ''}</div>`;
   if (v.terms && v.terms.length) {
     scrape += `<div class="term-list">${v.terms.map((t, i) => {
-      const cap = t.wanted || wanted || 0;
+      const cap = t.read != null ? t.read : (t.wanted || wanted || 0);  // before `read`: the cap per search
       const pct = cap ? Math.min(100, Math.round(100 * (t.count || 0) / cap)) : (t.done ? 100 : 0);
       const where = (cs.locations || []).length > 1 && t.location ? ` <small>· ${esc(t.location)}</small>` : '';  // several locations: say which
+      const of = t.read != null ? ` <small>of ${count('read' + i, t.read)}</small>` : (cap ? ` <small>/ ${fmtN(cap)}</small>` : '');
       return `<span class="term">${esc(t.term)}${where}</span><span class="bar"><i style="width:${pct}%"></i></span>
-        <span class="count">${count('term' + i, t.count)}${cap ? ` <small>/ ${fmtN(cap)}</small>` : ''}</span>`;
+        <span class="count">${count('term' + i, t.count)}${of}</span>`;
     }).join('')}</div>`;
   } else if (cs.search_terms) {
     scrape += `<div class="chips">${cs.search_terms.map(t => `<span class="chip">${esc(t)}</span>`).join('')}</div>`;
   }
   if (v.cs) {
     const parts = [`Location <b>${esc((cs.locations || []).filter(Boolean).join(', ') || cs.location || 'anywhere')}</b>`,
-      `Posted within <b>${esc(cs.hours_old)} hours</b>`, `Up to <b>${fmtN(wanted)}</b> per search${(cs.locations || []).length > 1 ? ' (each term in each location)' : ' term'}`];
-    if (cs.title_must_match) parts.push(`<b>Title must contain the search term</b>`);
+      `Posted within <b>${esc(cs.hours_old)} hours</b>`];
+    // a run from before titles always had to match: it had a cap per search, and the title rule was a setting
+    if (wanted) parts.push(`Up to <b>${fmtN(wanted)}</b> per search${(cs.locations || []).length > 1 ? ' (each term in each location)' : ' term'}`);
+    if (cs.title_must_match || !wanted) parts.push(`<b>Title contains the search term</b>`);
     const planned = runStages(cs);  // as the run was started, before any Continue
     if (planned.includes('remote') || !planned.includes('stage1')) parts.push(`Stages <b>${planned.map(x => x === 'remote' ? 'Remote check' : STAGE_LABELS[x]).join(' → ')}</b>`);
     if (planned[planned.length - 1] !== 'stage2') parts.push(`<b>Stops after ${STAGE_LABELS[planned[planned.length - 1]]}</b>`);
@@ -3196,15 +3197,10 @@ function renderConfigSection() {
 <div class="section">
   <div class="section-title"><span class="num">1</span>Scraping criteria</div>
   <div class="card">
-    <div class="explain">Searches LinkedIn directly: every search term in every location.</div>
+    <div class="explain">Searches LinkedIn directly: every search term in every location. Only postings whose title contains the search term are scraped: <b>Product Manager</b> finds "Senior Product Manager" and "AI Product Manager", not "Product Owner" or "Chef de produit". Add each title you want as its own term.</div>
     <div class="field"><label>Search terms</label>${renderChipInput('cfg-search-terms', c.search_terms)}</div>
     <div class="field"><label>Locations</label>${renderChipInput('cfg-locations', (c.locations || []).length ? c.locations : (c.location ? [c.location] : []))}</div>
-    <div class="field-row">
-      <div class="field"><label>Posted within (hours)</label><input type="number" id="cfg-hours-old" value="${esc(c.hours_old)}"></div>
-      <div class="field"><label>Max results per search (term × location)</label><input type="number" id="cfg-results-wanted" value="${esc(c.results_wanted)}"></div>
-    </div>
-    <label class="check-row"><input type="checkbox" id="cfg-title-match" ${c.title_must_match ? 'checked' : ''}>
-      <span><b>Title must contain the search term</b> — keeps only postings whose title includes it.</span></label>
+    <div class="field"><label>Posted within (hours)</label><input type="number" id="cfg-hours-old" value="${esc(c.hours_old)}"></div>
     <div class="save-row"><button class="save-btn" id="save-scrape">Save</button><span class="saved-note mono">Saved</span></div>
   </div>
 </div>
@@ -3273,11 +3269,11 @@ function renderConfigSection() {
       locations: getChipValues('cfg-locations'),
       location: getChipValues('cfg-locations').join(', '),  // as one line, for anything that still reads it
       hours_old: parseInt(document.getElementById('cfg-hours-old').value, 10) || 0,
-      results_wanted: parseInt(document.getElementById('cfg-results-wanted').value, 10) || 0,
-      title_must_match: document.getElementById('cfg-title-match').checked,
     };
     delete criteria.is_remote;            // LinkedIn ignores both for logged-out searches;
     delete criteria.exact_phrase_search;  // they are no longer settings
+    delete criteria.results_wanted;       // every posting whose title contains the term is scraped:
+    delete criteria.title_must_match;     // no cap to set, no rule to switch off
     pipelineConfig.criteria = criteria;
     saveConfig({criteria}, e.target);
   });

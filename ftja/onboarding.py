@@ -190,6 +190,13 @@ def _clean_list(value: Any) -> list[str]:
     return [str(item).strip() for item in value if str(item).strip()]
 
 
+def _search_criteria(profile: dict[str, Any]) -> dict[str, Any]:
+    """What goes into criteria.json. A search scrapes every posting whose
+    title contains its term, so the cap per search and the title switch an
+    older setup recorded are left out."""
+    return {k: v for k, v in (profile.get("criteria") or {}).items() if k not in ("results_wanted", "title_must_match")}
+
+
 def _clamp_results_wanted(value: Any, default: int = 100) -> int:
     try:
         parsed = int(value)
@@ -422,7 +429,7 @@ def apply_action(project_dir: str, action: dict[str, Any]) -> dict[str, Any]:
             # and rewrites rubric.md from it, so the Pipeline tab shows the
             # list from the first visit instead of after a first run.
             from ftja.verdict import save_criteria
-            write_config(project_dir, criteria=profile.get("criteria", {}), profile_md=profile.get("summary", ""), profile_sources=profile.get("sources", []))
+            write_config(project_dir, criteria=_search_criteria(profile), profile_md=profile.get("summary", ""), profile_sources=profile.get("sources", []))
             try:
                 save_criteria(project_dir, listed, action.get("notes") or {})
             except ValueError as e:
@@ -431,7 +438,7 @@ def apply_action(project_dir: str, action: dict[str, Any]) -> dict[str, Any]:
             rubric = str(action.get("rubric_md") or "").strip()
             if not rubric:
                 raise OnboardingError("rubric draft is required before confirmation")
-            write_config(project_dir, criteria=profile.get("criteria", {}), rubric_md=rubric, profile_md=profile.get("summary", ""), profile_sources=profile.get("sources", []))
+            write_config(project_dir, criteria=_search_criteria(profile), rubric_md=rubric, profile_md=profile.get("summary", ""), profile_sources=profile.get("sources", []))
         state.update(stage="run", phase="ready", status="ready", allowed_actions=[])
 
     else:
