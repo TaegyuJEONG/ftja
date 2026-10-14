@@ -296,6 +296,9 @@ def make_handler(db_path: str, project_dir: str):
                     record["continue_to"] = list(live.STAGES[live.STAGES.index(last) + 1:]) \
                         if record["can_continue"] and last in live.STAGES else []
                 self._send_json(200, records)
+            elif path == "/api/ping":
+                # the page asks every few seconds whether the viewer is still running
+                self._send_json(200, {"ok": True})
             elif path == "/api/version":
                 # project_dir: which FTJA folder this viewer is showing. /ftja-run
                 # compares it with its own folder, since two clones share the port.

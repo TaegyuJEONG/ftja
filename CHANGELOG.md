@@ -18,6 +18,11 @@ digests — are never touched by an update.
 - **Setup no longer stalls on Windows.** Every check of the web view has a
   3-second limit, commands run in PowerShell only, and their output is
   never cut short (which ended them with an error).
+- **The page says when its viewer has stopped.** If the viewer stops (the
+  computer slept, the window that started it closed), the page now says so
+  at the top, with how to start it again: ask the Claude Code session
+  connected to your FTJA folder to start the FTJA viewer, or run the
+  command it shows. The page comes back on its own once the viewer runs.
 - **Locations are suggested in English, whatever your browser's language.**
   A French browser suggested "Royaume-Uni", which LinkedIn does not know:
   it searched the United States instead, without saying so. If your
