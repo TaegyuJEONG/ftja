@@ -46,6 +46,13 @@ checklist, or start any `wait-for-action` call in this turn.
    `python` that only opens the Microsoft Store is not Python): ask once,
    for both together, before installing them with `winget install --id
    Git.Git -e` and `winget install --id Python.Python.3.12 -e`.
+   Python is often installed but not on the PATH, and a PATH changed by an
+   install does not reach this shell. Before calling Python missing, and
+   again after installing it, look for it in this order and create the
+   `venv` with the first one that prints a version: `py -3 --version`, then
+   `$env:LOCALAPPDATA\Programs\Python\Python3*\python.exe --version`
+   (newest folder first). If `winget` answers that Python is already
+   installed, do not try again; look in those places.
 5. Initialize or resume `onboarding-state.json` from that connected folder.
 6. Start the local server from that folder if `http://127.0.0.1:8765/` is
    not responding. Verify it with `curl` (Windows: `Invoke-WebRequest
