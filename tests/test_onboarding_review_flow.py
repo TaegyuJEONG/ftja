@@ -55,6 +55,15 @@ class OnboardingReviewFlowTests(unittest.TestCase):
         self.assertFalse(state["profile"]["summary_confirmed"])
         self.assertEqual(state["profile"]["summary"], "# Summary\n\nTwo\n\nparagraphs")
 
+    def test_repeated_titles_are_kept_once(self):
+        self.act("set_profile_sources", sources=[{"path": str(self.root / "resume.txt")}])
+        self.act("confirm_profile_sources")
+        self.act("set_profile_summary", summary="Summary")
+        self.act("confirm_profile_summary")
+        state = self.act("set_profile_draft", titles=["Product Manager", "product manager ", "AI PM", "Product Manager"],
+                         location="France", stage0={"keywords": ["AI"], "languages": ["en"], "exclude_keywords": []})
+        self.assertEqual(state["profile"]["titles"], ["Product Manager", "AI PM"])
+
     def test_rubric_questions_advance_one_at_a_time_then_require_final_confirmation(self):
         state = self.reach_rubric_questions()
         self.assertEqual((state["stage"], state["phase"]), ("rubric", "questions"))

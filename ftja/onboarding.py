@@ -187,7 +187,16 @@ def _require(state: dict[str, Any], stage: str, phase: str) -> None:
 def _clean_list(value: Any) -> list[str]:
     if not isinstance(value, list):
         return []
-    return [str(item).strip() for item in value if str(item).strip()]
+    # A repeated entry (a double click, a title proposed twice) would make
+    # the same search run twice; keep the first, ignoring case.
+    seen: set[str] = set()
+    out: list[str] = []
+    for item in value:
+        text = str(item).strip()
+        if text and text.casefold() not in seen:
+            seen.add(text.casefold())
+            out.append(text)
+    return out
 
 
 def _search_criteria(profile: dict[str, Any]) -> dict[str, Any]:

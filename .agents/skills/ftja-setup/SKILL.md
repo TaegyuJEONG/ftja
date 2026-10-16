@@ -24,6 +24,15 @@ next to this file, before running any command, and follow it in every
 step. The commands below are the macOS forms; on Windows use the forms
 `windows.md` gives.
 
+**Approval mode.** These commands can run outside the sandbox only when
+the session's approval mode allows it ("Approve for me" in the Codex
+app). In "Ask for approval" mode Codex rejects any request to leave the
+sandbox without asking (`approval_policy` granular with
+`sandbox_approval: false`), and fetching into `.git` fails even with extra
+permissions. If a request to run outside the sandbox is rejected that
+way, stop and tell the user to switch the mode under the message box to
+"Approve for me" and send their request again.
+
 **Codex sandbox.** Codex's default sandbox (`workspace-write`) has no
 network, and does not let a sandboxed command write the folder's `.git`
 or `.agents`. So these commands need to run outside the sandbox: `git
