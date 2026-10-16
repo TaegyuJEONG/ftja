@@ -25,9 +25,14 @@ do this instead:
   read `<n>.txt`, follow it exactly as a sub-agent would, and write only
   the JSON it asks for to `<n>.out.json`. The `check-*` commands and
   `finalize` work the same either way.
-- **`record-tokens`**: run it only with a count the tool actually gave
-  you. Without one, record nothing: the run's total then shows as "-",
-  which is true.
+- **`record-tokens`**: Codex does not hand a sub-agent's tokens back with
+  its answer, but writes them to that sub-agent's own session log. After
+  each wave of sub-agents finishes, read their total with
+  `venv/bin/python -m ftja.codex_tokens <agent id> [<agent id> ...]` (the
+  ids `spawn_agent` returned) and pass that number to `record-tokens`.
+  If it prints nothing and exits 1, record nothing for that wave: the
+  run's total then shows as "-", which is true. When you judged jobs
+  yourself (no sub-agents), record nothing either.
 - **Long commands** (`wait`, the scrape): `exec_command` hands back a
   `session_id` after `yield_time_ms` while the command still runs; that is
   not its result. Keep calling `write_stdin` on it with empty `chars` and
