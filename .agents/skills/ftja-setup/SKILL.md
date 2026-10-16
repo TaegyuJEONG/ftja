@@ -55,14 +55,24 @@ start any `wait-for-action` call in this turn.
    session started (`pwd`):
    - `pwd` is already an FTJA clone (`git rev-parse --show-toplevel` is
      `pwd` and it has `ftja/` and `.agents/skills/ftja-setup/`): use it.
-   - `pwd` is empty, as a new Codex session's folder is: clone into it,
-     not into a subfolder. The Codex app creates empty `outputs` and
-     `work` folders in every new session folder; a folder holding nothing
-     else counts as empty. Remove those two only when they are empty
-     (`rmdir outputs work`; Windows: `Remove-Item outputs, work` after
-     checking each has no items), never with a recursive delete, then:
-     `git clone <url> .` (with `-b <branch>` when the user named one; Git
-     first, as the platform file says).
+   - `pwd` is a new Codex session's folder: nothing in it, or only the
+     `outputs` and `work` folders the Codex app makes in every new session
+     folder (nothing else). Install FTJA into that folder itself, not into
+     a subfolder, and leave `outputs` and `work` where they are — do not
+     move or delete them, and do not ask the user about them. `git clone`
+     refuses a folder that is not empty, so fetch into it instead
+     (`<branch>` is the one the user named, `main` otherwise; Git first,
+     as the platform file says):
+
+     ```
+     git init
+     git remote add origin <url>
+     git fetch origin <branch>
+     git checkout -b <branch> --track origin/<branch>
+     ```
+
+     The repository ignores `outputs/` and `work/`, so they stay out of
+     Git.
    - Anything else: do not clone into a subfolder and do not work
      elsewhere. Stop and tell the user to start a new Codex session in an
      empty folder, or in their existing FTJA folder (`codex -C <folder>`
