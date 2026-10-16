@@ -53,11 +53,16 @@ start any `wait-for-action` call in this turn.
    dependencies if they don't already exist, with the Python the platform
    file finds (3.10 or newer).
 3. Initialize or resume `onboarding-state.json` in the FTJA folder.
-4. Start the local server if `http://127.0.0.1:8765/api/ping` does not
-   answer within 3 seconds. If another project's FTJA server already holds
-   port 8765 (`/api/version` names another `project_dir`), tell the user
-   and ask before stopping it — don't silently kill another workspace's
-   server. Start it from the FTJA folder with the platform file's "Start
+4. First check whose viewer holds port 8765, even when one answers:
+   `curl -s --max-time 3 http://127.0.0.1:8765/api/version` (every FTJA
+   folder uses this one port, so an answering viewer may be another
+   folder's). If it names this FTJA folder as `project_dir`, use it. If it
+   names another folder (or has no `project_dir`), it is that folder's
+   viewer: do not use it and do not open it. Tell the user which folder's
+   viewer is running and ask before stopping it — don't silently kill
+   another workspace's server; after a yes, stop it (`lsof
+   -tiTCP:8765 -sTCP:LISTEN | xargs kill`) and start this folder's. If
+   nothing answers, start this folder's. Start the server from the FTJA folder with the platform file's "Start
    the viewer" command, which returns at once and leaves the server
    running, then check `/api/ping` again (3-second limit, a few tries over
    about 10 seconds). If it does not answer, read
