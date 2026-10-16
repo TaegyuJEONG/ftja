@@ -9,96 +9,96 @@ Interview the user conversationally (not a rigid form — follow up, don't
 just fire a checklist) to produce two files at the project root. Do not
 guess at answers; if the user is vague, ask a follow-up.
 
-This runs in two turns. Turn 1 connects the workspace and opens the web view
-on its own, then stops and asks one question. Turn 2 (triggered by the
-user's reply) creates the native checklist and drives the actual interview.
-Do not collapse these into one turn — see "Why two turns" below.
+This is the Codex copy of the skill. Codex has no folder connector and no
+browser pane, so this copy never calls `mcp__…` tools: it works on the
+FTJA folder's absolute path and opens the viewer in the user's own
+browser.
 
-## Turn 1: connect and open the web view
+This runs in two turns. Turn 1 installs FTJA in a folder and opens the web
+view, then stops and asks one question. Turn 2 (triggered by the user's
+reply) creates the native checklist and drives the actual interview. Do
+not collapse these into one turn — see "Why two turns" below.
 
-Do this without asking the user anything mid-way, then end the turn with
-exactly one question. Do not check for native task tools, create the
-checklist, or start any `wait-for-action` call in this turn.
+**First, the platform.** Read `windows.md` (Windows) or `mac.md` (macOS),
+next to this file, before running any command, and follow it in every
+step. The commands below are the macOS forms; on Windows use the forms
+`windows.md` gives.
 
-1. Resolve the absolute path of the cloned FTJA repository from the actual
-   session context. Preserve the user's path and capitalization exactly; do
-   not guess between similarly named folders. Clone it first if it isn't
-   cloned yet.
-2. Create or merge `<workspace>/.claude/settings.local.json`, preserving
-   existing JSON keys and `env` values, with
-   `"CLAUDE_CODE_ENABLE_TODO_TOOLS": "1"`. Do this now, in this turn, even
-   though the native task tools it enables won't be checkable until turn 2.
-3. Call `mcp__ccd_directory__change_directory` with the exact absolute path.
-   Continue only when the result confirms `Folder access granted`. If the
-   tool is unavailable or permission is denied, stop and report that the
-   session folder is not connected; do not continue with a scratch
-   workspace.
-4. Create the repository's Python environment (`venv`) and install
-   dependencies if they don't already exist, using the repository's own
-   commands.
-5. Initialize or resume `onboarding-state.json` from that connected folder.
-6. Start the local server from that folder if `http://127.0.0.1:8765/` is
-   not responding. Verify it with `curl` before proceeding. If another
-   project's FTJA server already holds port 8765, tell the user and ask
-   before stopping it — don't silently kill another workspace's server.
-   Start it via `mcp__Claude_Browser__preview_start` with a `name`, not a
-   background shell command: create or merge `.claude/launch.json` with a
-   configuration such as `{"name": "ftja", "runtimeExecutable":
-   "venv/bin/python", "runtimeArgs": ["-m", "ftja.server"], "port": 8765}`,
-   then call `preview_start` with that `name`. This is a one-shot, purpose-
-   built launch path; a background `Bash`/`nohup` command doing the same
-   thing is more failure-prone (it needs its own PID tracking) and, live,
-   has been the actual site of long, silent multi-minute stalls in this
-   step — see "Move quickly through routine steps" for why that matters.
-7. Open the viewer immediately, next to this chat. Call
-   `mcp__Claude_Browser__preview_start` with `http://127.0.0.1:8765`, then
-   call `mcp__Claude_Browser__get_page_text` to verify the page. On macOS
-   also run `open http://127.0.0.1:8765` so the user gets a visible browser
-   without needing to click an `Open` card. Do not describe the viewer as
-   open until a navigation/page-text check succeeds.
-8. End the turn by asking exactly one question, e.g.: "I've opened the FTJA
-   web view next to this chat — ready to start onboarding?" Say nothing
-   about background files, checklists, or next steps yet; that all belongs
-   to turn 2.
+**Codex sandbox.** Cloning, `pip install` and starting the viewer need
+network access or a process that outlives the command. When the sandbox
+refuses one of them, ask for approval to run that one command outside the
+sandbox (or tell the user to allow it) instead of looking for another way
+round it.
+
+**Long commands.** The `wait-for-action ... --timeout 900` commands below
+block until the user clicks in the viewer. Give each one a shell timeout
+longer than its own (about 960000 ms for `--timeout 900`); Codex's default
+timeout would cut it off after a few seconds and lose the user's click.
+
+## Turn 1: install and open the web view
+
+Do this without asking the user anything mid-way (except to install Git or
+Python, as the platform file says, or to approve a command as above), then
+end the turn with exactly one question. Do not create the checklist or
+start any `wait-for-action` call in this turn.
+
+1. Resolve the absolute path of the FTJA repository. If the session's
+   folder (`pwd`) is already an FTJA clone, that is it. Otherwise clone it
+   into the folder the user named (Git first, as the platform file says).
+   Preserve the user's path and capitalization exactly; do not guess
+   between similarly named folders. From here on run every command in
+   the FTJA folder (`cd "<FTJA folder>" && …`, or the shell tool's working
+   directory set to it); never work in a scratch copy.
+2. Create the repository's Python environment (`venv`) and install
+   dependencies if they don't already exist, with the Python the platform
+   file finds (3.10 or newer).
+3. Initialize or resume `onboarding-state.json` in the FTJA folder.
+4. Start the local server if `http://127.0.0.1:8765/api/ping` does not
+   answer within 3 seconds. If another project's FTJA server already holds
+   port 8765 (`/api/version` names another `project_dir`), tell the user
+   and ask before stopping it — don't silently kill another workspace's
+   server. Start it from the FTJA folder with the platform file's "Start
+   the viewer" command, which returns at once and leaves the server
+   running, then check `/api/ping` again (3-second limit, a few tries over
+   about 10 seconds). If it does not answer, read
+   `.ftja-run/viewer.log`; a server the sandbox stopped when the command
+   returned needs that command approved outside the sandbox.
+5. Open the viewer in the user's browser: `open http://127.0.0.1:8765/`
+   (Windows: `Start-Process http://127.0.0.1:8765/`). Then confirm it
+   serves the page: `curl -s --max-time 3 http://127.0.0.1:8765/` returns
+   the FTJA page. Do not describe the viewer as open until this
+   navigation/page-text check succeeds. Always give the user the address
+   `http://127.0.0.1:8765/` too, in case no browser window came up.
+6. End the turn by asking exactly one question, e.g.: "I've opened the FTJA
+   web view in your browser (http://127.0.0.1:8765/) — ready to start
+   onboarding?" Say nothing about background files, checklists, or next
+   steps yet; that all belongs to turn 2.
 
 ### Why two turns
 
-`change_directory`'s folder switch, and the `env` setting it carries, only
-take effect once this turn ends and a new one begins — so does the native
-task tool availability that setting controls. Checking for `TaskCreate`/
-`TaskUpdate` inside this same turn is expected to find nothing; that is not
-evidence setup is broken, and it is not a reason to add a workaround (a
-background `sleep` command, an immediate self-recheck) to dodge the turn
-boundary. End the turn cleanly and let the user's reply start turn 2, where
-the tools are actually available.
-
-If the Claude client header still says `No folder` after a successful
-`Folder access granted` result, report that the client label did not
-refresh; the internal working directory and the visible client association
-are separate states. Never claim the header says FTJA unless it actually
-does.
+The user needs to see the web view before the interview starts, and the
+interview's first step blocks on a click there. Ending turn 1 with one
+question gives them that moment. Do not add a workaround (a background
+`sleep` command, an immediate self-recheck) to skip the turn boundary.
 
 ### Move quickly through routine steps
 
 A full onboarding pass is mostly the user reading a card, deciding, and
 clicking — that time is theirs and isn't something to optimize. But a live
 run of this skill has taken 20+ minutes on stretches with nothing for the
-user to look at, and the cause was not the web's poll interval (already
-sub-second and irrelevant to how many turns this skill takes) or large
-inputs — it was this skill routing simple, one-shot steps through several
-extra tool calls each:
+user to look at, and the cause was this skill routing simple, one-shot
+steps through several extra tool calls each:
 
 - Retrying a failed tool call more than once or two before trying a
   genuinely different approach. If a call is refused or errors, don't loop
-  on the identical call — the isolated fix above (`preview_start` +
-  `launch.json` for the server) exists because that exact retry loop was
-  observed live on a plain background server-start command.
-- Re-verifying something in the browser (navigate, screenshot, a second
-  `read_page`) right after writing it to `onboarding-state.json`. The web's
-  poll-and-render loop is exercised by this project's own test suite; once
-  you've confirmed the state file has what you meant to write, the browser
-  will render it. Reserve an actual browser check for when the user reports
-  something looks wrong, not as a routine step after every write.
+  on the identical call. Start the server with the platform file's one
+  command, which returns at once, and check it with a time limit; a
+  server-start command left waiting in the foreground, or a check without
+  a limit, has been the site of long, silent stalls in this step.
+- Re-verifying something right after writing it to
+  `onboarding-state.json`. The web's poll-and-render loop is exercised by
+  this project's own test suite; once you've confirmed the state file has
+  what you meant to write, the browser will render it.
 - Multiple small exploratory commands (checking if a port is free, whether
   a process exists, whether a file exists) where one targeted command would
   do. Prefer the one-shot commands this skill already gives you over
@@ -106,25 +106,18 @@ extra tool calls each:
 
 ## Turn 2 onward: the native checklist
 
-Any affirmative reply to turn 1's question starts this section — do not
-require exact wording.
-
 ### Client-native task list
 
-- Verify `TaskCreate` and `TaskUpdate` are available in the current session
-  now. A tracked `.claude/settings.json` arriving with a clone is not
-  evidence the live session reloaded this feature — only an actual
-  post-turn-boundary check is. If the native tools are still unavailable
-  here, stop and report the limitation honestly; do not substitute prose
-  and call it a native checklist.
 - In Codex, use `update_plan` with `pending`, `in_progress`, and `completed`
-  statuses. Its contract permits at most one `in_progress` item.
-- Do not enter Plan Mode, `EnterPlanMode`, `/plan`, or a collaboration Plan
-  Mode for this workflow. The native checklist is an execution-progress
-  mechanism, not a planning mode.
+  statuses. Its contract permits at most one `in_progress` item. If
+  `update_plan` is unavailable, say so once and keep the list as a short
+  numbered list in your messages instead.
+- Do not enter Plan Mode, `/plan`, or a collaboration Plan Mode for this
+  workflow. The native checklist is an execution-progress mechanism, not a
+  planning mode.
 
 Create these 8 items, in this order. Each is something the *user* does or
-reviews — infrastructure from turn 1 (clone, connect, server, browser) is
+reviews — the infrastructure (clone, connect, server, browser) is
 already done and does not belong on this list:
 
 1. `Add your background files`
@@ -248,7 +241,7 @@ resume from `onboarding-state.json`, not localStorage or a guessed step.
 ## Web-driven profile sources
 
 The web view is the only source-material input surface. Never use
-`AskUserQuestion` to ask where a resume or portfolio lives, and never ask
+a question tool (`AskUserQuestion`, `request_user_input`) to ask where a resume or portfolio lives, and never ask
 for an absolute source path in chat. In this same turn, write the
 source-material instruction as your response text, then immediately run the
 blocking `wait-for-action --type confirm_profile_sources` command below —

@@ -14,7 +14,8 @@ first version of that setup for this user. They edit it afterwards on the
 Pipeline tab, so write something sensible and complete, not something
 cautious and empty.
 
-Every python call uses `venv/bin/python`. Never edit `remote-check.json`,
+Every python call uses `venv/bin/python`. **On Windows**, read every `venv/bin/python` as `venv\Scripts\python` (and `venv/bin/pip` as `venv\Scripts\pip`), and run commands in PowerShell. The rules for each system (one shell, time limits, never cutting a command's output short) are in `.agents/skills/ftja-setup/windows.md` and `mac.md`: read the one for this system first. Write the draft files this skill passes with `--file` using your file-writing tool, not PowerShell `>` or `Set-Content`, which do not write plain UTF-8.
+Never edit `remote-check.json`,
 `remote-request.json` or `criteria.json` by hand; the commands below write
 them.
 
