@@ -72,10 +72,10 @@ start any `wait-for-action` call in this turn.
      `.agents/skills/ftja-setup/SKILL.md`): use it.
    - `pwd` is a chat without a project: a folder the Codex app made
      under `Documents/Codex/<date>/` (Windows: `Documents\Codex\<date>\`).
-     Do not install there. Stop and tell the user, in two short steps:
-     in Codex, add a project (the **+** next to "Projects" in the
-     sidebar) on a new folder named `FTJA`; then start a new chat in that
-     project and paste the same request.
+     Do not install there. Stop and tell the user: start a new chat;
+     above the message box click **Choose project** → **New project**,
+     name it `FTJA`, click **Create project**, then **Trust folder**; and
+     paste the same request in that chat.
    - `pwd` is inside another Git repository with history (`git
      rev-parse HEAD` succeeds and it is not FTJA): stop and ask for a
      project folder of its own. Never install into another project. A
