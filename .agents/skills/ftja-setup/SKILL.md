@@ -24,11 +24,15 @@ next to this file, before running any command, and follow it in every
 step. The commands below are the macOS forms; on Windows use the forms
 `windows.md` gives.
 
-**Codex sandbox.** Cloning, `pip install` and starting the viewer need
-network access or a process that outlives the command. When the sandbox
-refuses one of them, ask for approval to run that one command outside the
-sandbox (or tell the user to allow it) instead of looking for another way
-round it.
+**Codex sandbox.** Codex's default sandbox (`workspace-write`) has no
+network, and does not let a sandboxed command write the folder's `.git`
+or `.agents`. So these commands need to run outside the sandbox: `git
+clone`/`fetch`/`pull`, `pip install`, the scrape, and starting the
+viewer. Request that (escalated permissions, with a one-line reason)
+on the first try for exactly these commands, instead of trying them in
+the sandbox first and working around the failure. Never fetch a file
+through the browser, a web tool or `Invoke-WebRequest` to get round a
+refused command: everything this skill needs is in the repository.
 
 **Long commands — keep waiting until they exit.** The `wait-for-action
 ... --timeout 900` commands below block until the user clicks in the
@@ -89,12 +93,15 @@ start any `wait-for-action` call in this turn.
    viewer is running and ask before stopping it — don't silently kill
    another workspace's server; after a yes, stop it (`lsof
    -tiTCP:8765 -sTCP:LISTEN | xargs kill`) and start this folder's. If
-   nothing answers, start this folder's. Start the server from the FTJA folder with the platform file's "Start
-   the viewer" command, which returns at once and leaves the server
-   running, then check `/api/ping` again (3-second limit, a few tries over
-   about 10 seconds). If it does not answer, read
-   `.ftja-run/viewer.log`; a server the sandbox stopped when the command
-   returned needs that command approved outside the sandbox.
+   nothing answers, start this folder's. Start the server in Codex as a long-running command, not a
+   detached one: run `venv/bin/python -m ftja.server --port 8765`
+   (Windows: `venv\Scripts\python -m ftja.server --port 8765`) with
+   `exec_command` and a short `yield_time_ms`, outside the sandbox (it
+   serves a local port), and leave that command session running — do not
+   stop it, and do not use `nohup`/`Start-Process` instead of it: on
+   Windows the sandbox stops children of a command once that command
+   exits, so a detached server dies. Then check `/api/ping` (3-second
+   limit, a few tries over about 10 seconds).
 5. Open the viewer in the user's browser: `open http://127.0.0.1:8765/`
    (Windows: `Start-Process http://127.0.0.1:8765/`). Then confirm it
    serves the page: `curl -s --max-time 3 http://127.0.0.1:8765/` returns

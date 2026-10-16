@@ -38,10 +38,12 @@ do this instead:
   not its result. Keep calling `write_stdin` on it with empty `chars` and
   `yield_time_ms` 300000 until it exits, and never end your turn while one
   runs: a `wait` that nobody reads loses the user's button press.
-- **Sandbox**: scraping LinkedIn, `pip install` and starting the viewer
-  need the network or a process that keeps running. When the sandbox
-  refuses one of them, ask for approval to run that command outside the
-  sandbox; do not look for another way round it.
+- **Sandbox**: Codex's default sandbox has no network and does not let a
+  sandboxed command write `.git` or `.agents`. Run `git pull`, `pip
+  install`, the scrape and the viewer outside the sandbox (escalated
+  permissions, one-line reason) on the first try, rather than failing
+  in the sandbox first; never fetch files through a browser or web tool
+  to get round a refused command.
 
 **If the user asked to continue a run** ("/ftja-run continue", with or
 without a run id and a stage, or "continue to Stage 1 / Stage 2"): do step
@@ -76,8 +78,11 @@ FTJA repository before running anything:
    `curl -s --max-time 3 http://127.0.0.1:8765/api/version` returns `project_dir`
    (Windows: `Invoke-RestMethod -TimeoutSec 3 http://127.0.0.1:8765/api/version`).
    - It matches the FTJA folder: the viewer is fine, go on.
-   - No answer: start it from this folder (`venv/bin/python -m ftja.server`,
-     in the background) and verify with `curl`.
+   - No answer: start it from this folder as a long-running command
+     session (`venv/bin/python -m ftja.server` via `exec_command`, short
+     `yield_time_ms`, outside the sandbox, left running; not `nohup` or
+     `Start-Process`, which the Windows sandbox stops) and verify with
+     `curl`.
    - It names another folder, or has no `project_dir` (an older viewer):
      that viewer belongs to a different clone. Stop it (`lsof
      -tiTCP:8765 -sTCP:LISTEN | xargs kill`; Windows: `Stop-Process -Id

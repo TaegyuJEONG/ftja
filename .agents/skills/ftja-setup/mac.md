@@ -13,13 +13,9 @@ in the skills are already the macOS forms.
 
 ## Start the viewer
 
-From the FTJA folder (it keeps running after the command returns):
-
-```bash
-cd "<FTJA folder>" && nohup venv/bin/python -m ftja.server > .ftja-run/viewer.log 2>&1 &
-```
-
-(`mkdir -p .ftja-run` first if the folder does not exist yet.)
+In Codex, start it as a long-running command session, as the setup skill's
+step 4 says (not detached: the sandbox stops detached children on
+Windows).
 
 ## Git and Python
 

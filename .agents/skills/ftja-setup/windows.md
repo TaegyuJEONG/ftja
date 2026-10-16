@@ -37,11 +37,9 @@ command that mixes them can stall or be cut short.
 
 ## Start the viewer
 
-From the FTJA folder (it keeps running after the command returns):
-
-```powershell
-Start-Process -FilePath "<FTJA folder>\venv\Scripts\python.exe" -ArgumentList "-m","ftja.server" -WorkingDirectory "<FTJA folder>" -WindowStyle Hidden
-```
+In Codex, start it as a long-running command session, as the setup skill's
+step 4 says (not detached: the sandbox stops detached children on
+Windows).
 
 ## Git and Python
 
