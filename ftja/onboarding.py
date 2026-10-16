@@ -696,7 +696,9 @@ def main() -> None:
         elif (state["stage"], state["phase"]) == ("profile", "profile_summary"):
             apply_action(args.project_dir, {"type": "set_profile_summary", "summary": profile.get("summary")})
         elif (state["stage"], state["phase"]) == ("profile", "profile_summary_review"):
-            apply_action(args.project_dir, {"type": "confirm_profile_summary"})
+            # Re-sending the summary replaces the draft under review. Only
+            # the user's click in the viewer confirms it.
+            apply_action(args.project_dir, {"type": "set_profile_summary", "summary": profile.get("summary")})
         elif (state["stage"], state["phase"]) == ("profile", "title_proposal"):
             criteria = profile.get("criteria") or {}
             stage0_card = (payload.get("cards") or {}).get("stage0", {})

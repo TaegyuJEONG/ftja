@@ -39,6 +39,22 @@ class OnboardingReviewFlowTests(unittest.TestCase):
         self.assertEqual(state["phase"], "profile_summary_review")
         self.assertEqual(state["profile"]["summary"], "Edited summary")
 
+    def test_set_state_resending_the_summary_does_not_confirm_it(self):
+        # A live Codex run re-sent the summary with set-state while it was
+        # under review, and the CLI took that as the user's confirmation.
+        import json, subprocess, sys
+        self.act("set_profile_sources", sources=[{"path": str(self.root / "resume.txt")}])
+        self.act("confirm_profile_sources")
+        self.act("set_profile_summary", summary="one line")
+        payload = json.dumps({"profile": {"summary": "# Summary\n\nTwo\n\nparagraphs"}})
+        subprocess.run([sys.executable, "-m", "ftja.onboarding", str(self.root), "set-state",
+                        "--stage", "profile", "--phase", "profile_summary", "--status", "waiting",
+                        "--json", payload], check=True, capture_output=True)
+        state = read_state(str(self.root))
+        self.assertEqual(state["phase"], "profile_summary_review")
+        self.assertFalse(state["profile"]["summary_confirmed"])
+        self.assertEqual(state["profile"]["summary"], "# Summary\n\nTwo\n\nparagraphs")
+
     def test_rubric_questions_advance_one_at_a_time_then_require_final_confirmation(self):
         state = self.reach_rubric_questions()
         self.assertEqual((state["stage"], state["phase"]), ("rubric", "questions"))
