@@ -291,6 +291,16 @@ resume/portfolio label: the UI uses the selected file or folder name.
 Mark bridge status `working` before reading and summarizing the files (see
 "Narrate long operations"), then write `profile/summary.md`. The web must
 then show the summary for an explicit `Confirm profile summary` decision.
+Hand the viewer the file's exact text — its headings, paragraphs and
+lists, line breaks included — never a one-line retyping of it: the viewer
+renders the summary as Markdown, and a summary flattened into one line
+shows as a single block of text. Build the JSON from the file instead of
+typing it:
+
+```bash
+venv/bin/python -c "import json; s=open('profile/summary.md',encoding='utf-8').read(); json.dump({'profile':{'summary':s}},open('.ftja-run/summary-state.json','w',encoding='utf-8'))"
+venv/bin/python -m ftja.onboarding . set-state --stage profile --phase profile_summary --status waiting --json-file .ftja-run/summary-state.json
+```
 Send a short review instruction as your response text, then wait:
 
 ```bash
