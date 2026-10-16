@@ -67,8 +67,9 @@ When `/ftja-run` is invoked in a new Codex session, find the existing
 FTJA repository before running anything:
 
 1. The FTJA folder is the session's own folder (`pwd`): check it has
-   `ftja/server.py`. If it does not, stop and tell the user to open their
-   FTJA folder in Codex (the path setup gave them) and run this there.
+   `ftja/server.py`. If it does not, stop and tell the user to start a
+   new chat in their FTJA project (Projects in the Codex sidebar) and run
+   this there.
    Do not clone a new copy or choose a similarly named folder.
 2. Run every command below in that folder; never run against a scratch
    folder.

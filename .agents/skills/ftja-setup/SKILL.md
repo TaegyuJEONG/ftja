@@ -63,32 +63,41 @@ Python, as the platform file says, or to approve a command as above), then
 end the turn with exactly one question. Do not create the checklist or
 start any `wait-for-action` call in this turn.
 
-1. Find or install FTJA in the session's own folder (`pwd`). Codex can
-   only write inside the folder the session was opened in (on Windows its
-   sandbox refuses a folder outside it even after approval), and cannot
-   move a running session to another folder, so FTJA lives there:
+1. Find or install FTJA in this chat's project folder (`pwd`). In Codex
+   FTJA lives in a **project**: the user creates a project for it (a
+   folder, e.g. `FTJA`) and starts this chat inside it, so that later
+   chats in that project are already in the FTJA folder. Codex cannot
+   create a project or move a running chat into one; only the user can.
    - `pwd` is an FTJA install (it has `ftja/server.py` and
      `.agents/skills/ftja-setup/SKILL.md`): use it.
-   - `pwd` is inside another Git repository (`git rev-parse
-     --show-toplevel` succeeds and that folder is not FTJA): stop and ask
-     the user to open a new Codex session in a folder for FTJA. Never
-     install into another project.
-   - Otherwise install into `pwd` itself, not a subfolder, whatever else
-     it holds (the Codex app puts empty `outputs` and `work` folders in
-     new session folders; leave them, the repository ignores them).
-     `git clone` refuses a folder that is not empty, so fetch into it
-     (`<branch>` is the one the user named, `main` otherwise; Git first,
-     as the platform file says):
+   - `pwd` is a chat without a project: a folder the Codex app made
+     under `Documents/Codex/<date>/` (Windows: `Documents\Codex\<date>\`).
+     Do not install there. Stop and tell the user, in two short steps:
+     in Codex, add a project (the **+** next to "Projects" in the
+     sidebar) on a new folder named `FTJA`; then start a new chat in that
+     project and paste the same request.
+   - `pwd` is inside another Git repository with history (`git
+     rev-parse HEAD` succeeds and it is not FTJA): stop and ask for a
+     project folder of its own. Never install into another project. A
+     repository with no commits yet (Codex may `git init` a new project
+     folder) counts as empty.
+   - Otherwise install into `pwd` itself, not a subfolder. `git clone`
+     refuses a folder that is not empty, so fetch into it (`<branch>` is
+     the one the user named, `main` otherwise; Git first, as the platform
+     file says; run these outside the sandbox — they need the network and
+     write `.git`):
 
      ```
      git init
      git remote add origin <url>
      git fetch origin <branch>
-     git checkout -b <branch> --track origin/<branch>
+     git checkout -B <branch> --track origin/<branch>
      ```
 
-   From here on run every command in this folder; never work in a
-   scratch copy.
+     (`git remote add` fails harmlessly when `origin` is already there;
+     use `git remote set-url origin <url>` then.)
+
+   From here on run every command in this folder.
 2. Create the repository's Python environment (`venv`) and install
    dependencies if they don't already exist, with the Python the platform
    file finds (3.10 or newer).
@@ -117,11 +126,10 @@ start any `wait-for-action` call in this turn.
    the FTJA page. Do not describe the viewer as open until this
    navigation/page-text check succeeds. Always give the user the address
    `http://127.0.0.1:8765/` too, in case no browser window came up.
-6. End the turn by asking exactly one question, and say once where FTJA
-   lives (the absolute path), e.g.: "FTJA is installed in <path> — open
-   that folder in Codex whenever you want to run it later. I've opened
-   the web view in your browser (http://127.0.0.1:8765/) — ready to start
-   onboarding?" Say nothing about background files, checklists, or next
+6. End the turn by asking exactly one question, e.g.: "FTJA is installed
+   in this project (<path>) — next time, start a new chat in the FTJA
+   project to run it. I've opened the web view in your browser
+   (http://127.0.0.1:8765/) — ready to start onboarding?" Say nothing about background files, checklists, or next
    steps yet; that all belongs to turn 2.
 
 ### Why two turns
