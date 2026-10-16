@@ -66,7 +66,6 @@
         </div>
         <div id="setup-guide" hidden>
           <div class="os-toggle" role="radiogroup" aria-label="Your computer"><span class="os-label" id="os-detected"></span><button type="button" class="os-option" role="radio" data-os="mac">macOS</button><button type="button" class="os-option" role="radio" data-os="windows">Windows</button></div>
-          <div class="codex-mode" id="codex-mode" hidden><b>Before you paste: turn on automatic approval.</b> In the Codex chat, click the approval mode at the bottom left of the message box and choose <b>Approve for me</b> (French: <i>Approuver à ma place</i>). In “Ask for approval” mode Codex is not allowed to download FTJA and setup stops.</div>
           <ol class="setup-steps" id="setup-steps"></ol>
           <div class="prompt-wrap"><div class="prompt" id="setup-prompt" tabindex="-1">Set up FTJA: clone https://github.com/TaegyuJEONG/ftja.git into a new local FTJA folder, connect this session to it, then follow .claude/skills/ftja-setup/SKILL.md. Do not guess my preferences.</div><button class="copy-button" id="setup-copy" type="button" aria-label="Copy setup prompt" title="Copy setup prompt">⧉</button></div>
           <div class="copy-status" id="setup-copy-status" aria-live="polite"></div>
@@ -429,8 +428,8 @@ const SETUP = {
   codex: {
     prompt: `Set up FTJA in this project: install https://github.com/TaegyuJEONG/ftja.git (branch ${CODEX_BRANCH}) here with git init and git fetch, then follow .agents/skills/ftja-setup/SKILL.md. Do not guess my preferences.`,
     steps: {
-      mac: ['Open the Codex app and start a <b>new chat</b>.', 'Above the message box, click <b>Choose project</b> → <b>New project</b>, name it <code>FTJA</code>, click <b>Create project</b>, then <b>Trust folder</b>.', 'Switch the approval mode at the bottom left of the message box to <b>Approve for me</b> (see above).', 'Paste the prompt below and send it. A browser tab opens with FTJA; follow it beside the chat.', 'Later runs: start a new chat, choose the <b>FTJA</b> project and type <code>$ftja-run</code>.'],
-      windows: ['Open the Codex app and start a <b>new chat</b>.', 'Above the message box, click <b>Choose project</b> → <b>New project</b>, name it <code>FTJA</code>, click <b>Create project</b>, then <b>Trust folder</b>.', 'Switch the approval mode at the bottom left of the message box to <b>Approve for me</b> (see above).', 'Paste the prompt below and send it. A browser tab opens with FTJA; follow it beside the chat.', 'Later runs: start a new chat, choose the <b>FTJA</b> project and type <code>$ftja-run</code>.']
+      mac: ['Open the Codex app and start a <b>new chat</b>.', 'Above the message box, click <b>Choose project</b> → <b>New project</b>, name it <code>FTJA</code>, click <b>Create project</b>, then <b>Trust folder</b>.', 'Switch the approval mode at the bottom left of the message box to <b>Approve for me</b>. In “Ask for approval” mode Codex is not allowed to download FTJA and setup stops.', 'Paste the prompt below and send it. A browser tab opens with FTJA; follow it beside the chat.', 'Later runs: start a new chat, choose the <b>FTJA</b> project and type <code>$ftja-run</code>.'],
+      windows: ['Open the Codex app and start a <b>new chat</b>.', 'Above the message box, click <b>Choose project</b> → <b>New project</b>, name it <code>FTJA</code>, click <b>Create project</b>, then <b>Trust folder</b>.', 'Switch the approval mode at the bottom left of the message box to <b>Approve for me</b>. In “Ask for approval” mode Codex is not allowed to download FTJA and setup stops.', 'Paste the prompt below and send it. A browser tab opens with FTJA; follow it beside the chat.', 'Later runs: start a new chat, choose the <b>FTJA</b> project and type <code>$ftja-run</code>.']
     },
     pasted: 'Copied. Paste it into a new chat in your FTJA project.'
   }
@@ -454,7 +453,6 @@ function renderSetup() {
   const setup = SETUP[setupState.client];
   document.querySelectorAll('.os-option').forEach(b => b.setAttribute('aria-checked', String(b.dataset.os === setupState.os)));
   byId('os-detected').textContent = `Your computer (detected: ${setupState.detected === 'windows' ? 'Windows' : 'macOS'})`;
-  byId('codex-mode').hidden = setupState.client !== 'codex';
   byId('setup-steps').innerHTML = setup.steps[setupState.os].map(step => `<li>${step}</li>`).join('');
   byId('setup-prompt').textContent = setup.prompt;
   byId('setup-heads-up').textContent = HEADS_UP[setupState.os];
