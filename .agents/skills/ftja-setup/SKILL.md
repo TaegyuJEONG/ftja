@@ -42,13 +42,21 @@ Python, as the platform file says, or to approve a command as above), then
 end the turn with exactly one question. Do not create the checklist or
 start any `wait-for-action` call in this turn.
 
-1. Resolve the absolute path of the FTJA repository. If the session's
-   folder (`pwd`) is already an FTJA clone, that is it. Otherwise clone it
-   into the folder the user named (Git first, as the platform file says).
-   Preserve the user's path and capitalization exactly; do not guess
-   between similarly named folders. From here on run every command in
-   the FTJA folder (`cd "<FTJA folder>" && …`, or the shell tool's working
-   directory set to it); never work in a scratch copy.
+1. Make the session's own folder the FTJA folder. Codex cannot move a
+   running session to another folder, so FTJA has to live where the
+   session started (`pwd`):
+   - `pwd` is already an FTJA clone (`git rev-parse --show-toplevel` is
+     `pwd` and it has `ftja/` and `.agents/skills/ftja-setup/`): use it.
+   - `pwd` is empty (`ls -A` prints nothing), as a new Codex session's
+     folder is: clone into it, not into a subfolder:
+     `git clone <url> .` (with `-b <branch>` when the user named one; Git
+     first, as the platform file says).
+   - Anything else: do not clone into a subfolder and do not work
+     elsewhere. Stop and tell the user to start a new Codex session in an
+     empty folder, or in their existing FTJA folder (`codex -C <folder>`
+     on the command line), and paste the same request there.
+   From here on every command runs in this folder; never work in a
+   scratch copy.
 2. Create the repository's Python environment (`venv`) and install
    dependencies if they don't already exist, with the Python the platform
    file finds (3.10 or newer).
