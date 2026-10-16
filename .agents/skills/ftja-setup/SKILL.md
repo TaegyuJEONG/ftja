@@ -55,8 +55,12 @@ start any `wait-for-action` call in this turn.
    session started (`pwd`):
    - `pwd` is already an FTJA clone (`git rev-parse --show-toplevel` is
      `pwd` and it has `ftja/` and `.agents/skills/ftja-setup/`): use it.
-   - `pwd` is empty (`ls -A` prints nothing), as a new Codex session's
-     folder is: clone into it, not into a subfolder:
+   - `pwd` is empty, as a new Codex session's folder is: clone into it,
+     not into a subfolder. The Codex app creates empty `outputs` and
+     `work` folders in every new session folder; a folder holding nothing
+     else counts as empty. Remove those two only when they are empty
+     (`rmdir outputs work`; Windows: `Remove-Item outputs, work` after
+     checking each has no items), never with a recursive delete, then:
      `git clone <url> .` (with `-b <branch>` when the user named one; Git
      first, as the platform file says).
    - Anything else: do not clone into a subfolder and do not work
