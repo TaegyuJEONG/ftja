@@ -50,21 +50,32 @@ Python, as the platform file says, or to approve a command as above), then
 end the turn with exactly one question. Do not create the checklist or
 start any `wait-for-action` call in this turn.
 
-1. Find or install FTJA. It lives in one known folder, so the user can
-   open it again in any later Codex session: **`~/FTJA`** (Windows:
-   `$HOME\FTJA`), unless the user named another folder.
-   - If the session's own folder (`pwd`) is an FTJA install (it has
-     `ftja/server.py` and `.agents/skills/ftja-setup/SKILL.md`), use it.
-   - Otherwise, if that FTJA folder is an FTJA install, use it.
-   - Otherwise, if that folder does not exist, install there:
-     `git clone <url> "<FTJA folder>"` (with `-b <branch>` when the user
-     named one; Git first, as the platform file says).
-   - Otherwise (it exists and is not FTJA), stop and ask the user which
-     folder to use. Never install into another project's folder.
-   Codex cannot move a running session to another folder: from here on
-   run every command in the FTJA folder (the shell tool's working
-   directory set to it); never work in a scratch copy. Writing outside
-   the session's folder may need the user's approval once.
+1. Find or install FTJA in the session's own folder (`pwd`). Codex can
+   only write inside the folder the session was opened in (on Windows its
+   sandbox refuses a folder outside it even after approval), and cannot
+   move a running session to another folder, so FTJA lives there:
+   - `pwd` is an FTJA install (it has `ftja/server.py` and
+     `.agents/skills/ftja-setup/SKILL.md`): use it.
+   - `pwd` is inside another Git repository (`git rev-parse
+     --show-toplevel` succeeds and that folder is not FTJA): stop and ask
+     the user to open a new Codex session in a folder for FTJA. Never
+     install into another project.
+   - Otherwise install into `pwd` itself, not a subfolder, whatever else
+     it holds (the Codex app puts empty `outputs` and `work` folders in
+     new session folders; leave them, the repository ignores them).
+     `git clone` refuses a folder that is not empty, so fetch into it
+     (`<branch>` is the one the user named, `main` otherwise; Git first,
+     as the platform file says):
+
+     ```
+     git init
+     git remote add origin <url>
+     git fetch origin <branch>
+     git checkout -b <branch> --track origin/<branch>
+     ```
+
+   From here on run every command in this folder; never work in a
+   scratch copy.
 2. Create the repository's Python environment (`venv`) and install
    dependencies if they don't already exist, with the Python the platform
    file finds (3.10 or newer).
@@ -91,9 +102,9 @@ start any `wait-for-action` call in this turn.
    navigation/page-text check succeeds. Always give the user the address
    `http://127.0.0.1:8765/` too, in case no browser window came up.
 6. End the turn by asking exactly one question, and say once where FTJA
-   lives, e.g.: "FTJA is installed in ~/FTJA — open that folder in a
-   new Codex session whenever you want to run it later. I've opened the
-   web view in your browser (http://127.0.0.1:8765/) — ready to start
+   lives (the absolute path), e.g.: "FTJA is installed in <path> — open
+   that folder in Codex whenever you want to run it later. I've opened
+   the web view in your browser (http://127.0.0.1:8765/) — ready to start
    onboarding?" Say nothing about background files, checklists, or next
    steps yet; that all belongs to turn 2.
 

@@ -64,13 +64,12 @@ existed.
 When `/ftja-run` is invoked in a new Codex session, find the existing
 FTJA repository before running anything:
 
-1. Find the FTJA folder: the session's own folder (`pwd`) when it has
-   `ftja/server.py`, otherwise `~/FTJA` (Windows: `$HOME\FTJA`), the
-   folder setup installs into. If neither is an FTJA install, stop and ask
-   the user for the folder. Do not clone a new copy or choose a similarly
-   named folder.
-2. Run every command below in that folder (the shell tool's working
-   directory set to it); never run against a scratch folder.
+1. The FTJA folder is the session's own folder (`pwd`): check it has
+   `ftja/server.py`. If it does not, stop and tell the user to open their
+   FTJA folder in Codex (the path setup gave them) and run this there.
+   Do not clone a new copy or choose a similarly named folder.
+2. Run every command below in that folder; never run against a scratch
+   folder.
 3. Make sure the viewer on port 8765 is THIS folder's. Every FTJA clone
    uses the same port, so a viewer that answers may be showing another
    folder's data, and this run would never appear in it.
