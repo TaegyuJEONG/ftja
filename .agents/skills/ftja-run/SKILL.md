@@ -64,19 +64,19 @@ existed.
 When `/ftja-run` is invoked in a new Codex session, find the existing
 FTJA repository before running anything:
 
-1. Run `pwd` and `git rev-parse --show-toplevel`. Continue only if the resolved
-   repository is the user's existing FTJA workspace. Do not clone a new copy or
-   choose a similarly named folder.
-2. If `pwd` is not that repository, run every command below in the FTJA
-   folder (`cd "<FTJA folder>" && …`, or the shell tool's working directory
-   set to it). If you cannot tell which folder is the user's FTJA clone,
-   stop and ask for its path; never run against a scratch folder.
+1. Find the FTJA folder: the session's own folder (`pwd`) when it has
+   `ftja/server.py`, otherwise `~/FTJA` (Windows: `$HOME\FTJA`), the
+   folder setup installs into. If neither is an FTJA install, stop and ask
+   the user for the folder. Do not clone a new copy or choose a similarly
+   named folder.
+2. Run every command below in that folder (the shell tool's working
+   directory set to it); never run against a scratch folder.
 3. Make sure the viewer on port 8765 is THIS folder's. Every FTJA clone
    uses the same port, so a viewer that answers may be showing another
    folder's data, and this run would never appear in it.
    `curl -s --max-time 3 http://127.0.0.1:8765/api/version` returns `project_dir`
    (Windows: `Invoke-RestMethod -TimeoutSec 3 http://127.0.0.1:8765/api/version`).
-   - It matches `pwd`: the viewer is fine, go on.
+   - It matches the FTJA folder: the viewer is fine, go on.
    - No answer: start it from this folder (`venv/bin/python -m ftja.server`,
      in the background) and verify with `curl`.
    - It names another folder, or has no `project_dir` (an older viewer):
