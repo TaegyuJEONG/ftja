@@ -72,7 +72,8 @@ start any `wait-for-action` call in this turn.
      `.agents/skills/ftja-setup/SKILL.md`): use it.
    - `pwd` is a chat without a project: a folder the Codex app made
      under `Documents/Codex/<date>/` (Windows: `Documents\Codex\<date>\`).
-     Do not install there. Stop and tell the user: start a new chat;
+     Do not install there. Stop and tell the user: in the ChatGPT desktop app, switch to Codex
+     (click ChatGPT at the top left) and start a new chat;
      above the message box click **Choose project** → **New project**,
      name it `FTJA`, click **Create project**, then **Trust folder**; and
      paste the same request in that chat.
