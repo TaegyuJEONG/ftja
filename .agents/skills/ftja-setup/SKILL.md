@@ -30,10 +30,18 @@ refuses one of them, ask for approval to run that one command outside the
 sandbox (or tell the user to allow it) instead of looking for another way
 round it.
 
-**Long commands.** The `wait-for-action ... --timeout 900` commands below
-block until the user clicks in the viewer. Give each one a shell timeout
-longer than its own (about 960000 ms for `--timeout 900`); Codex's default
-timeout would cut it off after a few seconds and lose the user's click.
+**Long commands — keep waiting until they exit.** The `wait-for-action
+... --timeout 900` commands below block until the user clicks in the
+viewer, and the click only reaches you through that command's exit. In
+Codex, `exec_command` hands back a `session_id` after `yield_time_ms` while
+the command is still running. That is not the result: do not end your
+turn there. Start the wait with a long `yield_time_ms` (300000), and while
+it is still running keep calling `write_stdin` on that `session_id` with
+empty `chars` and `yield_time_ms` 300000 until it prints its JSON and
+exits. Ending the turn while it runs leaves the viewer spinning with
+nobody to answer it (a live test stopped exactly there after the user
+confirmed their files). The same holds for `ftja.run_bridge wait` and
+every other wait or long command in these skills.
 
 ## Turn 1: install and open the web view
 

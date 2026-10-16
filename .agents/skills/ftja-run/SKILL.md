@@ -28,9 +28,11 @@ do this instead:
 - **`record-tokens`**: run it only with a count the tool actually gave
   you. Without one, record nothing: the run's total then shows as "-",
   which is true.
-- **Long commands** (`wait`, the scrape): give each a shell timeout longer
-  than the command's own (the steps name it, e.g. 600000 ms); Codex's
-  default timeout would cut them off.
+- **Long commands** (`wait`, the scrape): `exec_command` hands back a
+  `session_id` after `yield_time_ms` while the command still runs; that is
+  not its result. Keep calling `write_stdin` on it with empty `chars` and
+  `yield_time_ms` 300000 until it exits, and never end your turn while one
+  runs: a `wait` that nobody reads loses the user's button press.
 - **Sandbox**: scraping LinkedIn, `pip install` and starting the viewer
   need the network or a process that keeps running. When the sandbox
   refuses one of them, ask for approval to run that command outside the
