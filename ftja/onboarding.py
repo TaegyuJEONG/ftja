@@ -34,6 +34,25 @@ DEFAULT_BRIDGE: dict[str, Any] = {
 #                  wait timed out without a follow-up).
 BRIDGE_STATUSES = {"listening", "working", "offline"}
 
+PROTOCOL_VERSION = 2
+
+
+def next_action(state: dict[str, Any]) -> dict[str, Any]:
+    """Derive the agent's work from durable state, including after a restart."""
+    phase = state.get("phase")
+    allowed = state.get("allowed_actions") or []
+    if state.get("clarification"):
+        return {"type": "wait", "actions": ["answer_search_question"], "surface": "web"}
+    if phase == "title_proposal" and "confirm_profile" not in allowed:
+        return {"type": "draft_search_settings", "surface": "web",
+                "instruction": "Propose titles and role keywords from the confirmed resume, even without an explicit target role or product names. These are editable drafts, not preferences. If no defensible proposal is possible, use ask-search; never interview in chat."}
+    if phase == "profile_summary" and state.get("profile", {}).get("sources_confirmed"):
+        return {"type": "draft_profile_summary", "surface": "web"}
+    actions = [a for a in allowed if a.startswith(("confirm_", "answer_", "request_"))]
+    if phase == "sources" or (phase == "profile_summary" and not actions):
+        actions = ["confirm_profile_sources"]
+    return {"type": "wait" if actions else "ready", "actions": actions, "surface": "web"}
+
 DEFAULT_STATE: dict[str, Any] = {
     "version": 1,
     "revision": 0,
@@ -318,10 +337,31 @@ def apply_action(project_dir: str, action: dict[str, Any]) -> dict[str, Any]:
         if not profile.get("summary"):
             raise OnboardingError("profile summary is required")
         state.update(phase="title_proposal", allowed_actions=["set_profile_draft"], profile={**profile, "summary_confirmed": True})
+    elif kind == "ask_search_question":
+        _require(state, "profile", "title_proposal")
+        if state.get("clarification"):
+            raise OnboardingError("wait for the current search question's answer first")
+        if not profile.get("summary_confirmed") or "confirm_profile" in state.get("allowed_actions", []):
+            raise OnboardingError("questions belong before the search proposal")
+        question = str(action.get("question") or "").strip()
+        if not question:
+            raise OnboardingError("a search question is required")
+        state.update(clarification={"question": question}, allowed_actions=["answer_search_question"])
+    elif kind == "answer_search_question":
+        _require(state, "profile", "title_proposal")
+        if not state.get("clarification"):
+            raise OnboardingError("no search question is waiting")
+        answer = str(action.get("answer") or "").strip()
+        if not answer:
+            raise OnboardingError("an answer is required")
+        answers = [*(state.get("search_answers") or []), {**state["clarification"], "answer": answer}]
+        state.update(clarification=None, search_answers=answers, allowed_actions=["set_profile_draft"])
     elif kind == "set_profile_draft":
         _require(state, "profile", "title_proposal")
         if not profile.get("summary_confirmed"):
             raise OnboardingError("confirm the profile summary before proposing search conditions")
+        if state.get("clarification"):
+            raise OnboardingError("wait for the search question's answer first")
         titles = _clean_list(action.get("titles"))
         locations, location = _locations(action)
         if not titles or not location:
@@ -454,6 +494,8 @@ def apply_action(project_dir: str, action: dict[str, Any]) -> dict[str, Any]:
         raise OnboardingError(f"unknown onboarding action: {kind}")
     state["revision"] = int(state.get("revision", 0)) + 1
     state["updated_at"] = datetime.now(timezone.utc).isoformat()
+    state["protocol_version"] = PROTOCOL_VERSION
+    state["next_action"] = next_action(state)
     write_json(project_dir, STATE_FILE, state)
     return state
 
@@ -502,6 +544,8 @@ def read_state(project_dir: str) -> dict[str, Any]:
     merged["messages"] = state.get("messages") or []
     merged["revision"] = int(state.get("revision", 0))
     merged["allowed_actions"] = state["allowed_actions"] if isinstance(state.get("allowed_actions"), list) else DEFAULT_STATE["allowed_actions"]
+    merged["protocol_version"] = PROTOCOL_VERSION
+    merged["next_action"] = next_action(merged)
     return merged
 
 
@@ -636,7 +680,7 @@ def wait_for_action(project_dir: str, action_types: list[str], timeout_seconds: 
                     and action_revision > already_confirmed_revision
                 )
                 if observed_after_wait_started or just_completed_before_wait_started:
-                    result = {"status": "confirmed", "action": action, "state": state}
+                    result = {"status": "confirmed", "action": action, "state": state, "next_action": next_action(state)}
                     confirmed_revision = action_revision
                     return result
             time.sleep(0.5)
@@ -676,6 +720,9 @@ def main() -> None:
     status_cmd.add_argument("state", choices=["working", "offline"])
     status_cmd.add_argument("label", nargs="?", default="")
     checklist_cmd = sub.add_parser("checklist", help="Print the current onboarding checklist")
+    sub.add_parser("next", help="Resume from durable state and print the agent's next action")
+    ask_cmd = sub.add_parser("ask-search", help="Ask essential missing information in the viewer")
+    ask_cmd.add_argument("--question", required=True)
     args = parser.parse_args()
     if args.command == "init":
         write_state(args.project_dir, **({"messages": [{"role": "agent", "text": args.message}]} if args.message else {}))
@@ -690,6 +737,12 @@ def main() -> None:
             print(json.dumps(set_bridge_working(args.project_dir, args.label), ensure_ascii=False, indent=2))
         else:
             print(json.dumps(write_bridge(args.project_dir, "offline", [], None), ensure_ascii=False, indent=2))
+    elif args.command == "next":
+        state = read_state(args.project_dir)
+        print(json.dumps({"protocol_version": PROTOCOL_VERSION, "next_action": next_action(state), "state": state}, ensure_ascii=False, indent=2))
+    elif args.command == "ask-search":
+        state = apply_action(args.project_dir, {"type": "ask_search_question", "question": args.question})
+        print(json.dumps({"state": state, "next_action": next_action(state)}, ensure_ascii=False, indent=2))
     elif args.command == "checklist":
         print(json.dumps(build_checklist(read_state(args.project_dir), args.project_dir), ensure_ascii=False, indent=2))
     else:
@@ -744,7 +797,7 @@ def main() -> None:
         # say where onboarding is now: an agent that reads the answer as JSON
         # got nothing before, and reported a save that worked as failed
         saved = read_state(args.project_dir)
-        print(json.dumps({"saved": True, **{k: saved.get(k) for k in ("stage", "phase", "status", "allowed_actions", "revision")}},
+        print(json.dumps({"saved": True, "next_action": next_action(saved), **{k: saved.get(k) for k in ("stage", "phase", "status", "allowed_actions", "revision")}},
                          ensure_ascii=False, indent=2))
 
 

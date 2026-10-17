@@ -5,6 +5,25 @@ description: One-time (but re-invocable) onboarding for FTJA — interviews the 
 
 # FTJA setup
 
+## Resume from the protocol
+
+Once FTJA and its environment are installed, at the start of every onboarding turn run `venv/bin/python -m
+ftja.onboarding . next`. Follow its `next_action`, and read the returned
+state instead of reconstructing progress from the chat. The same directive
+is returned after draft saves and confirmed waits. All decisions in the
+summary → search → filter sequence belong in the viewer.
+
+For `draft_search_settings`, propose recent roles and close equivalents
+from the confirmed resume, plus role phrases for keywords. Missing product
+names do not require a question: use the work and frameworks described in
+the resume. These are editable proposals, never confirmed preferences.
+If essential information has no defensible draft, run
+`venv/bin/python -m ftja.onboarding . ask-search --question "..."`, then
+`venv/bin/python -m ftja.onboarding . wait-for-action --type answer_search_question --timeout 900`.
+The viewer presents the question. Resume drafting using `search_answers`
+from the returned state. Never ask these questions in chat or leave the
+viewer showing a working spinner while waiting for a chat answer.
+
 Interview the user conversationally (not a rigid form — follow up, don't
 just fire a checklist) to produce two files at the project root. Do not
 guess at answers; if the user is vague, ask a follow-up.
@@ -336,9 +355,8 @@ itself supports — their recent role titles and the closest names for the
 same work — and say in one sentence that these come from their past roles
 and that they can change them on the card. The card is where titles are
 corrected; nothing is saved until they confirm it. Only when the profile
-names no role at all, ask in the chat, and first run
-`venv/bin/python -m ftja.onboarding . status working "Answer the question in the setup chat"`
-so the web says where to look.
+names no role at all, use `ask-search` and wait for `answer_search_question`
+in the viewer, as specified in “Resume from the protocol”.
 
 Write the complete combined proposal in a single command **before** instructing
 the user to review search settings:
