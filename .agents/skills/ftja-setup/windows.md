@@ -45,19 +45,37 @@ Windows).
 
 A fresh Windows PC often has neither. A `python` that answers "Python est
 introuvable" / "Python was not found" or opens the Microsoft Store is not
-Python.
+Python: it is the Store's stand-in under `WindowsApps`, skip it.
 
-1. Look for Python before calling it missing, in this order, and use the
-   first one that prints Python 3.10 or newer: `py -3 --version`, then
-   `$env:LOCALAPPDATA\Programs\Python\Python3*\python.exe --version`
-   (newest folder first). Python is often installed but not on the PATH.
+**Reload the PATH first, in the same command as every lookup.** An app
+started before Git or Python was installed (the agent's app included)
+keeps the PATH it started with, so a fresh install is invisible to it
+while a new terminal finds it at once. Begin each lookup with:
+
+```powershell
+$env:Path = [Environment]::GetEnvironmentVariable('Path','User') + ';' + [Environment]::GetEnvironmentVariable('Path','Machine')
+```
+
+1. Look for Python before calling it missing. In one command (PATH
+   reloaded as above), try these in order and use the first that prints
+   Python 3.10 or newer:
+   - `py -3 --version`
+   - `python --version` (not the `WindowsApps` stand-in: check with
+     `(Get-Command python).Source`)
+   - the newest `python.exe` under `$env:LOCALAPPDATA\Programs\Python\Python3*`,
+     `C:\Users\*\AppData\Local\Programs\Python\Python3*` and
+     `C:\Program Files\Python3*` (an agent's sandbox may run as another
+     Windows user, whose `LOCALAPPDATA` is not the user's own).
+   Git the same way: `git --version` after reloading the PATH, then
+   `C:\Program Files\Git\cmd\git.exe`.
 2. If Git or Python is missing, ask once, for both together, then install
    with `winget install --id Git.Git -e` and
    `winget install --id Python.Python.3.12 -e`.
-3. If `winget` answers that the package is already installed, do not try
-   again: look in the places in step 1. After an install, look there too:
-   a PATH changed by an install does not reach this shell.
-4. Create the environment with the Python you found:
+3. After an install, or when `winget` answers that the package is
+   already installed: do not install again. Reload the PATH and look as
+   in step 1. If the sandbox still cannot see it, run the lookup outside
+   the sandbox. Ask the user for the path only when all of that fails.
+4. Create the environment with the Python you found, by its full path:
    `<python> -m venv venv`, then
    `venv\Scripts\pip install -r requirements.txt`. From then on every
-   command uses `venv\Scripts\python`.
+   command uses `venv\Scripts\python`, which needs no PATH.
