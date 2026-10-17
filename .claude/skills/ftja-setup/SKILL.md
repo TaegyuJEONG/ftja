@@ -327,8 +327,18 @@ location becomes the initial location; target roles and product/AI work become
 matching keywords; languages the candidate can actually read become ISO 639-1
 language filters; explicit dealbreakers or clearly non-target work become
 exclude words. Excludes may be empty only when the profile provides no defensible
-negative signal. Do not invent unsupported values merely to satisfy validation;
-ask one focused follow-up first when required evidence is absent.
+negative signal. Do not invent unsupported values merely to satisfy validation.
+
+When the profile does not say which roles the user wants next, do not stop
+to ask in the chat: the web keeps showing "Deriving suggested job titles"
+and the user does not know to look at the chat. Propose what the resume
+itself supports — their recent role titles and the closest names for the
+same work — and say in one sentence that these come from their past roles
+and that they can change them on the card. The card is where titles are
+corrected; nothing is saved until they confirm it. Only when the profile
+names no role at all, ask in the chat, and first run
+`venv/bin/python -m ftja.onboarding . status working "Answer the question in the setup chat"`
+so the web says where to look.
 
 Write the complete combined proposal in a single command **before** instructing
 the user to review search settings:
