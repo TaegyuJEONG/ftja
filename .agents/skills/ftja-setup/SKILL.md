@@ -26,7 +26,9 @@ viewer showing a working spinner while waiting for a chat answer.
 
 Interview the user conversationally (not a rigid form — follow up, don't
 just fire a checklist) to produce two files at the project root. Do not
-guess at answers; if the user is vague, ask a follow-up.
+guess at confirmed preferences. Draft search settings and filters from the
+resume for the user to edit and confirm in the viewer. Request essential
+missing information through the viewer's `ask-search` protocol.
 
 This is the Codex copy of the skill. Codex has no folder connector and no
 browser pane, so this copy never calls `mcp__…` tools: it works on the
@@ -514,16 +516,16 @@ my search settings, continue the setup`) and do not claim that the chat resumed.
   `criteria.json`.
 - `exclude_keywords`: a blunt bare-word exclusion list — if any of these
   words appear ANYWHERE in the JD (title or body), the job is dropped, no
-  phrase-matching ("fluent in X", "X required") involved. Ask what to put
-  here — it doesn't have to be languages; a tool, a company, an industry,
-  anything the candidate wants to hard-exclude works. Ask: "is there anything
-  — a language or otherwise — that should get this posting dropped outright
-  if it appears?"
+  phrase-matching ("fluent in X", "X required") involved. Propose only
+  exclusions supported by explicit profile evidence; otherwise leave this
+  list empty. The user can add tools, companies, industries or other words
+  on the filter card before confirming.
 - `languages`: ISO 639-1 codes (e.g. `["en","fr","ko"]`) of languages the
   candidate can actually work in. A JD whose own text isn't detected as one
   of these gets dropped at Stage 0 (via `langdetect`) even if it never
-  explicitly states a language *requirement* — ask "what languages can you
-  actually read a posting in?" Stage 0 also drops a JD that plainly requires
+  explicitly states a language *requirement*. Propose readable languages
+  from the resume for correction on the filter card; if none can be
+  established, use `ask-search` in the viewer. Stage 0 also drops a JD that plainly requires
   fluency in a language NOT on this list ("Fluent in German and English"),
   so a language requirement does not need an `exclude_keywords` entry — and
   a bare language name there would also drop "the German market".
@@ -546,20 +548,15 @@ my search settings, continue the setup`) and do not claim that the chat resumed.
   keyword in capitals ("UTC") matches only those capitals. Include the
   words where a FAIL criterion would be stated as well as a pass one (for
   a remote search: "hybrid", "on-site", country names), so Stage 1 is shown
-  those sentences. Two useful sources, both matter — ask about
-  each separately, don't let one crowd out the other:
-  - **Concrete AI-builder tool names**: Cursor, Replit, v0.dev, Lovable,
-    Bolt.new, Windsurf, Antigravity, Base44, Supabase, Firebase, Vercel,
-    Claude Code, Gemini CLI, Codex, OpenAI API, "vibe coding" — a JD naming
-    a specific tool is a much stronger, higher-precision signal than a
-    vague topic word, and is easy to under-cover if you only ask "what
-    words describe the role you want" (a real gap found in FTJA's first
-    keyword list: it leaned entirely on phrase/concept terms like "MVP" /
-    "prototyping" and missed almost all of these).
-  - **Role/phrase concepts specific to the candidate's target roles**: e.g.
-    "0 to 1", "solo founder", "entrepreneur in residence", "venture
-    builder" — ask for concrete phrases, not vague topics ("prototyping",
-    not just "AI").
+  those sentences. When drafting from the resume, consider both:
+  - **Tools and technologies actually supported by the resume**, such as
+    Figma, Jira or Python. Do not require this category to be populated.
+  - **Concrete work and domain phrases**, such as product discovery,
+    prototyping, supplier risk or risk assessment.
+  Propose the supported keywords on the editable filter card for the user
+  to add, remove and confirm. Do not ask separate tool or work-keyword
+  questions. If the resume names no tools, draft from its work and domain
+  evidence alone.
 
 **For `rubric.md` (Rubric stage, after Profile — read by the judgment workers):**
 - What makes a role a clear yes for them (be specific — role type, seniority,

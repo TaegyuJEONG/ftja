@@ -413,9 +413,7 @@ function toggleDemo() {
   else { demo.auto = true; play(demo.step); return; }
   updateDemoControl();
 }
-// Setup card: the user picks their app; the computer is detected and can be
-// switched. Codex installs from this branch until it is merged into main.
-const CODEX_BRANCH = 'codex-skills';
+// Setup card: the user picks their app; the computer is detected and can be switched.
 const SETUP = {
   claude: {
     prompt: 'Set up FTJA: clone https://github.com/TaegyuJEONG/ftja.git into a new local FTJA folder, connect this session to it, then follow .claude/skills/ftja-setup/SKILL.md. Do not guess my preferences.',
@@ -426,7 +424,7 @@ const SETUP = {
     pasted: 'Copied. Paste it into a new Claude Code session.'
   },
   codex: {
-    prompt: `Set up FTJA in this project: install https://github.com/TaegyuJEONG/ftja.git (branch ${CODEX_BRANCH}) here with git init and git fetch, then follow .agents/skills/ftja-setup/SKILL.md. Do not guess my preferences.`,
+    prompt: 'Set up FTJA in this project from https://github.com/TaegyuJEONG/ftja.git, branch main.',
     steps: {
       mac: ['Open the ChatGPT desktop app, click <b>ChatGPT</b> at the top left and switch to <b>Codex</b>, then start a <b>new chat</b>.', '<mark class="hl">Above the message box, click <b>Choose project</b> → <b>New project</b>, name it <code>FTJA</code>, click <b>Create project</b>, then <b>Trust folder</b>.</mark>', '<mark class="hl">Switch the approval mode at the bottom left of the message box to <b>Approve for me</b>. In “Ask for approval” mode Codex is not allowed to download FTJA and setup stops.</mark>', 'Paste the prompt below and send it. A browser tab opens with FTJA; follow it beside the chat.', 'Later runs: start a new chat, choose the <b>FTJA</b> project and type <code>$ftja-run</code>.'],
       windows: ['Open the ChatGPT desktop app, click <b>ChatGPT</b> at the top left and switch to <b>Codex</b>, then start a <b>new chat</b>.', '<mark class="hl">Above the message box, click <b>Choose project</b> → <b>New project</b>, name it <code>FTJA</code>, click <b>Create project</b>, then <b>Trust folder</b>.</mark>', '<mark class="hl">Switch the approval mode at the bottom left of the message box to <b>Approve for me</b>. In “Ask for approval” mode Codex is not allowed to download FTJA and setup stops.</mark>', 'Paste the prompt below and send it. A browser tab opens with FTJA; follow it beside the chat.', 'Later runs: start a new chat, choose the <b>FTJA</b> project and type <code>$ftja-run</code>.']
