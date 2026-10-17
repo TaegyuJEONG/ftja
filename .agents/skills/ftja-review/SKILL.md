@@ -11,7 +11,8 @@ real apply/skip decisions into concrete pipeline improvements, the same way
 an ad hoc "I don't like this direction" complaint already does today, just systematized.
 
 Decisions are recorded through the review server, not by hand-editing
-digest files: tell the user to run `venv/bin/python -m ftja.server` and
+digest files: tell the user to run `venv/bin/python -m ftja.server`
+(Windows: `venv\Scripts\python -m ftja.server`, as for every command below) and
 open `http://127.0.0.1:8765` in a browser (Chrome, Edge, or Safari — it's
 a local HTTP server, not a static file, so any browser works) if they
 haven't already. There they see every job that reached Stage 2 (passed,
@@ -122,7 +123,7 @@ criterion, make it in `rubric-criteria.json` (keep every other id as it
 is) and then rewrite `rubric.md` from it:
 
 ```
-venv/bin/python -c "import json; from ftja.verdict import save_criteria; d = json.load(open('rubric-criteria.json')); save_criteria('.', d['criteria'], d.get('notes'))"
+venv/bin/python -c "import json; from ftja.verdict import save_criteria; d = json.load(open('rubric-criteria.json', encoding='utf-8')); save_criteria('.', d['criteria'], d.get('notes'))"
 ```
 
 If you edited `rubric.md` as text instead, the list is stale and the next

@@ -41,3 +41,7 @@ _site/
 .vercel/
 *.docx
 *.pdf
+
+# Folders the Codex app makes in every session folder
+outputs/
+work/

@@ -5,9 +5,30 @@ description: One-time (but re-invocable) onboarding for FTJA — interviews the 
 
 # FTJA setup
 
+## Resume from the protocol
+
+Once FTJA and its environment are installed, at the start of every onboarding turn run `venv/bin/python -m
+ftja.onboarding . next`. Follow its `next_action`, and read the returned
+state instead of reconstructing progress from the chat. The same directive
+is returned after draft saves and confirmed waits. All decisions in the
+summary → search → filter sequence belong in the viewer.
+
+For `draft_search_settings`, propose recent roles and close equivalents
+from the confirmed resume, plus role phrases for keywords. Missing product
+names do not require a question: use the work and frameworks described in
+the resume. These are editable proposals, never confirmed preferences.
+If essential information has no defensible draft, run
+`venv/bin/python -m ftja.onboarding . ask-search --question "..."`, then
+`venv/bin/python -m ftja.onboarding . wait-for-action --type answer_search_question --timeout 900`.
+The viewer presents the question. Resume drafting using `search_answers`
+from the returned state. Never ask these questions in chat or leave the
+viewer showing a working spinner while waiting for a chat answer.
+
 Interview the user conversationally (not a rigid form — follow up, don't
 just fire a checklist) to produce two files at the project root. Do not
-guess at answers; if the user is vague, ask a follow-up.
+guess at confirmed preferences. Draft search settings and filters from the
+resume for the user to edit and confirm in the viewer. Request essential
+missing information through the viewer's `ask-search` protocol.
 
 This runs in two turns. Turn 1 installs FTJA in a folder, connects the
 session to it and opens the web view, then stops and asks one question.
@@ -47,11 +68,16 @@ command in this turn on the FTJA folder's absolute path.
    dependencies if they don't already exist, with the Python the platform
    file finds (3.10 or newer).
 5. Initialize or resume `onboarding-state.json` in the FTJA folder.
-6. Start the local server if `http://127.0.0.1:8765/api/ping` does not
-   answer within 3 seconds. If another project's FTJA server already holds
-   port 8765 (`/api/version` names another `project_dir`), tell the user
-   and ask before stopping it — don't silently kill another workspace's
-   server. Start it from the FTJA folder with the platform file's "Start
+6. First check whose viewer holds port 8765, even when one answers:
+   `curl -s --max-time 3 http://127.0.0.1:8765/api/version` (every FTJA
+   folder uses this one port, so an answering viewer may be another
+   folder's). If it names this FTJA folder as `project_dir`, use it. If it
+   names another folder (or has no `project_dir`), it is that folder's
+   viewer: do not use it and do not open it. Tell the user which folder's
+   viewer is running and ask before stopping it — don't silently kill
+   another workspace's server; after a yes, stop it (`lsof
+   -tiTCP:8765 -sTCP:LISTEN | xargs kill`) and start this folder's. If
+   nothing answers, start this folder's. Start the server from the FTJA folder with the platform file's "Start
    the viewer" command, which returns at once and leaves the server
    running, then check `/api/ping` again (3-second limit, a few tries over
    about 10 seconds). Do not use `.claude/launch.json` or
@@ -286,6 +312,16 @@ resume/portfolio label: the UI uses the selected file or folder name.
 Mark bridge status `working` before reading and summarizing the files (see
 "Narrate long operations"), then write `profile/summary.md`. The web must
 then show the summary for an explicit `Confirm profile summary` decision.
+Hand the viewer the file's exact text — its headings, paragraphs and
+lists, line breaks included — never a one-line retyping of it: the viewer
+renders the summary as Markdown, and a summary flattened into one line
+shows as a single block of text. Build the JSON from the file instead of
+typing it:
+
+```bash
+venv/bin/python -c "import json; s=open('profile/summary.md',encoding='utf-8').read(); json.dump({'profile':{'summary':s}},open('.ftja-run/summary-state.json','w',encoding='utf-8'))"
+venv/bin/python -m ftja.onboarding . set-state --stage profile --phase profile_summary --status waiting --json-file .ftja-run/summary-state.json
+```
 Send a short review instruction as your response text, then wait:
 
 ```bash
@@ -312,8 +348,17 @@ location becomes the initial location; target roles and product/AI work become
 matching keywords; languages the candidate can actually read become ISO 639-1
 language filters; explicit dealbreakers or clearly non-target work become
 exclude words. Excludes may be empty only when the profile provides no defensible
-negative signal. Do not invent unsupported values merely to satisfy validation;
-ask one focused follow-up first when required evidence is absent.
+negative signal. Do not invent unsupported values merely to satisfy validation.
+
+When the profile does not say which roles the user wants next, do not stop
+to ask in the chat: the web keeps showing "Deriving suggested job titles"
+and the user does not know to look at the chat. Propose what the resume
+itself supports — their recent role titles and the closest names for the
+same work — and say in one sentence that these come from their past roles
+and that they can change them on the card. The card is where titles are
+corrected; nothing is saved until they confirm it. Only when the profile
+names no role at all, use `ask-search` and wait for `answer_search_question`
+in the viewer, as specified in “Resume from the protocol”.
 
 Write the complete combined proposal in a single command **before** instructing
 the user to review search settings:
@@ -431,16 +476,16 @@ my search settings, continue the setup`) and do not claim that the chat resumed.
   `criteria.json`.
 - `exclude_keywords`: a blunt bare-word exclusion list — if any of these
   words appear ANYWHERE in the JD (title or body), the job is dropped, no
-  phrase-matching ("fluent in X", "X required") involved. Ask what to put
-  here — it doesn't have to be languages; a tool, a company, an industry,
-  anything the candidate wants to hard-exclude works. Ask: "is there anything
-  — a language or otherwise — that should get this posting dropped outright
-  if it appears?"
+  phrase-matching ("fluent in X", "X required") involved. Propose only
+  exclusions supported by explicit profile evidence; otherwise leave this
+  list empty. The user can add tools, companies, industries or other words
+  on the filter card before confirming.
 - `languages`: ISO 639-1 codes (e.g. `["en","fr","ko"]`) of languages the
   candidate can actually work in. A JD whose own text isn't detected as one
   of these gets dropped at Stage 0 (via `langdetect`) even if it never
-  explicitly states a language *requirement* — ask "what languages can you
-  actually read a posting in?" Stage 0 also drops a JD that plainly requires
+  explicitly states a language *requirement*. Propose readable languages
+  from the resume for correction on the filter card; if none can be
+  established, use `ask-search` in the viewer. Stage 0 also drops a JD that plainly requires
   fluency in a language NOT on this list ("Fluent in German and English"),
   so a language requirement does not need an `exclude_keywords` entry — and
   a bare language name there would also drop "the German market".
@@ -463,20 +508,15 @@ my search settings, continue the setup`) and do not claim that the chat resumed.
   keyword in capitals ("UTC") matches only those capitals. Include the
   words where a FAIL criterion would be stated as well as a pass one (for
   a remote search: "hybrid", "on-site", country names), so Stage 1 is shown
-  those sentences. Two useful sources, both matter — ask about
-  each separately, don't let one crowd out the other:
-  - **Concrete AI-builder tool names**: Cursor, Replit, v0.dev, Lovable,
-    Bolt.new, Windsurf, Antigravity, Base44, Supabase, Firebase, Vercel,
-    Claude Code, Gemini CLI, Codex, OpenAI API, "vibe coding" — a JD naming
-    a specific tool is a much stronger, higher-precision signal than a
-    vague topic word, and is easy to under-cover if you only ask "what
-    words describe the role you want" (a real gap found in FTJA's first
-    keyword list: it leaned entirely on phrase/concept terms like "MVP" /
-    "prototyping" and missed almost all of these).
-  - **Role/phrase concepts specific to the candidate's target roles**: e.g.
-    "0 to 1", "solo founder", "entrepreneur in residence", "venture
-    builder" — ask for concrete phrases, not vague topics ("prototyping",
-    not just "AI").
+  those sentences. When drafting from the resume, consider both:
+  - **Tools and technologies actually supported by the resume**, such as
+    Figma, Jira or Python. Do not require this category to be populated.
+  - **Concrete work and domain phrases**, such as product discovery,
+    prototyping, supplier risk or risk assessment.
+  Propose the supported keywords on the editable filter card for the user
+  to add, remove and confirm. Do not ask separate tool or work-keyword
+  questions. If the resume names no tools, draft from its work and domain
+  evidence alone.
 
 **For `rubric.md` (Rubric stage, after Profile — read by the judgment workers):**
 - What makes a role a clear yes for them (be specific — role type, seniority,

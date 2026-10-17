@@ -5,100 +5,180 @@ description: One-time (but re-invocable) onboarding for FTJA — interviews the 
 
 # FTJA setup
 
+## Resume from the protocol
+
+Once FTJA and its environment are installed, at the start of every onboarding turn run `venv/bin/python -m
+ftja.onboarding . next`. Follow its `next_action`, and read the returned
+state instead of reconstructing progress from the chat. The same directive
+is returned after draft saves and confirmed waits. All decisions in the
+summary → search → filter sequence belong in the viewer.
+
+For `draft_search_settings`, propose recent roles and close equivalents
+from the confirmed resume, plus role phrases for keywords. Missing product
+names do not require a question: use the work and frameworks described in
+the resume. These are editable proposals, never confirmed preferences.
+If essential information has no defensible draft, run
+`venv/bin/python -m ftja.onboarding . ask-search --question "..."`, then
+`venv/bin/python -m ftja.onboarding . wait-for-action --type answer_search_question --timeout 900`.
+The viewer presents the question. Resume drafting using `search_answers`
+from the returned state. Never ask these questions in chat or leave the
+viewer showing a working spinner while waiting for a chat answer.
+
 Interview the user conversationally (not a rigid form — follow up, don't
 just fire a checklist) to produce two files at the project root. Do not
-guess at answers; if the user is vague, ask a follow-up.
+guess at confirmed preferences. Draft search settings and filters from the
+resume for the user to edit and confirm in the viewer. Request essential
+missing information through the viewer's `ask-search` protocol.
 
-This runs in two turns. Turn 1 connects the workspace and opens the web view
-on its own, then stops and asks one question. Turn 2 (triggered by the
-user's reply) creates the native checklist and drives the actual interview.
-Do not collapse these into one turn — see "Why two turns" below.
+This is the Codex copy of the skill. Codex has no folder connector and no
+browser pane, so this copy never calls `mcp__…` tools: it works on the
+FTJA folder's absolute path and opens the viewer in the user's own
+browser.
 
-## Turn 1: connect and open the web view
+This runs in two turns. Turn 1 installs FTJA in a folder and opens the web
+view, then stops and asks one question. Turn 2 (triggered by the user's
+reply) creates the native checklist and drives the actual interview. Do
+not collapse these into one turn — see "Why two turns" below.
 
-Do this without asking the user anything mid-way, then end the turn with
-exactly one question. Do not check for native task tools, create the
-checklist, or start any `wait-for-action` call in this turn.
+**First, the platform.** Read `windows.md` (Windows) or `mac.md` (macOS),
+next to this file, before running any command, and follow it in every
+step. The commands below are the macOS forms; on Windows use the forms
+`windows.md` gives.
 
-1. Resolve the absolute path of the cloned FTJA repository from the actual
-   session context. Preserve the user's path and capitalization exactly; do
-   not guess between similarly named folders. Clone it first if it isn't
-   cloned yet.
-2. Create or merge `<workspace>/.claude/settings.local.json`, preserving
-   existing JSON keys and `env` values, with
-   `"CLAUDE_CODE_ENABLE_TODO_TOOLS": "1"`. Do this now, in this turn, even
-   though the native task tools it enables won't be checkable until turn 2.
-3. Call `mcp__ccd_directory__change_directory` with the exact absolute path.
-   Continue only when the result confirms `Folder access granted`. If the
-   tool is unavailable or permission is denied, stop and report that the
-   session folder is not connected; do not continue with a scratch
-   workspace.
-4. Create the repository's Python environment (`venv`) and install
-   dependencies if they don't already exist, using the repository's own
-   commands.
-5. Initialize or resume `onboarding-state.json` from that connected folder.
-6. Start the local server from that folder if `http://127.0.0.1:8765/` is
-   not responding. Verify it with `curl` before proceeding. If another
-   project's FTJA server already holds port 8765, tell the user and ask
-   before stopping it — don't silently kill another workspace's server.
-   Start it via `mcp__Claude_Browser__preview_start` with a `name`, not a
-   background shell command: create or merge `.claude/launch.json` with a
-   configuration such as `{"name": "ftja", "runtimeExecutable":
-   "venv/bin/python", "runtimeArgs": ["-m", "ftja.server"], "port": 8765}`,
-   then call `preview_start` with that `name`. This is a one-shot, purpose-
-   built launch path; a background `Bash`/`nohup` command doing the same
-   thing is more failure-prone (it needs its own PID tracking) and, live,
-   has been the actual site of long, silent multi-minute stalls in this
-   step — see "Move quickly through routine steps" for why that matters.
-7. Open the viewer immediately, next to this chat. Call
-   `mcp__Claude_Browser__preview_start` with `http://127.0.0.1:8765`, then
-   call `mcp__Claude_Browser__get_page_text` to verify the page. On macOS
-   also run `open http://127.0.0.1:8765` so the user gets a visible browser
-   without needing to click an `Open` card. Do not describe the viewer as
-   open until a navigation/page-text check succeeds.
-8. End the turn by asking exactly one question, e.g.: "I've opened the FTJA
-   web view next to this chat — ready to start onboarding?" Say nothing
-   about background files, checklists, or next steps yet; that all belongs
-   to turn 2.
+**Approval mode.** These commands can run outside the sandbox only when
+the session's approval mode allows it ("Approve for me" in the Codex
+app). In "Ask for approval" mode Codex rejects any request to leave the
+sandbox without asking (`approval_policy` granular with
+`sandbox_approval: false`), and fetching into `.git` fails even with extra
+permissions. If a request to run outside the sandbox is rejected that
+way, stop and tell the user to switch the mode under the message box to
+"Approve for me" and send their request again.
+
+**Codex sandbox.** Codex's default sandbox (`workspace-write`) has no
+network, and does not let a sandboxed command write the folder's `.git`
+or `.agents`. So these commands need to run outside the sandbox: `git
+clone`/`fetch`/`pull`, `pip install`, the scrape, and starting the
+viewer. Request that (escalated permissions, with a one-line reason)
+on the first try for exactly these commands, instead of trying them in
+the sandbox first and working around the failure. Never fetch a file
+through the browser, a web tool or `Invoke-WebRequest` to get round a
+refused command: everything this skill needs is in the repository.
+
+**Long commands — keep waiting until they exit.** The `wait-for-action
+... --timeout 900` commands below block until the user clicks in the
+viewer, and the click only reaches you through that command's exit. In
+Codex, `exec_command` hands back a `session_id` after `yield_time_ms` while
+the command is still running. That is not the result: do not end your
+turn there. Start the wait with a long `yield_time_ms` (300000), and while
+it is still running keep calling `write_stdin` on that `session_id` with
+empty `chars` and `yield_time_ms` 300000 until it prints its JSON and
+exits. Ending the turn while it runs leaves the viewer spinning with
+nobody to answer it (a live test stopped exactly there after the user
+confirmed their files). The same holds for `ftja.run_bridge wait` and
+every other wait or long command in these skills.
+
+## Turn 1: install and open the web view
+
+Do this without asking the user anything mid-way (except to install Git or
+Python, as the platform file says, or to approve a command as above), then
+end the turn with exactly one question. Do not create the checklist or
+start any `wait-for-action` call in this turn.
+
+1. Find or install FTJA in this chat's project folder (`pwd`). In Codex
+   FTJA lives in a **project**: the user creates a project for it (a
+   folder, e.g. `FTJA`) and starts this chat inside it, so that later
+   chats in that project are already in the FTJA folder. Codex cannot
+   create a project or move a running chat into one; only the user can.
+   - `pwd` is an FTJA install (it has `ftja/server.py` and
+     `.agents/skills/ftja-setup/SKILL.md`): use it.
+   - `pwd` is a chat without a project: a folder the Codex app made
+     under `Documents/Codex/<date>/` (Windows: `Documents\Codex\<date>\`).
+     Do not install there. Stop and tell the user: in the ChatGPT desktop app, switch to Codex
+     (click ChatGPT at the top left) and start a new chat;
+     above the message box click **Choose project** → **New project**,
+     name it `FTJA`, click **Create project**, then **Trust folder**; and
+     paste the same request in that chat.
+   - `pwd` is inside another Git repository with history (`git
+     rev-parse HEAD` succeeds and it is not FTJA): stop and ask for a
+     project folder of its own. Never install into another project. A
+     repository with no commits yet (Codex may `git init` a new project
+     folder) counts as empty.
+   - Otherwise install into `pwd` itself, not a subfolder. `git clone`
+     refuses a folder that is not empty, so fetch into it (`<branch>` is
+     the one the user named, `main` otherwise; Git first, as the platform
+     file says; run these outside the sandbox — they need the network and
+     write `.git`):
+
+     ```
+     git init
+     git remote add origin <url>
+     git fetch origin <branch>
+     git checkout -B <branch> --track origin/<branch>
+     ```
+
+     (`git remote add` fails harmlessly when `origin` is already there;
+     use `git remote set-url origin <url>` then.)
+
+   From here on run every command in this folder.
+2. Create the repository's Python environment (`venv`) and install
+   dependencies if they don't already exist, with the Python the platform
+   file finds (3.10 or newer).
+3. Initialize or resume `onboarding-state.json` in the FTJA folder.
+4. First check whose viewer holds port 8765, even when one answers:
+   `curl -s --max-time 3 http://127.0.0.1:8765/api/version` (every FTJA
+   folder uses this one port, so an answering viewer may be another
+   folder's). If it names this FTJA folder as `project_dir`, use it. If it
+   names another folder (or has no `project_dir`), it is that folder's
+   viewer: do not use it and do not open it. Tell the user which folder's
+   viewer is running and ask before stopping it — don't silently kill
+   another workspace's server; after a yes, stop it (`lsof
+   -tiTCP:8765 -sTCP:LISTEN | xargs kill`) and start this folder's. If
+   nothing answers, start this folder's. Start the server in Codex as a long-running command, not a
+   detached one: run `venv/bin/python -m ftja.server --port 8765`
+   (Windows: `venv\Scripts\python -m ftja.server --port 8765`) with
+   `exec_command` and a short `yield_time_ms`, outside the sandbox (it
+   serves a local port), and leave that command session running — do not
+   stop it, and do not use `nohup`/`Start-Process` instead of it: on
+   Windows the sandbox stops children of a command once that command
+   exits, so a detached server dies. Then check `/api/ping` (3-second
+   limit, a few tries over about 10 seconds).
+5. Open the viewer in the user's browser: `open http://127.0.0.1:8765/`
+   (Windows: `Start-Process http://127.0.0.1:8765/`). Then confirm it
+   serves the page: `curl -s --max-time 3 http://127.0.0.1:8765/` returns
+   the FTJA page. Do not describe the viewer as open until this
+   navigation/page-text check succeeds. Always give the user the address
+   `http://127.0.0.1:8765/` too, in case no browser window came up.
+6. End the turn by asking exactly one question, e.g.: "FTJA is installed
+   in this project (<path>) — next time, start a new chat in the FTJA
+   project to run it. I've opened the web view in your browser
+   (http://127.0.0.1:8765/) — ready to start onboarding?" Say nothing about background files, checklists, or next
+   steps yet; that all belongs to turn 2.
 
 ### Why two turns
 
-`change_directory`'s folder switch, and the `env` setting it carries, only
-take effect once this turn ends and a new one begins — so does the native
-task tool availability that setting controls. Checking for `TaskCreate`/
-`TaskUpdate` inside this same turn is expected to find nothing; that is not
-evidence setup is broken, and it is not a reason to add a workaround (a
-background `sleep` command, an immediate self-recheck) to dodge the turn
-boundary. End the turn cleanly and let the user's reply start turn 2, where
-the tools are actually available.
-
-If the Claude client header still says `No folder` after a successful
-`Folder access granted` result, report that the client label did not
-refresh; the internal working directory and the visible client association
-are separate states. Never claim the header says FTJA unless it actually
-does.
+The user needs to see the web view before the interview starts, and the
+interview's first step blocks on a click there. Ending turn 1 with one
+question gives them that moment. Do not add a workaround (a background
+`sleep` command, an immediate self-recheck) to skip the turn boundary.
 
 ### Move quickly through routine steps
 
 A full onboarding pass is mostly the user reading a card, deciding, and
 clicking — that time is theirs and isn't something to optimize. But a live
 run of this skill has taken 20+ minutes on stretches with nothing for the
-user to look at, and the cause was not the web's poll interval (already
-sub-second and irrelevant to how many turns this skill takes) or large
-inputs — it was this skill routing simple, one-shot steps through several
-extra tool calls each:
+user to look at, and the cause was this skill routing simple, one-shot
+steps through several extra tool calls each:
 
 - Retrying a failed tool call more than once or two before trying a
   genuinely different approach. If a call is refused or errors, don't loop
-  on the identical call — the isolated fix above (`preview_start` +
-  `launch.json` for the server) exists because that exact retry loop was
-  observed live on a plain background server-start command.
-- Re-verifying something in the browser (navigate, screenshot, a second
-  `read_page`) right after writing it to `onboarding-state.json`. The web's
-  poll-and-render loop is exercised by this project's own test suite; once
-  you've confirmed the state file has what you meant to write, the browser
-  will render it. Reserve an actual browser check for when the user reports
-  something looks wrong, not as a routine step after every write.
+  on the identical call. Start the server with the platform file's one
+  command, which returns at once, and check it with a time limit; a
+  server-start command left waiting in the foreground, or a check without
+  a limit, has been the site of long, silent stalls in this step.
+- Re-verifying something right after writing it to
+  `onboarding-state.json`. The web's poll-and-render loop is exercised by
+  this project's own test suite; once you've confirmed the state file has
+  what you meant to write, the browser will render it.
 - Multiple small exploratory commands (checking if a port is free, whether
   a process exists, whether a file exists) where one targeted command would
   do. Prefer the one-shot commands this skill already gives you over
@@ -106,25 +186,18 @@ extra tool calls each:
 
 ## Turn 2 onward: the native checklist
 
-Any affirmative reply to turn 1's question starts this section — do not
-require exact wording.
-
 ### Client-native task list
 
-- Verify `TaskCreate` and `TaskUpdate` are available in the current session
-  now. A tracked `.claude/settings.json` arriving with a clone is not
-  evidence the live session reloaded this feature — only an actual
-  post-turn-boundary check is. If the native tools are still unavailable
-  here, stop and report the limitation honestly; do not substitute prose
-  and call it a native checklist.
 - In Codex, use `update_plan` with `pending`, `in_progress`, and `completed`
-  statuses. Its contract permits at most one `in_progress` item.
-- Do not enter Plan Mode, `EnterPlanMode`, `/plan`, or a collaboration Plan
-  Mode for this workflow. The native checklist is an execution-progress
-  mechanism, not a planning mode.
+  statuses. Its contract permits at most one `in_progress` item. If
+  `update_plan` is unavailable, say so once and keep the list as a short
+  numbered list in your messages instead.
+- Do not enter Plan Mode, `/plan`, or a collaboration Plan Mode for this
+  workflow. The native checklist is an execution-progress mechanism, not a
+  planning mode.
 
 Create these 8 items, in this order. Each is something the *user* does or
-reviews — infrastructure from turn 1 (clone, connect, server, browser) is
+reviews — the infrastructure (clone, connect, server, browser) is
 already done and does not belong on this list:
 
 1. `Add your background files`
@@ -248,7 +321,7 @@ resume from `onboarding-state.json`, not localStorage or a guessed step.
 ## Web-driven profile sources
 
 The web view is the only source-material input surface. Never use
-`AskUserQuestion` to ask where a resume or portfolio lives, and never ask
+a question tool (`AskUserQuestion`, `request_user_input`) to ask where a resume or portfolio lives, and never ask
 for an absolute source path in chat. In this same turn, write the
 source-material instruction as your response text, then immediately run the
 blocking `wait-for-action --type confirm_profile_sources` command below —
@@ -279,6 +352,16 @@ resume/portfolio label: the UI uses the selected file or folder name.
 Mark bridge status `working` before reading and summarizing the files (see
 "Narrate long operations"), then write `profile/summary.md`. The web must
 then show the summary for an explicit `Confirm profile summary` decision.
+Hand the viewer the file's exact text — its headings, paragraphs and
+lists, line breaks included — never a one-line retyping of it: the viewer
+renders the summary as Markdown, and a summary flattened into one line
+shows as a single block of text. Build the JSON from the file instead of
+typing it:
+
+```bash
+venv/bin/python -c "import json; s=open('profile/summary.md',encoding='utf-8').read(); json.dump({'profile':{'summary':s}},open('.ftja-run/summary-state.json','w',encoding='utf-8'))"
+venv/bin/python -m ftja.onboarding . set-state --stage profile --phase profile_summary --status waiting --json-file .ftja-run/summary-state.json
+```
 Send a short review instruction as your response text, then wait:
 
 ```bash
@@ -305,8 +388,17 @@ location becomes the initial location; target roles and product/AI work become
 matching keywords; languages the candidate can actually read become ISO 639-1
 language filters; explicit dealbreakers or clearly non-target work become
 exclude words. Excludes may be empty only when the profile provides no defensible
-negative signal. Do not invent unsupported values merely to satisfy validation;
-ask one focused follow-up first when required evidence is absent.
+negative signal. Do not invent unsupported values merely to satisfy validation.
+
+When the profile does not say which roles the user wants next, do not stop
+to ask in the chat: the web keeps showing "Deriving suggested job titles"
+and the user does not know to look at the chat. Propose what the resume
+itself supports — their recent role titles and the closest names for the
+same work — and say in one sentence that these come from their past roles
+and that they can change them on the card. The card is where titles are
+corrected; nothing is saved until they confirm it. Only when the profile
+names no role at all, use `ask-search` and wait for `answer_search_question`
+in the viewer, as specified in “Resume from the protocol”.
 
 Write the complete combined proposal in a single command **before** instructing
 the user to review search settings:
@@ -424,16 +516,16 @@ my search settings, continue the setup`) and do not claim that the chat resumed.
   `criteria.json`.
 - `exclude_keywords`: a blunt bare-word exclusion list — if any of these
   words appear ANYWHERE in the JD (title or body), the job is dropped, no
-  phrase-matching ("fluent in X", "X required") involved. Ask what to put
-  here — it doesn't have to be languages; a tool, a company, an industry,
-  anything the candidate wants to hard-exclude works. Ask: "is there anything
-  — a language or otherwise — that should get this posting dropped outright
-  if it appears?"
+  phrase-matching ("fluent in X", "X required") involved. Propose only
+  exclusions supported by explicit profile evidence; otherwise leave this
+  list empty. The user can add tools, companies, industries or other words
+  on the filter card before confirming.
 - `languages`: ISO 639-1 codes (e.g. `["en","fr","ko"]`) of languages the
   candidate can actually work in. A JD whose own text isn't detected as one
   of these gets dropped at Stage 0 (via `langdetect`) even if it never
-  explicitly states a language *requirement* — ask "what languages can you
-  actually read a posting in?" Stage 0 also drops a JD that plainly requires
+  explicitly states a language *requirement*. Propose readable languages
+  from the resume for correction on the filter card; if none can be
+  established, use `ask-search` in the viewer. Stage 0 also drops a JD that plainly requires
   fluency in a language NOT on this list ("Fluent in German and English"),
   so a language requirement does not need an `exclude_keywords` entry — and
   a bare language name there would also drop "the German market".
@@ -456,20 +548,15 @@ my search settings, continue the setup`) and do not claim that the chat resumed.
   keyword in capitals ("UTC") matches only those capitals. Include the
   words where a FAIL criterion would be stated as well as a pass one (for
   a remote search: "hybrid", "on-site", country names), so Stage 1 is shown
-  those sentences. Two useful sources, both matter — ask about
-  each separately, don't let one crowd out the other:
-  - **Concrete AI-builder tool names**: Cursor, Replit, v0.dev, Lovable,
-    Bolt.new, Windsurf, Antigravity, Base44, Supabase, Firebase, Vercel,
-    Claude Code, Gemini CLI, Codex, OpenAI API, "vibe coding" — a JD naming
-    a specific tool is a much stronger, higher-precision signal than a
-    vague topic word, and is easy to under-cover if you only ask "what
-    words describe the role you want" (a real gap found in FTJA's first
-    keyword list: it leaned entirely on phrase/concept terms like "MVP" /
-    "prototyping" and missed almost all of these).
-  - **Role/phrase concepts specific to the candidate's target roles**: e.g.
-    "0 to 1", "solo founder", "entrepreneur in residence", "venture
-    builder" — ask for concrete phrases, not vague topics ("prototyping",
-    not just "AI").
+  those sentences. When drafting from the resume, consider both:
+  - **Tools and technologies actually supported by the resume**, such as
+    Figma, Jira or Python. Do not require this category to be populated.
+  - **Concrete work and domain phrases**, such as product discovery,
+    prototyping, supplier risk or risk assessment.
+  Propose the supported keywords on the editable filter card for the user
+  to add, remove and confirm. Do not ask separate tool or work-keyword
+  questions. If the resume names no tools, draft from its work and domain
+  evidence alone.
 
 **For `rubric.md` (Rubric stage, after Profile — read by the judgment workers):**
 - What makes a role a clear yes for them (be specific — role type, seniority,

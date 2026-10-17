@@ -70,13 +70,13 @@ class SetupSkillContractTests(unittest.TestCase):
 
     def test_setup_is_split_into_two_turns(self) -> None:
         for skill in (self.claude, self.codex):
-            # Turn 1's title differs between the copies: the Claude Code one
-            # installs and connects, and opens the web view in turn 2.
             self.assertIn("## Turn 1: ", skill)
             self.assertIn("Turn 2 onward: the native checklist", skill)
             self.assertIn("Why two turns", skill)
-            self.assertIn("only take effect once this turn ends", skill)
-            self.assertIn("is expected to find nothing", skill)
+        # Only the Claude Code copy changes folders, which takes effect at
+        # the turn boundary; the Codex copy stops there for the user.
+        self.assertIn("only take effect once this turn ends", self.claude)
+        self.assertIn("is expected to find nothing", self.claude)
 
     def test_landing_prompt_is_short_and_points_at_the_skill(self) -> None:
         self.assertIn(".claude/skills/ftja-setup/SKILL.md", self.landing)
@@ -95,13 +95,12 @@ class SetupSkillContractTests(unittest.TestCase):
             "TaskCreate",
             "TaskUpdate",
         ]
-        for text in (self.claude_raw, self.codex_raw):
-            for phrase in expected:
-                self.assertIn(phrase, text)
+        for phrase in expected:
+            self.assertIn(phrase, self.claude_raw)
 
     def test_infrastructure_evidence_is_still_required_in_turn_one(self) -> None:
+        self.assertIn("Folder access granted", self.claude)
         for skill in (self.claude, self.codex):
-            self.assertIn("Folder access granted", skill)
             self.assertIn("http://127.0.0.1:8765/", skill)
             self.assertIn("navigation/page-text check succeeds", skill)
 
@@ -138,6 +137,23 @@ class SetupSkillContractTests(unittest.TestCase):
             self.assertIn("single next user action", skill)
             self.assertIn("Do not mark `Run your first job search`", skill)
             self.assertIn("Do not mark `Review your first results`", skill)
+
+    def test_codex_skills_use_no_claude_only_tools(self) -> None:
+        # Codex has no folder connector, browser pane, Claude task tools or
+        # settings.local.json: a step that requires one stops setup there.
+        claude_only = [
+            "mcp__ccd_", "mcp__Claude_Browser__", "TaskCreate", "TaskUpdate",
+            "settings.local.json", "launch.json", ".claude/skills/",
+        ]
+        for path in sorted((ROOT / ".agents/skills").rglob("*.md")):
+            text = path.read_text(encoding="utf-8")
+            for phrase in claude_only:
+                self.assertNotIn(phrase, text, f"{path.relative_to(ROOT)}: {phrase}")
+
+    def test_codex_copy_has_every_claude_skill_file(self) -> None:
+        claude = {p.relative_to(ROOT / ".claude/skills") for p in (ROOT / ".claude/skills").rglob("*.md")}
+        codex = {p.relative_to(ROOT / ".agents/skills") for p in (ROOT / ".agents/skills").rglob("*.md")}
+        self.assertEqual(claude, codex)
 
 
 if __name__ == "__main__":

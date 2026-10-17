@@ -43,7 +43,8 @@ touches on career/roles — you don't need an explicit `/ftja-tune` invocation.
    `id` as it is — then rewrite `rubric.md` from it:
 
    ```
-   venv/bin/python -c "import json; from ftja.verdict import save_criteria; d = json.load(open('rubric-criteria.json')); save_criteria('.', d['criteria'], d.get('notes'))"
+   (Windows: `venv\Scripts\python` in place of `venv/bin/python`.)
+   venv/bin/python -c "import json; from ftja.verdict import save_criteria; d = json.load(open('rubric-criteria.json', encoding='utf-8')); save_criteria('.', d['criteria'], d.get('notes'))"
    ```
 
    Editing `rubric.md` as text instead would leave the list stale, and the

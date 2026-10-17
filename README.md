@@ -253,7 +253,7 @@ run.log, runs.jsonl        # run history — gitignored
 .ftja-trash/               # runs you deleted in the viewer, until you empty the trash — gitignored
 ftja/                      # the pipeline code and the web view
 .claude/skills/ftja-*/     # the skills for Claude Code
-.agents/skills/ftja-*/     # the same skills for Codex — not yet tested
+.agents/skills/ftja-*/     # the same skills adapted for Codex (no Claude-only tools)
 landing.html               # the public landing page (deployed to ftja.vercel.app)
 ```
 

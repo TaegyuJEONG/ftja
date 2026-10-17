@@ -5,6 +5,29 @@ What changed in each version, newest first. If you cloned FTJA earlier, run
 these. Your own files — `criteria.json`, `rubric.md`, `profile/`, `seen.db`,
 digests — are never touched by an update.
 
+## 0.3.3 — 2026-10-17
+
+### What changes for you after updating
+
+- **Codex setup and runs on macOS and Windows.** The landing page lets you
+  choose Claude Code or Codex and shows the steps for your computer.
+  Codex installs into your selected FTJA project, opens its viewer, and
+  keeps listening for your decisions there.
+- **Search and filter drafts come from your resume.** Review and edit
+  proposed titles, tools and work keywords in the viewer instead of
+  answering separate keyword questions in chat. When essential information
+  is missing, the viewer presents the question and saves your answer.
+- **Onboarding resumes from saved state.** The setup helper reports the
+  agent's next action. Search confirmation stays hidden until its draft is
+  ready, and resending a summary no longer counts as your confirmation.
+- **Setup checks the viewer's folder** before reusing port 8765, preserves
+  the summary's Markdown formatting, and removes repeated onboarding list
+  entries.
+- **Windows setup refreshes PATH** before looking for Git and Python and
+  checks additional install locations before offering to install them.
+- **Codex sub-agent token usage** is read from local session logs when
+  available; unavailable counts are left unrecorded.
+
 ## 0.3.2 — 2026-10-14
 
 ### What changes for you after updating
