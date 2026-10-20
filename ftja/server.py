@@ -29,10 +29,12 @@ from ftja.pipeline_view import read_config, write_config, keyword_stats
 from ftja import live, osutil, version
 from ftja import remote as remote_check
 from ftja import keywords as keyword_languages
+from ftja.geography import SOURCES
 from ftja.verdict import DEFAULT_CRITERIA_PATH, criteria_status, load_criteria, save_criteria
 from ftja.runs_view import list_runs
 from ftja import runs_store, run_bridge
 from ftja.onboarding import OnboardingError, apply_action, bridge_is_ready, build_checklist, is_repeat, live_bridge, read_bridge, read_state, write_action, write_state
+from ftja.geography import resolve_location, search_targets, unsupported_countries
 
 DEFAULT_PORT = 8765
 APP_HTML_PATH = os.path.join(os.path.dirname(__file__), "app.html")
@@ -68,6 +70,42 @@ def _write_onboarding_state(project_dir: str, state: dict):
     with open(path, "w", encoding="utf-8") as f:
         json.dump({**state, "updated_at": datetime.now(timezone.utc).isoformat()}, f, ensure_ascii=False, indent=2)
         f.write("\n")
+
+
+def _location_warnings(criteria: dict | None) -> list[str]:
+    if not criteria:
+        return []
+    warnings = []
+    names = {"zip_recruiter": "ZipRecruiter", "bayt": "Bayt", "naukri": "Naukri",
+             "bdjobs": "BDJobs", "hellowork": "HelloWork"}
+    for site in SOURCES[1:]:
+        if site in (criteria.get("sites") or []):
+            label = names.get(site, site.title())
+            skipped_locations = []
+            for raw in criteria.get("locations") or [criteria.get("location") or ""]:
+                if not raw:
+                    continue
+                location = resolve_location(raw)
+                missing = unsupported_countries(location, site)
+                if missing:
+                    searched = len(search_targets(location, site))
+                    if location.region and searched:
+                        warnings.append(f"The current {label} scraper searches {searched} of "
+                                        f"{searched + len(missing)} countries in {raw}; "
+                                        f"the remaining countries are skipped for this source.")
+                    else:
+                        skipped_locations.append(raw)
+            if skipped_locations:
+                listed = ", ".join(skipped_locations)
+                warnings.append(f"The current {label} scraper is not configured for {listed}; "
+                                "those locations are skipped for this source. "
+                                "This does not mean the job board has no listings there.")
+    if "glassdoor" in (criteria.get("sites") or []) and 0 < (criteria.get("hours_old") or 0) < 24:
+        warnings.append("Glassdoor's posted-within filter uses whole days, so searches shorter than 24 hours include the last day.")
+    count = len(live.searches(criteria))
+    if count > 50:
+        warnings.append(f"This setup makes {count} source searches per run. Regional searches may take a long time.")
+    return warnings
 
 
 def _rubric_criteria(project_dir: str) -> dict:
@@ -130,10 +168,21 @@ def _fetch_jobs(db_path: str, run_id: str, status: str, page: int) -> dict:
         group_key = (job["title"], job["company"], job["reasoning"])
         if group_key not in seen_groups:
             job["repost_count"] = 1
+            job["sources"] = []
             seen_groups[group_key] = job
         else:
             seen_groups[group_key]["repost_count"] += 1
+        host = urlparse(job["job_url"]).hostname or ""
+        source = next((site for site, domain in (("linkedin", "linkedin.com"), ("indeed", "indeed."),
+                         ("glassdoor", "glassdoor."), ("zip_recruiter", "ziprecruiter."),
+                         ("bayt", "bayt.com"), ("naukri", "naukri.com"),
+                         ("bdjobs", "bdjobs.com"), ("hellowork", "hellowork.com"))
+                       if domain in host), "")
+        if source and source not in seen_groups[group_key]["sources"]:
+            seen_groups[group_key]["sources"].append(source)
     jobs = list(seen_groups.values())
+    for job in jobs:
+        job["sources"].sort(key=lambda source: SOURCES.index(source))
 
     total = len(jobs)
     total_pages = max(1, (total + PAGE_SIZE - 1) // PAGE_SIZE)
@@ -170,7 +219,7 @@ def _remote_table(rows: list[dict]) -> str:
     labels = list(dict.fromkeys(a["label"] for row in rows for a in row.get("answers") or []))
     out = io.StringIO()
     writer = csv.writer(out)
-    writer.writerow(["Title", "Company", "Location", "URL", "Why", *[x for label in labels for x in (label, f"{label}: details")],
+    writer.writerow(["Title", "Company", "Location", "Sources", "URL", "Why", *[x for label in labels for x in (label, f"{label}: details")],
                      "Evidence sentences"])
     for row in rows:
         by_label = {a["label"]: a for a in row.get("answers") or []}
@@ -178,7 +227,8 @@ def _remote_table(rows: list[dict]) -> str:
         cited = list(dict.fromkeys(sentences[sid] for sid in [*(row.get("evidence_sids") or []),
                                                               *(sid for a in row.get("answers") or [] for sid in a.get("evidence_sids") or [])]
                                    if sentences.get(sid)))
-        writer.writerow([row.get("title") or "", row.get("company") or "", row.get("location") or "", row.get("job_url") or "",
+        writer.writerow([row.get("title") or "", row.get("company") or "", row.get("location") or "",
+                         ", ".join(row.get("sources") or []), row.get("job_url") or "",
                          row.get("reason") or "", *[x for label in labels for x in ((by_label.get(label) or {}).get("answer_label", ""),
                                                            (by_label.get(label) or {}).get("detail", ""))],
                          " | ".join(cited)])
@@ -370,9 +420,11 @@ def make_handler(db_path: str, project_dir: str):
                     "config": config,
                 })
             elif path == "/api/pipeline":
+                config = read_config(project_dir)
                 self._send_json(200, {
-                    **read_config(project_dir),
+                    **config,
                     **_rubric_criteria(project_dir),
+                    "location_warnings": _location_warnings(config["criteria"]),
                     "keyword_stats": keyword_stats(db_path),
                 })
             else:
@@ -573,7 +625,7 @@ def make_handler(db_path: str, project_dir: str):
                 except (TypeError, ValueError) as e:
                     self._send_json(400, {"error": f"invalid config: {e}"})
                     return
-                self._send_json(200, {"ok": True})
+                self._send_json(200, {"ok": True, "location_warnings": _location_warnings(criteria)})
             else:
                 self._send_json(404, {"error": "not found"})
 

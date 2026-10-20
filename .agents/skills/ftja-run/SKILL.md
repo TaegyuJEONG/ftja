@@ -116,10 +116,9 @@ language, with the numbers you have:
   `http://127.0.0.1:8765` (Results tab). The number of matches is not
   known beforehand: say so, and that a shorter "Posted within" or fewer
   locations makes a run shorter.
-- **After each search**: how many it found and how many searches remain.
-  Run the scrape one search per command so you can say this; do not
-  chain all of them into one long command that stays silent until the
-  end.
+- **During scraping**: report completed searches and matches as the command
+  prints progress. Each source runs concurrently; searches within a source
+  remain sequential so its request rate does not increase.
 - **After Stage 0**: scraped, passed, and the biggest drop reasons.
 - **When the Remote check starts and ends** (runs that have it): how many
   jobs in how many batches, then how many passed and failed.
@@ -255,21 +254,17 @@ command takes that `run_dir` as `--dir`; every file of this run lives in it
 Results tab, and it advances there by itself as the files below appear —
 you never report progress, and you never write these files by hand.
 
-`start` also prints `searches`: the run's searches in order, one for
-every search term in every location (`criteria.json`'s `search_terms` ×
-`locations`; 3 terms and 4 locations make 12). Scrape each of them by its
-number in that list (0, 1, 2, ...), one after another — a separate command
-per search, with a line to the user between them (see "Keep the user
-informed"):
+`start` also prints `searches`: the run's concrete source requests in order.
+Run them by source, concurrently across sources and sequentially within each
+source. The command prints one progress line after each search:
 
 ```
-venv/bin/python -m ftja.live scrape --dir <run_dir> --search <number>
+venv/bin/python -m ftja.live scrape-sources --dir <run_dir>
 ```
 
-Each call reads its term, its location, the time window and the cap per
-search from the run's own snapshot, scrapes in batches of 10, and updates
-that search's count after every batch. Do all of them: a search you skip
-is a term that was never looked for in that location.
+Each source reads its searches from the run's snapshot and updates their
+counts after every batch. A rerun skips searches already completed on disk.
+Do not proceed to Stage 0 until all searches finish.
 
 ## 2. Deterministic filter (Stage 0b)
 
