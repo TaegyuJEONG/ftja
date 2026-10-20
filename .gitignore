@@ -45,3 +45,7 @@ _site/
 # Folders the Codex app makes in every session folder
 outputs/
 work/
+
+# scripts/agent_e2e.py reports
+agent-e2e-out/
+e2e-out/
