@@ -5,6 +5,13 @@ description: Run the daily FTJA job-search pipeline (scrape LinkedIn -> determin
 
 # FTJA run
 
+**Port.** The viewer listens on port 8765 unless the environment
+variable `FTJA_PORT` sets another one. `venv/bin/python -m ftja.server
+--url` prints the address to use (Windows `venv\Scripts\python`); when it
+is not 8765, use its port wherever this file says 8765. `ftja.server`
+picks it up by itself, but URLs, `curl` checks and `lsof` lookups need it
+written in.
+
 You are executing one pass of the FTJA pipeline defined in `SPEC.md`. Follow
 these steps in order. Every python call below uses `venv/bin/python` — if
 `venv/` doesn't exist yet, run `python3 -m venv venv && venv/bin/pip install -r requirements.txt` first.
@@ -45,7 +52,10 @@ FTJA repository before running anything:
    path and require the `Folder access granted` result. A shell `cd` alone is
    not enough. If the repo is not the active workspace, stop and tell the user
    to open/connect the existing FTJA folder; never run against a scratch folder.
-3. Make sure the viewer on port 8765 is THIS folder's. Every FTJA clone
+3. Get this folder's viewer address with `venv/bin/python -m ftja.server
+   --url` (8765 unless `FTJA_PORT` sets another port; do not read
+   `$FTJA_PORT` yourself) and use its port in this step.
+   Make sure the viewer on that port is THIS folder's. Every FTJA clone
    uses the same port, so a viewer that answers may be showing another
    folder's data, and this run would never appear in it.
    `curl -s --max-time 3 http://127.0.0.1:8765/api/version` returns `project_dir`

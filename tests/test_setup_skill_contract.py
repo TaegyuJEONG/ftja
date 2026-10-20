@@ -62,11 +62,12 @@ class SetupSkillContractTests(unittest.TestCase):
 
     def test_native_client_contract_and_plan_mode_rule_are_explicit(self) -> None:
         self.assertIn("TaskCreate", self.claude)
+        self.assertIn("check with `pwd` that the session already runs in the FTJA folder", self.claude)  # a client without change_directory
         self.assertIn("In Codex, use `update_plan`", self.codex)
+        self.assertIn("is unavailable", self.codex)
         for skill in (self.claude, self.codex):
             self.assertIn("Do not enter Plan Mode", skill)
             self.assertIn("exactly one item `in_progress`", skill)
-            self.assertIn("is unavailable", skill)
 
     def test_setup_is_split_into_two_turns(self) -> None:
         for skill in (self.claude, self.codex):

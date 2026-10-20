@@ -16,10 +16,13 @@ in the skills are already the macOS forms.
 From the FTJA folder (it keeps running after the command returns):
 
 ```bash
-cd "<FTJA folder>" && nohup venv/bin/python -m ftja.server > .ftja-run/viewer.log 2>&1 &
+cd "<FTJA folder>" && venv/bin/python -m ftja.server --detach
 ```
 
-(`mkdir -p .ftja-run` first if the folder does not exist yet.)
+It prints the viewer's address once it answers (output in
+`.ftja-run/viewer.log`). Do not use `nohup ... &` or a background shell of
+your own: `&` asks the user for approval every time, and a background
+shell ends with your session, taking the viewer with it.
 
 ## Git and Python
 

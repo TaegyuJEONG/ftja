@@ -5,6 +5,13 @@ description: Look at pending apply/skip decisions (recorded via the FTJA review 
 
 # FTJA review
 
+**Port.** The viewer listens on port 8765 unless the environment
+variable `FTJA_PORT` sets another one. `venv/bin/python -m ftja.server
+--url` prints the address to use (Windows `venv\Scripts\python`); when it
+is not 8765, use its port wherever this file says 8765. `ftja.server`
+picks it up by itself, but URLs, `curl` checks and `lsof` lookups need it
+written in.
+
 This is the feedback loop that closes the gap between "the pipeline judged
 this job X" and "the candidate actually decided Y, for reason Z" — turning
 real apply/skip decisions into concrete pipeline improvements, the same way

@@ -5,6 +5,13 @@ description: Run the daily FTJA job-search pipeline (scrape LinkedIn -> determin
 
 # FTJA run
 
+**Port.** The viewer listens on port 8765 unless the environment
+variable `FTJA_PORT` sets another one. `venv/bin/python -m ftja.server
+--url` prints the address to use (Windows `venv\Scripts\python`); when it
+is not 8765, use its port wherever this file says 8765. `ftja.server`
+picks it up by itself, but URLs, `curl` checks and `lsof` lookups need it
+written in.
+
 You are executing one pass of the FTJA pipeline defined in `SPEC.md`. Follow
 these steps in order. Every python call below uses `venv/bin/python` — if
 `venv/` doesn't exist yet, run `python3 -m venv venv && venv/bin/pip install -r requirements.txt` first.

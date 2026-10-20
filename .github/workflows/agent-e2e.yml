@@ -1,0 +1,71 @@
+name: Agent setup E2E
+
+# /ftja-setup run by Claude Code itself on a clean runner, with a browser
+# answering the web view (scripts/agent_e2e.py). It uses the subscription
+# behind the CLAUDE_CODE_OAUTH_TOKEN secret (`claude setup-token`), so it
+# runs only when started by hand: Actions -> Agent setup E2E -> Run workflow.
+
+on:
+  workflow_dispatch:
+    inputs:
+      os:
+        description: Machines
+        type: choice
+        default: all
+        options: [all, macos-latest, windows-latest, ubuntu-latest]
+      model:
+        description: Model
+        type: choice
+        default: claude-sonnet-5-5
+        options: [claude-sonnet-5-5, claude-haiku-5-5, claude-opus-5-5]
+      runs:
+        description: Runs per machine (for a pass rate)
+        default: "1"
+
+permissions:
+  contents: read
+
+jobs:
+  agent-e2e:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJSON(inputs.os == 'all' && '["macos-latest","windows-latest","ubuntu-latest"]' || format('["{0}"]', inputs.os)) }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    env:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install Claude Code and Playwright
+        run: |
+          npm install -g @anthropic-ai/claude-code@2.1.238
+          python -m pip install -r requirements-dev.txt
+          python -m playwright install --with-deps chromium
+      - name: Check the token is there
+        shell: bash
+        run: |
+          if [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ]; then
+            echo "::error::Add the CLAUDE_CODE_OAUTH_TOKEN repository secret (claude setup-token) first."
+            exit 1
+          fi
+          echo "token length: ${#CLAUDE_CODE_OAUTH_TOKEN} (a clean one is 108; a pasted newline makes it longer and fails)"
+          claude auth status
+      - name: Setup by the agent
+        run: python scripts/agent_e2e.py --model ${{ inputs.model }} --runs ${{ inputs.runs }} --permissions skip --artifacts agent-e2e-out
+      - name: Keep the reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-e2e-${{ matrix.os }}
+          path: agent-e2e-out/
+          if-no-files-found: ignore

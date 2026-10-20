@@ -13,13 +13,14 @@ rewriting the interaction model.
 
 Binds to 127.0.0.1 only — never exposed beyond the local machine.
 
-Run: venv/bin/python -m ftja.server [--port 8765] [--db seen.db] [--project-dir .]
+Run: venv/bin/python -m ftja.server [--port 8765, or $FTJA_PORT] [--db seen.db] [--project-dir .]
 """
 import argparse
 import csv
 import io
 import json
 import os
+import sys
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
@@ -36,7 +37,7 @@ from ftja import runs_store, run_bridge
 from ftja.onboarding import OnboardingError, apply_action, bridge_is_ready, build_checklist, is_repeat, live_bridge, read_bridge, read_state, write_action, write_state
 from ftja.geography import resolve_location, search_targets, unsupported_countries
 
-DEFAULT_PORT = 8765
+DEFAULT_PORT = int(os.environ.get("FTJA_PORT") or 8765)  # FTJA_PORT: a second viewer (a test) beside the usual one
 APP_HTML_PATH = os.path.join(os.path.dirname(__file__), "app.html")
 REPO_ROOT = os.path.dirname(os.path.dirname(__file__))
 LANDING_HTML_PATH = os.path.join(REPO_ROOT, "landing.html")
@@ -646,12 +647,46 @@ class ViewerServer(ThreadingHTTPServer):
         super().server_bind()
 
 
+def _detach(args) -> int:
+    """The viewer as a process of its own, so it outlives the command (and
+    the agent session) that started it, without `nohup ... &` or
+    Start-Process, which coding agents ask the user to approve each time.
+    Its output goes to .ftja-run/viewer.log."""
+    import subprocess
+    import time
+    import urllib.request
+    url = f"http://127.0.0.1:{args.port}"
+    os.makedirs(os.path.join(args.project_dir, ".ftja-run"), exist_ok=True)
+    log = open(os.path.join(args.project_dir, ".ftja-run", "viewer.log"), "ab")
+    flags = {"creationflags": 0x00000008 | 0x00000200} if osutil.WINDOWS else {"start_new_session": True}  # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
+    subprocess.Popen([sys.executable, "-m", "ftja.server", "--port", str(args.port), "--db", args.db,
+                      "--project-dir", args.project_dir], stdin=subprocess.DEVNULL, stdout=log, stderr=log, **flags)
+    deadline = time.monotonic() + 15
+    while time.monotonic() < deadline:
+        try:
+            with urllib.request.urlopen(url + "/api/ping", timeout=2):
+                print(url)
+                return 0
+        except OSError:
+            time.sleep(0.3)
+    print(f"the viewer did not answer at {url}; see .ftja-run/viewer.log", file=sys.stderr)
+    return 1
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=DEFAULT_PORT)
     ap.add_argument("--db", default="seen.db")
     ap.add_argument("--project-dir", default=".")
+    ap.add_argument("--url", action="store_true", help="print this viewer's address (port 8765, or FTJA_PORT) and exit")
+    ap.add_argument("--detach", action="store_true",
+                    help="start the viewer on its own, wait until it answers, print its address and return")
     args = ap.parse_args()
+    if args.url:
+        print(f"http://127.0.0.1:{args.port}")
+        return
+    if args.detach:
+        sys.exit(_detach(args))
 
     server = ViewerServer(("127.0.0.1", args.port), make_handler(args.db, args.project_dir))
     url = f"http://127.0.0.1:{args.port}"
