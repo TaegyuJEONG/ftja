@@ -141,7 +141,10 @@ class Agent:
             try:
                 with open(bridge_file, encoding="utf-8-sig") as f:
                     bridge = json.load(f)
-                if bridge.get("status") == "listening" and bridge.get("pid") == proc.pid:
+                # not the pid: on Windows a venv's python.exe is a launcher, and
+                # the bridge holds the pid of the Python it starts. The last
+                # wait left "offline" behind, so "listening" is this one.
+                if bridge.get("status") == "listening" and bridge.get("action_types") == sorted(types):
                     return proc
             except (OSError, json.JSONDecodeError):
                 pass
