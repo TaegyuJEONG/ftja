@@ -25,3 +25,38 @@ jobs:
         run: python -m pip install -r requirements.txt pytest
       - name: Run tests
         run: python -m pytest -q
+
+  # Setup from scratch on a clean machine: a new venv, pip install, every
+  # onboarding step, the viewer, and the Pipeline tab in a real browser
+  # (scripts/e2e_onboarding.py). The report and screenshot are kept as an
+  # artifact; the step timings show on the run page.
+  onboarding-e2e:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+        python: ["3.11", "3.12", "3.13"]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    env:
+      FTJA_NO_UPDATE_CHECK: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install Playwright
+        run: |
+          python -m pip install -r requirements-dev.txt
+          python -m playwright install --with-deps chromium
+      - name: Onboarding from scratch
+        run: python scripts/e2e_onboarding.py --fresh-venv --browser on --artifacts e2e-out
+      - name: Keep the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: onboarding-e2e-${{ matrix.os }}-py${{ matrix.python }}
+          path: e2e-out/
+          if-no-files-found: ignore
