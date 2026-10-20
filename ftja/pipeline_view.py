@@ -27,8 +27,8 @@ def _read_json(path, default=None):
 
 
 _DEFAULT_CRITERIA = {
-    "search_terms": [], "location": "", "locations": [], "hours_old": 72,
-    "results_wanted": 100, "title_must_match": False, "languages": [],
+    "search_terms": [], "location": "", "locations": [], "sites": ["linkedin"], "hours_old": 72,
+    "languages": [],
     "exclude_keywords": [], "keywords": {"tier1": []},
 }
 
@@ -88,6 +88,8 @@ def write_config(project_dir: str = ".", criteria: dict | None = None,
     the file, so nothing here git-commits; that stays a deliberate, separate
     step (see /ftja-tune's one-conversational-update-per-commit discipline)."""
     if criteria is not None:
+        from ftja.live import searches
+        searches(criteria)  # reject invalid geography/source choices before writing
         with open(f"{project_dir}/criteria.json", "w", encoding="utf-8") as f:
             json.dump(criteria, f, ensure_ascii=False, indent=2)
             f.write("\n")

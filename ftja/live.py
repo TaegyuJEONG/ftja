@@ -15,7 +15,9 @@ Layout:
   rubric-criteria.json,    copies taken at start — the rubric can be edited in
   rubric.md                the viewer mid-run; this run judges against the copies
   scrape/<n>.json          jobs scraped for search term n
-  scrape/<n>.progress.json {term, count, wanted, done}, rewritten every batch
+  scrape/<n>.progress.json {term, count, read, done}, rewritten every batch: `count` postings
+                           scraped, among `read` search results
+  scrape/<n>.skipped.json  {title: how many}, the titles search n returned that lack its term
   remote-check.json        copy of the Remote check's setup, when that stage is on
   stage0.json, stage0-dropped.json, stage0-counts.json
   rc/manifest.json         jobs sent to the Remote check; rc/<n>.txt prompt, rc/<n>.out.json answers
@@ -33,6 +35,7 @@ Live Stage 2 cards are judged with the same `ftja.verdict.judge` finalize
 uses, on the same JD text, so the live card and the final one can't differ.
 """
 import argparse
+import ast
 import json
 import os
 import random
@@ -40,25 +43,44 @@ import re
 import shutil
 import sys
 import time
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 
 from ftja import remote as remote_check
 from ftja import osutil
 from ftja.lock import is_locked
+from ftja.runs_store import run_stamp
 from ftja.state import connect, is_seen
 from ftja.verdict import (DEFAULT_CRITERIA_PATH, STATUS_FOR_VERDICT, clean_extras, judge, load_criteria,
                           render_criteria_list)
 
 RUNS_DIR = ".ftja-run"
 KEEP_RUNS = 5
-SNAPSHOT_KEYS = ("search_terms", "location", "locations", "hours_old", "results_wanted", "title_must_match",
-                 "stage1_only")
+SNAPSHOT_KEYS = ("search_terms", "location", "locations", "sites", "hours_old", "stage1_only")
 STAGES = ("remote", "stage1", "stage2")
 STAGE_NAMES = {"remote": "the Remote check", "stage1": "Stage 1", "stage2": "Stage 2"}
 NO_KEYWORD_REASON = "None of your Stage 1 keywords appears in this posting."
 PAGE_SIZE = 10
 # A replay has no lock to say it is alive; it counts as running while it keeps writing.
 REPLAY_STALE_SECONDS = 120
+
+
+def _job_sources(job: dict) -> list[str]:
+    """Keep source names intact, including runs that stringified their list."""
+    value = job.get("sources") or []
+    if isinstance(value, list) and value and all(isinstance(x, str) and len(x) == 1 for x in value):
+        value = "".join(value)
+    if isinstance(value, str):
+        try:
+            value = ast.literal_eval(value)
+        except (SyntaxError, ValueError):
+            value = [value]
+    names = value if isinstance(value, list) else []
+    if job.get("site"):
+        names = [*names, job["site"]]
+    return list(dict.fromkeys(name for name in names if isinstance(name, str) and name in
+                              {"linkedin", "indeed", "glassdoor", "zip_recruiter", "bayt", "naukri", "bdjobs", "hellowork"}))
 
 
 # ---- files -----------------------------------------------------------------
@@ -135,10 +157,22 @@ def locations_of(criteria: dict) -> list[str]:
 
 
 def searches(snapshot: dict) -> list[dict]:
-    """Every search of a run, in order: each search term in each location
-    (3 terms x 4 locations = 12 searches). scrape/<n>.json is search n."""
-    return [{"term": term, "location": location}
-            for term in (snapshot.get("search_terms") or []) for location in locations_of(snapshot)]
+    """A concrete provider request for every term, selected place, and site."""
+    from ftja.geography import SOURCES, resolve_location, search_targets
+    if "sites" not in snapshot:  # replay and resume runs written before source selection
+        return [{"term": term, "location": location}
+                for term in (snapshot.get("search_terms") or []) for location in locations_of(snapshot)]
+    sites = snapshot.get("sites", ["linkedin"])
+    if not sites or any(site not in SOURCES for site in sites):
+        raise ValueError("Choose at least one supported scraping source")
+    plan = [{"term": term, "search_location": raw, **target}
+            for term in (snapshot.get("search_terms") or [])
+            for raw in locations_of(snapshot)
+            for site in sites
+            for target in search_targets(resolve_location(raw), site)]
+    if snapshot.get("search_terms") and not plan:
+        raise ValueError("No selected source supports the chosen locations")
+    return plan
 
 
 def stages_of(criteria: dict) -> list[str]:
@@ -183,6 +217,7 @@ def start(project_dir: str = ".") -> dict:
     for name in (DEFAULT_CRITERIA_PATH, "rubric.md"):
         shutil.copyfile(os.path.join(project_dir, name), os.path.join(run_dir, name))
     snapshot = {k: criteria.get(k) for k in SNAPSHOT_KEYS if k in criteria}
+    snapshot["sites"] = criteria.get("sites", ["linkedin"])
     snapshot["locations"] = locations_of(criteria)
     snapshot["location"] = ", ".join(snapshot["locations"])  # as one line, for anything that shows it
     snapshot["stages"] = stages
@@ -195,7 +230,7 @@ def start(project_dir: str = ".") -> dict:
     plan = searches(snapshot)
     for n, search in enumerate(plan):
         _write_json(os.path.join(run_dir, "scrape", f"{n}.progress.json"),
-                    {**search, "count": 0, "wanted": snapshot.get("results_wanted"), "done": False})
+                    {**search, "count": 0, "read": 0, "done": False})
     return {**run, "run_dir": run_dir, "searches": plan, "stages": stages}
 
 
@@ -207,19 +242,60 @@ def scrape_term(run_dir: str, n: int) -> int:
     snapshot = _read_json(os.path.join(run_dir, "run.json"))["criteria_snapshot"]
     search = searches(snapshot)[n]
     term = search["term"]
-    wanted = int(snapshot.get("results_wanted") or 100)
     progress_path = os.path.join(run_dir, "scrape", f"{n}.progress.json")
 
-    def report(count: int, done: bool = False):
-        _write_json(progress_path, {**search, "count": count, "wanted": wanted, "done": done})
+    def report(count: int, read: int, done: bool = False):
+        _write_json(progress_path, {**search, "count": count, "read": read, "done": done})
 
-    jobs = scrape(search_term=term, location=search["location"],
-                  results_wanted=wanted,
+    skipped: list[str] = []
+    jobs = scrape(search_term=term, location=search["location"], site=search.get("site", "linkedin"),
+                  country_indeed=search.get("country_indeed", ""),
                   hours_old=int(snapshot.get("hours_old") or 72),
-                  on_batch=report)
+                  on_batch=report, skipped=skipped)
+    tally: dict[str, int] = {}
+    for title in skipped:
+        tally[title] = tally.get(title, 0) + 1
+    _write_json(os.path.join(run_dir, "scrape", f"{n}.skipped.json"),
+                dict(sorted(tally.items(), key=lambda item: -item[1])))
     _write_json(os.path.join(run_dir, "scrape", f"{n}.json"), clean_jobs(jobs))
-    report(len(jobs), done=True)
+    report(len(jobs), len(jobs) + len(skipped), done=True)
     return len(jobs)
+
+
+def scrape_sources(run_dir: str) -> dict:
+    """Scrape sources concurrently, keeping requests within each source sequential."""
+    error_path = os.path.join(run_dir, "scrape-error.json")
+    if os.path.exists(error_path):
+        os.remove(error_path)
+    run = _read_json(os.path.join(run_dir, "run.json"), {}) or {}
+    plan = searches(run.get("criteria_snapshot") or {})
+    by_site: dict[str, list[int]] = {}
+    for n, search in enumerate(plan):
+        by_site.setdefault(search.get("site", "linkedin"), []).append(n)
+    output_lock = threading.Lock()
+
+    def one_site(site: str, indices: list[int]) -> tuple[str, int, list[int]]:
+        total, completed = 0, []
+        for n in indices:
+            path = os.path.join(run_dir, "scrape", f"{n}.json")
+            progress = _read_json(os.path.join(run_dir, "scrape", f"{n}.progress.json"), {}) or {}
+            count = len(_read_json(path, [])) if progress.get("done") and os.path.isfile(path) else scrape_term(run_dir, n)
+            total += count
+            completed.append(n)
+            with output_lock:
+                print(json.dumps({"site": site, "search": n, "scraped": count,
+                                  "completed": len(completed), "site_searches": len(indices)}), flush=True)
+        return site, total, completed
+
+    with ThreadPoolExecutor(max_workers=len(by_site) or 1) as pool:
+        futures = [pool.submit(one_site, site, indices) for site, indices in by_site.items()]
+        try:
+            results = [future.result() for future in futures]
+        except Exception as error:
+            _write_json(error_path, {"error": str(error), "type": type(error).__name__})
+            raise
+    return {"searches": len(plan), "by_site": {site: {"scraped": count, "completed": len(done)}
+                                              for site, count, done in results}}
 
 
 def stage0(run_dir: str, project_dir: str = ".", db_path: str = "seen.db") -> dict:
@@ -232,12 +308,13 @@ def stage0(run_dir: str, project_dir: str = ".", db_path: str = "seen.db") -> di
     scrape_dir = os.path.join(run_dir, "scrape")
     terms = [search["term"] for search in searches((_read_json(os.path.join(run_dir, "run.json"), {}) or {}).get("criteria_snapshot") or {})]
     for name in sorted(os.listdir(scrape_dir), key=lambda s: (len(s), s)):
-        if name.endswith(".json") and not name.endswith(".progress.json"):
+        if name.endswith(".json") and not name.endswith((".progress.json", ".skipped.json")):
             n = name[:-len(".json")]
             term = terms[int(n)] if n.isdigit() and int(n) < len(terms) else None  # scrape/<n>.json is search n
             for job in _read_json(os.path.join(scrape_dir, name), []):
                 if job.get("job_url"):
                     kept = merged.setdefault(job["job_url"], job)
+                    kept["sources"] = list(dict.fromkeys([*_job_sources(kept), *_job_sources(job)]))
                     if term and term not in kept.setdefault("_search_terms", []):
                         kept["_search_terms"].append(term)  # which searches returned it
     jobs = list(merged.values())
@@ -650,7 +727,7 @@ def assemble_results(run_dir: str) -> dict:
         job = by_url.get(entry["job_url"], {})
         keywords, sentences = _matched(job)
         out = {"job_url": entry["job_url"], "title": entry.get("title") or "", "company": entry.get("company") or "",
-               "location": entry.get("location") or ""}
+               "location": entry.get("location") or "", "sources": job.get("sources") or []}
         if job.get("_duplicate_job_urls"):
             out["duplicate_job_urls"] = job["_duplicate_job_urls"]
         if keywords:
@@ -698,7 +775,10 @@ def assemble_results(run_dir: str) -> dict:
              "stage2_pending": waiting, "continued_at": run.get("continued_at"),
              "stages": stages, "stopped_after": stop,
              "scraped_count": counts.get("scraped"), "stage0_dropped": counts.get("dropped"),
-             "scraped_by_term": [{"term": p["term"], "location": p.get("location") or "", "count": p["count"]}
+             "scraped_by_term": [{"term": p["term"], "location": p.get("location") or "",
+                                  **{k: p[k] for k in ("site", "country_indeed", "search_location") if p.get(k)},
+                                  "count": p["count"],
+                                  **({"read": p["read"]} if p.get("read") is not None else {})}  # how many search results it read
                                  for p in _scrape_progress(run_dir)],
              "already_seen_skipped": (counts.get("dropped") or {}).get("already_seen")}
     _write_json(os.path.join(run_dir, "stats.json"), stats)
@@ -722,6 +802,10 @@ def _scrape_progress(run_dir: str) -> list[dict]:
 def _is_running(run_dir: str, run: dict, project_dir: str) -> bool:
     if os.path.exists(os.path.join(run_dir, "done.json")):
         return False
+    if os.path.exists(os.path.join(run_dir, "scrape-preview.json")):
+        return True  # a scrape-only test remains visible after releasing the lock
+    if os.path.exists(os.path.join(run_dir, "scrape-error.json")):
+        return True  # an interrupted scrape remains visible with its error
     if run.get("replay"):
         newest = max((_mtime(os.path.join(root, f)) for root, _, files in os.walk(run_dir) for f in files), default=0)
         return time.time() - newest < REPLAY_STALE_SECONDS
@@ -736,6 +820,19 @@ def current_run_dir(project_dir: str = ".") -> str | None:
         if _is_running(run_dir, run, project_dir):
             return run_dir
     return None
+
+
+def preview_scrape(run_dir: str) -> dict:
+    """Keep a completed scrape test in Results without judging or marking jobs seen."""
+    counts = _read_json(os.path.join(run_dir, "stage0-counts.json"))
+    terms = _scrape_progress(run_dir)
+    if not counts or not terms or not all(t.get("done") for t in terms):
+        raise SystemExit("Finish every search and Stage 0 before saving a scrape preview.")
+    if os.path.exists(os.path.join(run_dir, "done.json")):
+        raise SystemExit("This run is already finalized.")
+    _write_json(os.path.join(run_dir, "scrape-preview.json"),
+                {"stopped_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")})
+    return {"scraped": counts["scraped"], "kept": counts["passed"]}
 
 
 _judged_cache: dict[tuple, dict] = {}
@@ -773,12 +870,20 @@ def state(project_dir: str = ".") -> dict | None:
     run = _read_json(os.path.join(run_dir, "run.json"), {})
     terms = _scrape_progress(run_dir)
     counts = _read_json(os.path.join(run_dir, "stage0-counts.json"))
+    scrape_preview = os.path.exists(os.path.join(run_dir, "scrape-preview.json"))
     out = {"run_id": run.get("run_id"), "ts_start": run.get("ts_start"), "replay": bool(run.get("replay")),
            "replay_of": run.get("replay_of"), "replay_sample": bool(run.get("replay_sample")), "criteria_snapshot": run.get("criteria_snapshot"),
            "continued_at": run.get("continued_at"),
+           "scrape_preview": scrape_preview,
            "scrape": {"terms": terms, "total": sum(t.get("count") or 0 for t in terms),
                       "done": bool(terms) and all(t.get("done") for t in terms)},
            "stages": run_stages(run_dir), "stage0": counts, "remote": None, "stage1": None, "stage2": None, "jobs": []}
+    out["scrape_error"] = (_read_json(os.path.join(run_dir, "scrape-error.json"), {}) or {}).get("error")
+
+    if scrape_preview:
+        out["jobs"] = [{k: job.get(k) for k in ("job_url", "title", "company", "location", "sources")}
+                       for job in _read_json(os.path.join(run_dir, "stage0.json"), []) or []]
+        return out
 
     if os.path.exists(os.path.join(run_dir, "rc", "manifest.json")):
         passed, failed, pending = _remote_results(run_dir)
@@ -793,9 +898,11 @@ def state(project_dir: str = ".") -> dict | None:
     manifest = _read_json(os.path.join(run_dir, "s2", "manifest.json"))
     if manifest is not None:
         definitions = (_read_json(os.path.join(run_dir, DEFAULT_CRITERIA_PATH), {}) or {}).get("criteria") or []
-        descriptions = {j["job_url"]: j.get("description") or "" for j in _read_json(os.path.join(run_dir, "stage0.json"), [])}
+        stage0_jobs = {j["job_url"]: j for j in _read_json(os.path.join(run_dir, "stage0.json"), [])}
+        descriptions = {url: j.get("description") or "" for url, j in stage0_jobs.items()}
         s1_by_url = {e["job_url"]: e for e in _stage1_results(run_dir)[0]}
-        jobs = [_live_card(run_dir, e, definitions, descriptions, s1_by_url) for e in manifest]
+        jobs = [{**_live_card(run_dir, e, definitions, descriptions, s1_by_url),
+                 "sources": (stage0_jobs.get(e["job_url"]) or {}).get("sources") or []} for e in manifest]
         if out["remote"]:  # what the Remote check read stays on the card
             remote_by_url = {e["job_url"]: {"answers": e["answers"], "blocks": e["remote_blocks"], "reason": e["reason"],
                                             "evidence_sids": e["evidence_sids"], "decided_by": e["decided_by"]}
@@ -860,19 +967,39 @@ def remote_jobs(project_dir: str, db_path: str, run_id: str, page: int = 1, verd
     if live and os.path.exists(os.path.join(run_dir, "rc", "manifest.json")):
         passed, failed, _ = _remote_results(run_dir)
         chosen = sorted(passed if verdict == "pass" else failed, key=lambda e: e["judged_at"], reverse=True)
+        stage0_jobs = {job["job_url"]: job for job in _read_json(os.path.join(run_dir, "stage0.json"), [])}
         rows = [{"job_url": e["job_url"], "title": e.get("title"), "company": e.get("company"), "location": e.get("location"),
+                 "sources": _job_sources(stage0_jobs.get(e["job_url"]) or {}),
                  "reason": e["reason"], "evidence_sids": e["evidence_sids"], "decided_by": e["decided_by"],
                  "answers": e["answers"],
                  "blocks": e["remote_blocks"]} for e in chosen]
     else:
         with connect(db_path) as conn:
             found = conn.execute(
-                f"""SELECT job_url, title, company, location, remote, pruned_at FROM seen_jobs
+                f"""SELECT job_url, title, company, location, sources, remote, pruned_at FROM seen_jobs
                     WHERE run_id = ? AND {"status != 'remote_fail' AND (remote IS NOT NULL OR status = 'remote_pass')"
                                           if verdict == 'pass' else "status = 'remote_fail'"}
                     ORDER BY title""", (run_id,)).fetchall()
         rows, shown = [], set()
-        for job_url, title, company, location, stored, pruned_at in found:
+        saved_run = os.path.join(project_dir, ".ftja-run", run_stamp(run_id))
+        scrape_sources_by_url: dict[str, list[str]] = {}
+        scrape_dir = os.path.join(saved_run, "scrape")
+        if os.path.isdir(scrape_dir):
+            for name in os.listdir(scrape_dir):
+                if re.fullmatch(r"\d+\.json", name):
+                    for job in _read_json(os.path.join(scrape_dir, name), []):
+                        url = job.get("job_url")
+                        if url:
+                            scrape_sources_by_url[url] = list(dict.fromkeys([
+                                *scrape_sources_by_url.get(url, []), *_job_sources(job)]))
+        result_sources = {}
+        for job in _read_json(os.path.join(saved_run, "results.json"), []):
+            urls = [job["job_url"], *(job.get("duplicate_job_urls") or [])]
+            names = list(dict.fromkeys([*_job_sources(job), *(source for url in urls
+                                                              for source in scrape_sources_by_url.get(url, []))]))
+            for url in urls:
+                result_sources[url] = names
+        for job_url, title, company, location, sources, stored, pruned_at in found:
             try:
                 stored = json.loads(stored) if stored else {}
             except json.JSONDecodeError:
@@ -884,6 +1011,8 @@ def remote_jobs(project_dir: str, db_path: str, run_id: str, page: int = 1, verd
             shown.add(key)
             failed_on = [a for a in answers if a.get("rule") == "fail"]
             rows.append({"job_url": job_url, "title": title, "company": company, "location": location,
+                         "sources": list(dict.fromkeys([*_job_sources({"sources": sources}),
+                                                         *result_sources.get(job_url, [])])),
                          # runs from before the model gave a verdict: the answers that failed
                          "reason": stored.get("reason") or "; ".join(f"{a['label']}: {a['answer_label']}" for a in failed_on),
                          "evidence_sids": stored.get("evidence_sids") or [], "decided_by": stored.get("decided_by") or "",
@@ -1042,7 +1171,9 @@ def main():
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("start", help="create the run directory; prints run_id and run_dir")
     for name, help_ in (("scrape", "scrape one search term (--term N), reporting progress"),
+                        ("scrape-sources", "scrape sources concurrently, searches within each source sequentially"),
                         ("stage0", "merge the scrapes and run the code-only filter"),
+                        ("preview-scrape", "keep a scrape-only test visible in Results without judging"),
                         ("prepare-remote", "write the Remote check's prompt files and the manifest"),
                         ("check-remote", "list Remote check answers that are not among a category's listed answers"),
                         ("prepare-stage1", "write Stage 1 prompt files and the manifest"),
@@ -1078,8 +1209,12 @@ def main():
         out = start(args.project_dir)
     elif args.cmd == "scrape":
         out = {"term": args.term, "scraped": scrape_term(args.dir, args.term)}
+    elif args.cmd == "scrape-sources":
+        out = scrape_sources(args.dir)
     elif args.cmd == "stage0":
         out = stage0(args.dir, args.project_dir, args.db)
+    elif args.cmd == "preview-scrape":
+        out = preview_scrape(args.dir)
     elif args.cmd == "prepare-remote":
         out = prepare_remote(args.dir, args.project_dir)
     elif args.cmd == "check-remote":

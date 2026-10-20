@@ -10,9 +10,8 @@ builds on:
 
     profile  the resume (a file inside the project, usually profile/...)
              and the profile summary the user approved
-    search   search titles, locations, recency, results wanted, and the
-             code filter: keywords per language, readable languages,
-             exclude words
+    search   search titles, locations, recency, and the code filter:
+             keywords per language, readable languages, exclude words
     rubric   the user's three answers (clear yes, dealbreakers,
              preferences); code turns them into the rubric list, one
              criterion per line, so the model never rewrites them
@@ -112,14 +111,6 @@ def _clean_list(value: Any) -> list[str]:
     return [str(item).strip() for item in value if str(item).strip()]
 
 
-def _clamp_results_wanted(value: Any, default: int = 100) -> int:
-    try:
-        parsed = int(value)
-    except (TypeError, ValueError):
-        return default
-    return max(1, min(1000, parsed))
-
-
 def validate_stage0_draft(card: dict[str, Any]) -> dict[str, Any]:
     """The code filter as proposed from the profile: keywords, the languages
     the user reads, exclude words, and which language each keyword is in."""
@@ -166,13 +157,10 @@ def validate_search(data: dict[str, Any]) -> dict[str, Any]:
         "location": ", ".join(locations),
         "locations": locations,
         "hours_old": max(1, hours_old),
-        "results_wanted": _clamp_results_wanted(data.get("results_wanted"), 100),
         "languages": stage0["languages"],
         "exclude_keywords": stage0["exclude_keywords"],
         "keywords": keywords,
     }
-    if "title_must_match" in data:
-        criteria["title_must_match"] = bool(data["title_must_match"])
     return criteria
 
 

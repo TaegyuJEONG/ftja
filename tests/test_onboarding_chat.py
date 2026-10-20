@@ -15,8 +15,8 @@ from ftja.verdict import criteria_status, load_criteria
 SEARCH = {
     "titles": ["Product Builder", " "],
     "locations": ["France", "Germany", " "],
-    "results_wanted": 5000,
-    "title_must_match": True,
+    "results_wanted": 5000,   # settings from before every title had to match:
+    "title_must_match": False,  # neither is kept
     "filter": {"keywords": ["prototype", "prototypage"], "languages": ["en", "FR"], "exclude_keywords": ["sales"],
                "keyword_language": {"prototypage": "fr", "gone": "fr"}},
 }
@@ -56,7 +56,7 @@ def test_the_steps_run_in_order_and_finish_writes_what_a_run_reads(project):
     criteria = state["search"]
     assert criteria["search_terms"] == ["Product Builder"]
     assert criteria["locations"] == ["France", "Germany"] and criteria["location"] == "France, Germany"
-    assert criteria["results_wanted"] == 1000 and criteria["hours_old"] == 24 and criteria["title_must_match"] is True
+    assert criteria["hours_old"] == 24 and "results_wanted" not in criteria and "title_must_match" not in criteria
     assert criteria["languages"] == ["en", "fr"] and criteria["exclude_keywords"] == ["sales"]
     assert criteria["keywords"] == {"tier1": ["prototype", "prototypage"], "tier1_language": {"prototypage": "fr"}}
     assert [s["location"] for s in live.searches(criteria)] == ["France", "Germany"]  # a run searches each

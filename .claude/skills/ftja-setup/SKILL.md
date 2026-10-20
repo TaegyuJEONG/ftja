@@ -115,12 +115,20 @@ venv/bin/python -m ftja.onboarding . profile --source profile/<resume file> --su
 Propose these from the approved profile, as a short list the user can
 correct in one reply. Do not save before they agree.
 
-- **Job titles** (`titles`): the roles the profile targets. They are sent
-  to LinkedIn as written. There is no exact-phrase setting and quoting a
-  title does not enforce it: LinkedIn's logged-out search matches by
-  meaning ("founder in residence" also returns "Entrepreneur In
-  Residence"). A phrase that has to appear in the posting goes in the
-  code filter's keywords instead.
+- **Job titles** (`titles`): the roles the profile targets. Only postings
+  whose title contains a title you list are scraped, as a run of whole
+  words in any word form and any case: "Product Manager" finds "Senior
+  Product Manager", "AI Product Manager" and "Product Managers (m/f/d)",
+  and does not find "Product Owner", "Product Marketing Manager", "Head of
+  Product" or "Chef de produit". LinkedIn's own search matches by meaning
+  and would return those too; FTJA leaves them out, so the user gets the
+  titles they named and nothing else. Tell the user this rule in one
+  sentence with an example from their own titles. Then propose the other
+  names the same job goes by, for them to pick from: common variants
+  ("Product Owner", "Head of Product") and the title in each language
+  they read for the places they search ("Chef de produit" in France).
+  Each one they keep is its own title. Do not add any they did not agree
+  to.
 - **Locations** (`locations`): start from the country the user is based
   in. Propose every place the profile says they want; if they mention more
   than one region, don't silently keep only the first. A run searches
@@ -131,15 +139,6 @@ correct in one reply. Do not save before they agree.
   **Remote check** afterwards on the Pipeline tab (`/ftja-remote`); say
   so when they mention remote work.
 - **Posted within** (`hours_old`): default 24 hours.
-- **Max results per search** (`results_wanted`): 1 to 1000, default 100,
-  per title in each location. A run scrapes every search up to this cap,
-  merges everything into one list, and only then filters and judges it.
-  Raising it widens coverage per title; it does not add titles.
-- **Title must match** (`title_must_match`, default `false`): with `true`,
-  the code filter keeps a posting only if its title contains the search
-  term that found it, in any word form. Offer it when the user wants
-  exactly the titles they named, and say what it costs: differently named
-  versions of the same job are dropped unless added as titles.
 
 ### Step 3: the code-based filter
 
@@ -191,8 +190,6 @@ and save them in one command:
   "titles": ["AI Product Manager", "Product Builder"],
   "locations": ["France"],
   "hours_old": 24,
-  "results_wanted": 100,
-  "title_must_match": false,
   "filter": {
     "languages": ["en", "fr"],
     "keywords": ["AI product", "LLM", "produit IA"],

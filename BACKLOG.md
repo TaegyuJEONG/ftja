@@ -177,6 +177,15 @@ Do not generate a candidate profile from README alone. If a portfolio is too
 large to inspect fully, report the limit and ask the user to select projects
 for deeper review.
 
+### Note from 2026-10-13
+
+Retrieval stays deferred. The amount of material may grow well past a resume
+and a portfolio: one idea is to take in Builder's Diary, a searchable,
+up-to-date portfolio built from a person's AI conversations. To keep that
+possible without touching the pipeline later, each stage should read the
+profile through one place in the code, so the profile's form can change
+behind it.
+
 ### Explicitly out of scope for v1
 
 - vector databases and embeddings;
@@ -298,14 +307,91 @@ of freedom matters.
    judged once per search set (verdicts may legitimately differ) but shown
    once in the digest, labeled with every search that matched it.
 
+### Direction agreed 2026-10-13
+
+Discussed while moving onboarding into the chat, then deferred again:
+onboarding on Windows and macOS comes first.
+
+- A track is a whole pipeline for one position: its own resume, search
+  terms, locations, keywords, exclude words and rubric. One position can
+  still have several search terms ("Product Manager", "AI Product Manager").
+  Only facts about the person are shared (languages read, the Remote check's
+  situation).
+- The Pipeline tab gets a sub-tab per track and a + button.
+- One flow serves three entry points (first setup, the + button, a resume
+  uploaded again under a track): attach the resume, run the profile skill,
+  confirm the proposed keywords, answer the pass / fail / preference
+  questions. What the user confirms is saved to the track's files, and a run
+  reads those files when it starts.
+- Two tracks that use the same resume each keep a copy, so uploading a new
+  one changes one track only.
+- First setup proposes tracks from the resume and completes one; the others
+  stay as drafts that go through the + flow.
+- The profile skill records a hash of the sources it last processed, per
+  track, so a run can say that a file in the track has not been processed.
+- An existing installation becomes one track holding today's settings.
+- Order of work: the track structure with a single track first (no change
+  in behaviour), then several tracks and the sub-tabs.
+
 ### Open questions
 
-- Is a full profile variant per search needed, or is a shared profile plus a
-  per-search emphasis note enough?
+- Does a scheduled run cover every track that is switched on, and can a
+  manual run name one track?
+- The number of searches is tracks x search terms x locations; measure the
+  run time before allowing many tracks.
 - How the Pipeline tab presents multiple sets without overwhelming
   first-time users (default to a single set; reveal more only when added).
 - Cost: running Stage 1/2 once per matching search multiplies LLM calls for
   overlapping searches; measure overlap on real runs before deciding.
+
+## Decision history on the Pipeline tab
+
+### Status
+
+Deferred. Recorded 2026-10-13. Wanted soon, and before several tracks: the
+decisions will then pile up per track.
+
+### Problem
+
+The user's decisions on jobs (apply or skip, with a reason) are saved to
+files and nothing shows them. The user cannot see whether the pipeline is
+getting closer to their own judgment, or which reasons have already become
+rubric lines.
+
+### Proposed design
+
+A read-only section on the Pipeline tab, beside the rubric (the decisions
+are the material for changing the rubric, not the profile):
+
+- how many jobs were applied to and skipped, with the reasons grouped;
+- which reasons are already in the rubric and which `/ftja-review` has not
+  looked at yet;
+- how many postings passed each stage, per run.
+
+The section shows the `/ftja-review` command to type in the chat; the page
+does not reach the agent.
+
+## Compare rubrics on one set of postings
+
+### Status
+
+Deferred. Recorded 2026-10-13. Not urgent.
+
+### Problem
+
+A user may want to try two rubrics on the same postings (for example, a set
+of remote roles already collected) to see which one finds the roles that
+suit them.
+
+### Decided so far
+
+- A run continued later uses the rubric as it is then, not a copy taken when
+  the run started.
+- Each judgment should record which rubric it was made with; without that
+  two results cannot be compared.
+- With tracks (see Per-Search Pipeline Profiles), two tracks that differ
+  only in the rubric, run over the same postings, would give this. The track
+  design should not rule that out.
 
 ## Stage 1 as a screen-out filter (keywords as dealbreaker signals)
 
@@ -453,3 +539,98 @@ Korean needs a morphological analyser, a much heavier dependency.
 Decided 2026-10-12: listing the forms is enough to start with. Take it up
 when a run shows postings in a second language being dropped for a missing
 word form.
+
+## More job boards than LinkedIn
+
+### Problem
+
+FTJA searches LinkedIn only (`SITES = ["linkedin"]` in `ftja/scrape.py`).
+jobspy also reads Indeed, Glassdoor, ZipRecruiter, Bayt, Naukri, BDJobs and,
+from 1.3.0, HelloWork (France). Google Jobs is listed as unavailable.
+
+### What is already in place
+
+- jobspy is called from `ftja/scrape.py` and nowhere else.
+- Stage 0, `seen.db` and the digests read `job_url`, `title`, `company`,
+  `location` and `description`, which jobspy returns for every board.
+- Reposts are grouped by company, title and description, not by URL, so a
+  posting on two boards should be merged. Not tried: boards format the
+  description differently.
+- The tests never call a job board; they write `scrape/<n>.json` themselves.
+  Nothing tests `ftja/scrape.py` against a live board.
+
+### What it takes
+
+- Move from jobspy 1.1.82 to 1.3.0 first. In October 2026 upstream fixed
+  every board's scraper (remote flag, `hours_old`, paging). In 1.3.0
+  `linkedin_fetch_description` is `fetch_description`, LinkedIn's `job_type`
+  is ignored with a warning, and the private page fetch the title-first
+  scrape uses is renamed from `_get_job_details` to `_fetch_details`.
+- Indeed and Glassdoor need `country_indeed`. The search settings have
+  locations only, so a country has to be derived from them or asked for.
+- The batch of 10 with an offset loop, and the gap between search requests,
+  were measured on LinkedIn. Each board needs its own loop: `results_wanted`
+  is per board and page sizes and limits differ (Glassdoor: about 2 requests
+  a second; ZipRecruiter: US and Canada only).
+- Text written for LinkedIn: "Scraping LinkedIn" and the removal of
+  `is_remote` in `ftja/app.html`, the title rule's explanation, the
+  `/ftja-run` and `/ftja-setup` skills.
+- A live check per board and country: result counts, description format,
+  repost merging, blocking. This is where the time goes, not the code.
+
+### Proposed first step
+
+Indeed alone. Its search results carry the description, so there is no page
+fetch per posting; upstream's README says it has no rate limiting; its
+search accepts quotes and `-` (it also searches the description, so it
+returns more unrelated postings).
+
+### Why it is parked
+
+Decided 2026-10-13: the title-first scrape came first. Take this up as its
+own change, after the jobspy upgrade.
+
+## Show the titles a search left out
+
+### Problem
+
+A search scrapes only postings whose title contains its term. A user who
+searches "Product Manager" does not see that LinkedIn also returned 40
+"Product Owner" postings, so they cannot tell which titles to add.
+
+### What is already in place
+
+Every search writes the titles it left out, with how many of each, to
+`.ftja-run/<run>/scrape/<n>.skipped.json`. Nothing reads the file yet, and
+it goes when the run folder is pruned.
+
+### Proposed design
+
+On the run's funnel, under each search term: "Also returned, not scraped:
+Product Owner (42), Chef de produit (31), …", each with a button that adds
+it as a search term. Group titles that differ only in seniority or case.
+Keep the top titles in the run record so they outlive the run folder.
+
+### Why it is parked
+
+Decided 2026-10-13: the rule and its explanation shipped first, with the
+titles recorded so this needs no new scraping.
+
+## Ask before judging a large run
+
+### Problem
+
+Tokens are spent in the Remote check, Stage 1 and Stage 2, not in the
+scrape. With no cap per search, a broad term over a long period can pass
+hundreds of postings to the model without the user having chosen that.
+
+### Proposed design
+
+After Stage 0, when more postings than a threshold wait to be judged, stop
+and say how many, as a run that stops after Stage 0 already does. The user
+continues with `/ftja-run continue` or narrows the search.
+
+### Why it is parked
+
+Decided 2026-10-13: a daily run over 24 hours is small. Take it up when a
+run's token count surprises someone.

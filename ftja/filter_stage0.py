@@ -8,8 +8,8 @@ guaranteed. (Caveat: if criteria.json's `location` is a single string like
 passed to scrape.py — e.g. Singapore, Dubai — are never scraped in the
 first place. That's a scrape-config gap, not something this filter can fix.)
 
-With `title_must_match` set in criteria.json, a job is first dropped unless
-its title contains the search term that found it (see title_matches_search).
+Titles are not filtered here either: the scrape keeps only postings whose
+title contains the search term (title_matches_search, used by ftja/scrape.py).
 
 Keeps a scraped job only if, in order:
   1. the JD's own written language is one the candidate reads (criteria.languages)
@@ -211,7 +211,12 @@ def dedupe_by_content(jobs: list[dict]) -> tuple[list[dict], int]:
     for i, job in enumerate(jobs):
         sig = job.get("_content_hash") or ""
         if sig:
-            union(by_hash.setdefault(sig, i), i)
+            previous = by_hash.setdefault(sig, i)
+            other = jobs[previous]
+            # A short matching tier-1 excerpt is insufficient evidence across
+            # boards: two distinct requisitions can repeat the same boilerplate.
+            if not (job.get("site") and other.get("site") and job["site"] != other["site"]):
+                union(previous, i)
         key = (_normalize_text(job.get("company") or ""), _normalize_title(job.get("title") or ""))
         if all(key):
             by_title.setdefault(key, []).append(i)
@@ -233,8 +238,11 @@ def dedupe_by_content(jobs: list[dict]) -> tuple[list[dict], int]:
     merged_count = 0
     for group in groups.values():
         rep = dict(group[0])
+        rep["sources"] = list(dict.fromkeys(
+            source for item in group for source in
+            (item.get("sources") or ([item["site"]] if item.get("site") else []))))
         if len(group) > 1:
-            rep["_duplicate_job_urls"] = [j["job_url"] for j in group[1:]]
+            rep["_duplicate_job_urls"] = list(dict.fromkeys(j["job_url"] for j in group[1:]))
             others = list(dict.fromkeys(j.get("location") for j in group[1:]
                                         if j.get("location") and j.get("location") != rep.get("location")))
             if others:
@@ -285,8 +293,6 @@ def filter_stage0(jobs: list[dict], criteria: dict, dropped_jobs: list[dict] | N
     if marked:  # a keyword of a language the candidate no longer reads is switched off (see ftja.keywords)
         from ftja.keywords import active
         tier1 = active(tier1, marked, languages)
-    search_terms = criteria.get("search_terms") or []
-    title_rule = bool(criteria.get("title_must_match")) and bool(search_terms)
 
     passed = []
     dropped = {"language": 0, "no_tier1_hit": 0, "exclude_keyword": 0, "language_requirement": 0}
@@ -296,12 +302,7 @@ def filter_stage0(jobs: list[dict], criteria: dict, dropped_jobs: list[dict] | N
         from ftja.remote import blocks_for as remote_blocks_for
         if remote.get("drop_without_keywords", True):
             dropped["no_remote_keyword"] = 0
-    if title_rule:
-        dropped = {"title_mismatch": 0, **dropped}
     for job in jobs:
-        if title_rule and not title_matches_search(job, search_terms):
-            dropped["title_mismatch"] += 1
-            continue
         if not passes_language(job, languages):
             dropped["language"] += 1
             continue

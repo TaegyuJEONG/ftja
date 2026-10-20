@@ -9,6 +9,21 @@ digests — are never touched by an update.
 
 ### What changes for you after updating
 
+- **Only postings whose title contains your search term are scraped.**
+  "Product Manager" finds "Senior Product Manager" and "AI Product
+  Manager"; it no longer brings back "Product Owner", "Strategy Lead" or
+  "Chef de produit", which LinkedIn's search returns alongside. If you
+  want those, add each as its own search term. This used to be a setting,
+  off unless you ticked it: it is now how every search works, so check
+  your search terms after updating. `/ftja-setup` proposes the other names
+  a job goes by, in the languages you read.
+- **"Max results per search" is gone.** A search scrapes every matching
+  posting and ends when LinkedIn's results stop containing the term.
+  Runs are shorter: the pages of postings that do not match are no longer
+  read, and those were most of a scrape's time.
+- **A run shows how many postings it searched through.** Next to each
+  search term: how many postings were scraped, and out of how many
+  LinkedIn returned for that search ("37 of 298").
 - **Setup happens in the chat.** `/ftja-setup` asks for your resume
   (attach it, or say where it is; it is kept in your FTJA folder's
   `profile/`), drafts your profile summary, proposes your search settings

@@ -264,7 +264,7 @@ def test_a_run_with_the_remote_check_before_stage1_and_stage2(project, capsys):
     run_dir = run["run_dir"]
     assert run["stages"] == ["remote", "stage1", "stage2"] and run["criteria_snapshot"]["stages"] == run["stages"]
     remote.save_config(project, config(drop_without_keywords=False))  # edited mid-run: the run keeps its own copy
-    scrape(run_dir)
+    scrape(run_dir, [{**job, "site": "linkedin", "sources": ["linkedin"]} for job in JOBS])
     counts = live.stage0(run_dir, project, db)
     assert counts["passed"] == 2 and counts["dropped"]["no_remote_keyword"] == 1 and counts["dropped"]["no_tier1_hit"] == 1
 
@@ -286,6 +286,7 @@ def test_a_run_with_the_remote_check_before_stage1_and_stage2(project, capsys):
     assert state["remote"] == {"total": 2, "pass": 1, "fail": 1, "pending": 0} and state["stages"] == run["stages"]
     failed = live.remote_jobs(project, db, run["run_id"])
     assert failed["total"] == 1 and failed["jobs"][0]["company"] == "Beta"
+    assert failed["jobs"][0]["sources"] == ["linkedin"]
     assert failed["jobs"][0]["reason"] == "Remote level: Hybrid: regular office days (3 days a week in the Lyon office)"
 
     assert live.prepare_stage1(run_dir, project)["jobs"] == 1  # only what the Remote check let through
@@ -318,6 +319,7 @@ def test_a_run_with_the_remote_check_before_stage1_and_stage2(project, capsys):
 
     after = live.remote_jobs(project, db, run["run_id"])  # now from seen.db
     assert after["total"] == 1 and after["jobs"][0]["reason"].startswith("Remote level: Hybrid") and after["jobs"][0]["decided_by"] == "rule"
+    assert after["jobs"][0]["sources"] == ["linkedin"]
     passed = live.remote_jobs(project, db, run["run_id"], verdict="pass", page_size=None)
     assert [j["company"] for j in passed["jobs"]] == ["Alpha"] and passed["jobs"][0]["answers"][0]["detail"] == "Remote within the EU"
     assert passed["jobs"][0]["reason"] == "Fully remote within the EU." and passed["jobs"][0]["evidence_sids"]

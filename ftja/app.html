@@ -170,6 +170,16 @@ select { -webkit-appearance: none; appearance: none; background-image: url("data
 .card-title { font-size: 15px; font-weight: 600; color: var(--text); }
 .card-title .repost-note { font-size: 11px; color: var(--text3); font-weight: 400; }
 .card-company { color: var(--text2); font-size: 12px; margin-top: 2px; }
+.source-icons { display: inline-flex; gap: 4px; margin-left: 7px; vertical-align: middle; }
+.source-icon { display: inline-flex; align-items: center; justify-content: center; width: 19px; height: 19px; border-radius: 3px; color: white; font: bold 12px Arial, sans-serif; }
+.source-icon.linkedin { background: #0a66c2; }
+.source-icon.indeed { background: #2557a7; }
+.source-icon.glassdoor { background: #0caa41; font-size: 11px; }
+.source-icon.zip_recruiter { background: #1864ab; font-size: 10px; }
+.source-icon.bayt { background: #2559b5; font-size: 10px; }
+.source-icon.naukri { background: #3659a2; font-size: 10px; }
+.source-icon.bdjobs { background: #e45635; font-size: 9px; }
+.source-icon.hellowork { background: #dc3b66; font-size: 9px; }
 .badge {
   font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; font-weight: 600;
   padding: 4px 10px; border-radius: 999px; flex-shrink: 0; white-space: nowrap;
@@ -298,12 +308,23 @@ select { -webkit-appearance: none; appearance: none; background-image: url("data
 .badge.judging { color: var(--text3); background: transparent; border: 1px solid var(--border2); }
 .funnel-row.waiting .funnel-content { color: var(--text3); }
 .funnel-content .n-open { color: var(--text3); }
-.term-list { margin: 8px 0 6px; display: grid; grid-template-columns: minmax(0, max-content) minmax(40px, 1fr) max-content; column-gap: 12px; row-gap: 5px; align-items: center; max-width: 520px; }
-.term-list .term { font-size: 12px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.term-list { margin: 8px 0 6px; display: grid; grid-template-columns: minmax(170px, 1.5fr) minmax(40px, 1fr) max-content; column-gap: 12px; row-gap: 5px; align-items: center; max-width: 800px; }
+.term-list .term { font-size: 12px; color: var(--text2); min-width: 0; }
+.term-list .term-meta { display: block; color: var(--text3); font-size: 11px; margin-top: 1px; }
 .term-list .bar { height: 2px; background: var(--border); }
 .term-list .bar i { display: block; height: 100%; background: var(--accent); transition: width .5s ease; }
 .term-list .count { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text); text-align: right; }
 .term-list .count small { color: var(--text3); font-size: 10.5px; }
+.scrape-source-tabs { display: flex; gap: 6px; margin: 9px 0 6px; }
+.scrape-source-tab { border: 1px solid var(--border); background: transparent; color: var(--text2); border-radius: 5px; padding: 4px 9px; cursor: pointer; font: inherit; font-size: 11px; }
+.scrape-source-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
+.scrape-source-panel[hidden] { display: none; }
+.scrape-source-scroll { max-height: 310px; overflow-y: auto; padding-right: 7px; }
+.scrape-title-group { margin: 5px 0 12px; }
+.scrape-title-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; border-bottom: 1px solid var(--border); padding: 4px 0; color: var(--text); font-size: 12px; }
+.scrape-title-head small { color: var(--text3); font-size: 10.5px; white-space: nowrap; }
+.scrape-location-list { display: grid; grid-template-columns: minmax(150px, 1fr) minmax(40px, 1fr) max-content; column-gap: 12px; row-gap: 5px; align-items: center; }
+.scrape-location-list .place { color: var(--text2); font-size: 11px; }
 .conditions { font-size: 11.5px; color: var(--text3); margin-top: 6px; }
 .conditions b { color: var(--text2); font-weight: 600; }
 .link-btn {
@@ -430,6 +451,11 @@ button.save-btn {
 button.save-btn:hover { background: var(--accent); }
 button.save-btn:disabled { opacity: .45; cursor: default; }
 .saved-note { font-size: 11px; color: var(--success); margin-top: 8px; display: none; }
+.location-notes { font-size: 11.5px; color: var(--text2); line-height: 1.5; margin: 8px 0; }
+.location-notes p { margin: 3px 0; }
+.source-choice { display: flex !important; align-items: baseline; gap: 7px; margin: 0 0 7px !important; }
+.source-choice input[type="checkbox"] { accent-color: var(--accent-strong); }
+.source-choice small { color: var(--text3); font: 11px system-ui, sans-serif; }
 
 /* pagination */
 .pagination { display: flex; gap: 6px; margin-top: 14px; flex-wrap: wrap; }
@@ -702,9 +728,9 @@ async function loadRuns() {
 function renderRunList() {
   const list = document.getElementById('run-list');
   const liveItem = liveRun ? `<div class="run-item ${liveSelected ? 'selected' : ''}" data-live="1">
-      <span class="live-badge">${liveRun.replay ? 'Replay' : 'Running'}</span>
+      <span class="live-badge">${liveRun.scrape_error ? 'Paused' : liveRun.scrape_preview ? 'Scrape test' : liveRun.replay ? 'Replay' : 'Running'}</span>
       <span class="date">${esc(fmtDate(liveRun.replay_of || liveRun.ts_start))}</span>
-      <span class="pass-badge">${fmtN((liveRun.stage2 || {}).passed || 0)} passed</span>
+      <span class="pass-badge">${liveRun.scrape_preview ? fmtN((liveRun.stage0 || {}).passed || 0) + ' kept' : fmtN((liveRun.stage2 || {}).passed || 0) + ' passed'}</span>
       <span class="muted">${fmtN(liveRun.scrape.total)} scraped${liveRun.stage1 ? ' · ' + fmtN(liveRun.stage1.pass + liveRun.stage1.fail) + ' evaluated' : ''}</span>
     </div>` : '';
   if (runs.length === 0 && !liveRun) {
@@ -766,10 +792,14 @@ function runStages(snapshot, given) {
   if (Array.isArray(cs.stages) && cs.stages.length) return cs.stages;
   return cs.stage1_only ? ['stage1'] : ['stage1', 'stage2'];  // recorded before there were switches
 }
+let selectedScrapeSource = 'linkedin';
+const SCRAPE_SOURCES = {linkedin: 'LinkedIn', indeed: 'Indeed', glassdoor: 'Glassdoor',
+  zip_recruiter: 'ZipRecruiter', bayt: 'Bayt', naukri: 'Naukri', bdjobs: 'BDJobs', hellowork: 'HelloWork'};
+const SCRAPE_SELECTABLE = ['linkedin', 'indeed', 'glassdoor', 'bayt'];
 
 // The run's funnel, for a finished run (numbers from runs.jsonl) and for a
 // run in progress (numbers from /api/live) alike. `v`:
-//   {runId, live, scraped, terms: [{term, count, wanted, done}]|null, cs,
+//   {runId, live, scraped, terms: [{term, count, read, wanted, done}]|null, cs,
 //    stages: ['remote', 'stage1', 'stage2'] (the ones this run does),
 //    stage0: {passed, dropped}|null, skip, remote: {pass, fail, pending}|null,
 //    stage1: {pass, fail, pending}|null, stage2: {passed, review, fail, pending}|null,
@@ -777,28 +807,61 @@ function runStages(snapshot, given) {
 function funnelHtml(v) {
   const cs = v.cs || {};
   const wanted = cs.results_wanted;
-  let scrape = `<div class="line">Scraped <b>${count('scraped', v.scraped)}</b></div>`;
+  // `read`: search results the selected sources returned, before title filtering
+  const read = v.terms && v.terms.length && v.terms.every(t => t.read != null) ? v.terms.reduce((n, t) => n + t.read, 0) : null;
+  let scrape = `<div class="line">Scraped <b>${count('scraped', v.scraped)}</b>${read != null
+    ? ` — title contains the search term, out of <b>${count('read', read)}</b> postings returned by the selected sources` : ''}</div>`;
+  if (v.scrapeError) scrape += `<div class="line">Paused: ${esc(v.scrapeError)}</div>`;
   if (v.terms && v.terms.length) {
-    scrape += `<div class="term-list">${v.terms.map((t, i) => {
-      const cap = t.wanted || wanted || 0;
+    const rowHtml = (t, i, grouped = false) => {
+      const cap = t.read != null ? t.read : (t.wanted || wanted || 0);  // before `read`: the cap per search
       const pct = cap ? Math.min(100, Math.round(100 * (t.count || 0) / cap)) : (t.done ? 100 : 0);
-      const where = (cs.locations || []).length > 1 && t.location ? ` <small>· ${esc(t.location)}</small>` : '';  // several locations: say which
-      return `<span class="term">${esc(t.term)}${where}</span><span class="bar"><i style="width:${pct}%"></i></span>
-        <span class="count">${count('term' + i, t.count)}${cap ? ` <small>/ ${fmtN(cap)}</small>` : ''}</span>`;
-    }).join('')}</div>`;
+      const source = SCRAPE_SOURCES[t.site] || '';
+      const place = t.display_location || (t.site === 'indeed' && t.location && t.country_indeed && !t.location.includes(t.country_indeed)
+        ? `${t.location}, ${t.country_indeed}` : (t.location || t.country_indeed || t.search_location || ''));
+      const where = [source, place].filter(Boolean).join(' · ');
+      const of = t.read != null ? ` <small>of ${count('read' + i, t.read)}</small>` : (cap ? ` <small>/ ${fmtN(cap)}</small>` : '');
+      return `<span class="${grouped ? 'place' : 'term'}">${grouped ? esc(place || 'Any location') : `${esc(t.term)}${where ? `<span class="term-meta">${esc(where)}</span>` : ''}`}</span><span class="bar"><i style="width:${pct}%"></i></span>
+        <span class="count">${count('term' + i, t.count)}${of}</span>`;
+    };
+    if (v.terms.some(t => t.site)) {
+      const sources = Object.keys(SCRAPE_SOURCES).filter(site => v.terms.some(t => t.site === site));
+      const chosen = sources.includes(selectedScrapeSource) ? selectedScrapeSource : sources[0];
+      scrape += `<div class="scrape-source-tabs">${sources.map(site => {
+        const items = v.terms.filter(t => t.site === site);
+        const label = SCRAPE_SOURCES[site];
+        return `<button type="button" class="scrape-source-tab ${site === chosen ? 'active' : ''}" data-scrape-source="${site}">${label} · ${fmtN(items.reduce((n, t) => n + (t.count || 0), 0))}</button>`;
+      }).join('')}</div>`;
+      scrape += sources.map(site => {
+        const groups = new Map();
+        v.terms.forEach((t, i) => { if (t.site === site) { if (!groups.has(t.term)) groups.set(t.term, []); groups.get(t.term).push({t, i}); } });
+        const content = [...groups.entries()].map(([term, items]) => `<div class="scrape-title-group">
+          <div class="scrape-title-head"><b>${esc(term)}</b><small>${v.live ? items.filter(({t}) => t.done).length : items.length}/${items.length} locations · ${fmtN(items.reduce((n, {t}) => n + (t.count || 0), 0))} found</small></div>
+          <div class="scrape-location-list">${items.map(({t, i}) => rowHtml(t, i, true)).join('')}</div>
+        </div>`).join('');
+        return `<div class="scrape-source-panel" data-scrape-panel="${site}" ${site === chosen ? '' : 'hidden'}><div class="scrape-source-scroll">${content}</div></div>`;
+      }).join('');
+    } else {
+      scrape += `<div class="term-list">${v.terms.map((t, i) => rowHtml(t, i)).join('')}</div>`;
+    }
   } else if (cs.search_terms) {
     scrape += `<div class="chips">${cs.search_terms.map(t => `<span class="chip">${esc(t)}</span>`).join('')}</div>`;
   }
   if (v.cs) {
     const parts = [`Location <b>${esc((cs.locations || []).filter(Boolean).join(', ') || cs.location || 'anywhere')}</b>`,
-      `Posted within <b>${esc(cs.hours_old)} hours</b>`, `Up to <b>${fmtN(wanted)}</b> per search${(cs.locations || []).length > 1 ? ' (each term in each location)' : ' term'}`];
-    if (cs.title_must_match) parts.push(`<b>Title must contain the search term</b>`);
+      `Posted within <b>${esc(cs.hours_old)} hours</b>`];
+    // a run from before titles always had to match: it had a cap per search, and the title rule was a setting
+    if (wanted) parts.push(`Up to <b>${fmtN(wanted)}</b> per search${(cs.locations || []).length > 1 ? ' (each term in each location)' : ' term'}`);
+    if (cs.title_must_match || !wanted) parts.push(`<b>Title contains the search term</b>`);
     const planned = runStages(cs);  // as the run was started, before any Continue
-    if (planned.includes('remote') || !planned.includes('stage1')) parts.push(`Stages <b>${planned.map(x => x === 'remote' ? 'Remote check' : STAGE_LABELS[x]).join(' → ')}</b>`);
-    if (planned[planned.length - 1] !== 'stage2') parts.push(`<b>Stops after ${STAGE_LABELS[planned[planned.length - 1]]}</b>`);
+    if (v.scrapePreview) parts.push('<b>Scrape test only</b>');
+    else {
+      if (planned.includes('remote') || !planned.includes('stage1')) parts.push(`Stages <b>${planned.map(x => x === 'remote' ? 'Remote check' : STAGE_LABELS[x]).join(' → ')}</b>`);
+      if (planned[planned.length - 1] !== 'stage2') parts.push(`<b>Stops after ${STAGE_LABELS[planned[planned.length - 1]]}</b>`);
+    }
     scrape += `<div class="conditions">${parts.join(' · ')}</div>`;
   }
-  const stages = runStages(cs, v.stages);
+  const stages = v.scrapePreview ? [] : runStages(cs, v.stages);
   const has = name => stages.includes(name);
   const last = stages[stages.length - 1];
 
@@ -807,8 +870,8 @@ function funnelHtml(v) {
   // The row being worked on: the first of the run's stages that is not done;
   // until that stage's files exist, the row before it is still the busy one.
   let active = '';
-  if (v.live && !v.stage0) active = 'scrape';
-  else if (v.live) {
+  if (v.live && !v.stage0 && !v.scrapeError) active = 'scrape';
+  else if (v.live && !v.scrapePreview) {
     const data = {remote: v.remote, stage1: v.stage1, stage2: v.stage2};
     const next = stages.find(name => !data[name] || data[name].pending || name === 'stage2');
     if (next) active = data[next] ? next : (stages.indexOf(next) ? stages[stages.indexOf(next) - 1] : 'stage0');
@@ -817,6 +880,7 @@ function funnelHtml(v) {
   // A stage this run does not do: say whether it can still be run on what is waiting.
   let goneSaid = false;
   const notRun = name => {
+    if (v.scrapePreview) return '<div class="line empty">Not run — scrape test only.</div>';
     if (v.stage2Pending && STAGE_ORDER.indexOf(name) > STAGE_ORDER.indexOf(v.stoppedAfter || 'stage1')) {
       const lead = `Not run — this run stopped after ${STAGE_LABELS[v.stoppedAfter || 'stage1']}. <b>${fmtN(v.stage2Pending)}</b> ${v.stage2Pending === 1 ? 'posting is' : 'postings are'} waiting.`;
       if ((v.continueTo || []).includes(name)) {
@@ -896,9 +960,19 @@ function tweenCounts(root, animate) {
 }
 
 function bindFunnel(el) {
+  el.querySelectorAll('[data-scrape-source]').forEach(b => b.addEventListener('click', () => {
+    selectedScrapeSource = b.dataset.scrapeSource;
+    el.querySelectorAll('[data-scrape-source]').forEach(tab => tab.classList.toggle('active', tab === b));
+    el.querySelectorAll('[data-scrape-panel]').forEach(panel => { panel.hidden = panel.dataset.scrapePanel !== selectedScrapeSource; });
+  }));
   el.querySelectorAll('[data-continue-run]').forEach(b => b.addEventListener('click', () => openContinueRun(b.dataset.continueRun, parseInt(b.dataset.waiting, 10), b.dataset.to || 'stage2', b.dataset.after || 'stage1')));
   el.querySelectorAll('[data-remote-jobs]').forEach(b => b.addEventListener('click', () => openRemoteJobs(b.dataset.remoteJobs, b.dataset.verdict || 'fail')));
   el.querySelectorAll('[data-stage1-fails]').forEach(b => b.addEventListener('click', () => openStage1Fails(b.dataset.stage1Fails, b.dataset.verdict || 'fail')));
+}
+
+function restoreScrapeScroll(el, top) {
+  const scroll = el.querySelector(`[data-scrape-panel="${selectedScrapeSource}"] .scrape-source-scroll`);
+  if (scroll) scroll.scrollTop = top;
 }
 
 function renderRunDetail() {
@@ -908,6 +982,7 @@ function renderRunDetail() {
     el.innerHTML = '';  // an empty box is not drawn (see the :empty rule)
     return;
   }
+  const scrollTop = el.querySelector(`[data-scrape-panel="${selectedScrapeSource}"] .scrape-source-scroll`)?.scrollTop || 0;
   el.innerHTML = funnelHtml({
     runId: run.run_id, live: false, scraped: run.scraped_count, terms: run.scraped_by_term || null, cs: run.criteria_snapshot,
     stage0: {passed: run.stage0_passed, dropped: run.stage0_dropped}, skip: run.already_seen_skipped,
@@ -918,6 +993,7 @@ function renderRunDetail() {
   });
   shownCounts = {};
   bindFunnel(el);
+  restoreScrapeScroll(el, scrollTop);
 }
 
 // ---- a run in progress ----
@@ -971,13 +1047,16 @@ function renderLive() {
   const view = {
     runId: run.run_id, live: true, scraped: run.stage0 ? run.stage0.scraped : run.scrape.total, terms: run.scrape.terms, cs: run.criteria_snapshot,
     stage0: run.stage0, skip: null, stages: run.stages, remote: run.remote, stage1: run.stage1, stage2: run.stage2, continued: !!run.continued_at,
-    meta: !run.replay ? ''
+    scrapePreview: !!run.scrape_preview, scrapeError: run.scrape_error,
+    meta: run.scrape_preview ? 'Scrape test complete. These postings passed the code-only filter; no AI judgment was run or saved.'
+      : !run.replay ? ''
       : run.replay_sample ? `Replay of a sample of the ${esc(fmtDate(run.replay_of))} run, as if each search term were capped. Verdicts are from that run; counts are scaled down and the timing is compressed.`
       : `Replay of the ${esc(fmtDate(run.replay_of))} run. Every number and verdict is from that run; the timing is compressed.`,
   };
   const key = JSON.stringify(view);
   if (key !== liveFunnelKey) {
     const el = document.getElementById('run-detail');
+    const scrollTop = el.querySelector(`[data-scrape-panel="${selectedScrapeSource}"] .scrape-source-scroll`)?.scrollTop || 0;
     el.innerHTML = funnelHtml(view);
     // Stage 0 finishes in one step (it is code); its result is laid out one
     // drop reason at a time, each counting up from zero
@@ -992,7 +1071,19 @@ function renderLive() {
     }
     tweenCounts(el, liveFunnelKey !== '');
     bindFunnel(el);
+    restoreScrapeScroll(el, scrollTop);
     liveFunnelKey = key;
+  }
+
+  if (run.scrape_preview) {
+    document.getElementById('status-tabs').innerHTML = `<div class="status-tab mono active">Kept after code filter ${fmtN(run.jobs.length)}</div>`;
+    document.getElementById('job-list').innerHTML = run.jobs.map(job => `<div class="job-card live">
+      <div class="card-head"><div><div class="card-title">${esc(job.title || '')}</div>
+      <div class="card-company">${esc(job.company || '')}${job.location ? ' · ' + esc(job.location) : ''}${sourceIcons(job.sources || [])}</div></div>
+      <span class="badge pass mono">Kept</span></div>
+      <div class="link"><a href="${esc(job.job_url || '')}" target="_blank">${esc(job.job_url || '')}</a></div>
+    </div>`).join('');
+    return;
   }
 
   const s2 = run.stage2 || {total: 0, passed: 0, review: 0, fail: 0};
@@ -1004,7 +1095,7 @@ function renderLive() {
 
   const note = document.getElementById('live-note');
   if (note) {
-    const doing = !run.stage0 ? 'Scraping LinkedIn'
+    const doing = run.scrape_error ? '' : !run.stage0 ? 'Scraping ' + ((run.cs && run.cs.sites) || ['linkedin']).map(s => SCRAPE_SOURCES[s] || s).join(' and ')
       : (run.remote && run.remote.pending) ? 'The Remote check is reading the sentences around your remote keywords'
       : (!run.stage1 && !run.remote) ? 'Filtering with code'
       : (run.stage1 && !run.stage2) ? 'Stage 1 is reading the sentences around your keywords' : '';
@@ -1209,7 +1300,7 @@ async function openRemoteJobs(runId, verdict = 'fail') {
       const keywords = [...new Set((j.blocks || []).flatMap(b => b.keywords || []))];
       return `
       <div class="s1-row">
-        <div class="s1-title"><a href="${esc(j.job_url)}" target="_blank">${esc(j.title)}</a> <span>— ${esc(j.company)}${j.location ? ' · ' + esc(j.location) : ''}</span></div>
+        <div class="s1-title"><a href="${esc(j.job_url)}" target="_blank">${esc(j.title)}</a> <span>— ${esc(j.company)}${j.location ? ' · ' + esc(j.location) : ''}</span>${sourceIcons(j.sources)}</div>
         ${j.reason ? `<div class="s1-reason">${j.decided_by === 'rule' ? '<b>Marked ✕ by you</b> — ' : ''}${esc(j.reason)}${(j.evidence_sids || []).map(sid => (j.blocks || []).find(b => b.sid === sid)).filter(Boolean).map(b => `<div class="ra-quote">${quoteText(b.sentence)}</div>`).join('')}</div>` : ''}
         ${j.pruned_at ? `<div class="pruned-note">The details were removed on ${esc(fmtDate(j.pruned_at))} to save space.</div>` : remoteAnswersHtml(j.answers, j.blocks)}
         ${(j.blocks || []).length ? fold(`Everything it read · ${plural(j.blocks.length, 'sentence')}`,
@@ -1453,7 +1544,7 @@ function jobCardInner(job) {
     <div class="card-head">
       <div>
         <div class="card-title">${esc(job.title)}${repostNote}</div>
-        <div class="card-company">${esc(job.company)}${job.location ? ' · ' + esc(job.location) : ''}</div>
+        <div class="card-company">${esc(job.company)}${job.location ? ' · ' + esc(job.location) : ''}${sourceIcons(job.sources)}</div>
         ${job.company_line ? `<div class="company-line">${esc(job.company_line)}</div>` : ''}
       </div>
       <span class="badge ${badgeClass} mono">${badgeText}</span>
@@ -1555,6 +1646,12 @@ let pipelineConfig = null;
 // Display names come from Unicode CLDR via Babel's language database.
 const LANGUAGE_NAMES = {"aa":"Afar","ab":"Abkhazian","ae":"Avestan","af":"Afrikaans","ak":"Akan","am":"Amharic","an":"Aragonese","ar":"Arabic","as":"Assamese","av":"Avaric","ay":"Aymara","az":"Azerbaijani","ba":"Bashkir","be":"Belarusian","bg":"Bulgarian","bh":"bh","bi":"Bislama","bm":"Bambara","bn":"Bangla","bo":"Tibetan","br":"Breton","bs":"Bosnian","ca":"Catalan","ce":"Chechen","ch":"Chamorro","co":"Corsican","cr":"Cree","cs":"Czech","cu":"Church Slavic","cv":"Chuvash","cy":"Welsh","da":"Danish","de":"German","dv":"Divehi","dz":"Dzongkha","ee":"Ewe","el":"Greek","en":"English","eo":"Esperanto","es":"Spanish","et":"Estonian","eu":"Basque","fa":"Persian","ff":"Fulah","fi":"Finnish","fj":"Fijian","fo":"Faroese","fr":"French","fy":"Western Frisian","ga":"Irish","gd":"Scottish Gaelic","gl":"Galician","gn":"Guarani","gu":"Gujarati","gv":"Manx","ha":"Hausa","he":"Hebrew","hi":"Hindi","ho":"Hiri Motu","hr":"Croatian","ht":"Haitian Creole","hu":"Hungarian","hy":"Armenian","hz":"Herero","ia":"Interlingua","id":"Indonesian","ie":"Interlingue","ig":"Igbo","ii":"Sichuan Yi","ik":"Inupiaq","in":"in","io":"Ido","is":"Icelandic","it":"Italian","iu":"Inuktitut","ja":"Japanese","jv":"Javanese","ka":"Georgian","kg":"Kongo","ki":"Kikuyu","kj":"Kuanyama","kk":"Kazakh","kl":"Kalaallisut","km":"Khmer","kn":"Kannada","ko":"Korean","kr":"Kanuri","ks":"Kashmiri","ku":"Kurdish","kv":"Komi","kw":"Cornish","ky":"Kyrgyz","la":"Latin","lb":"Luxembourgish","lg":"Ganda","li":"Limburgish","ln":"Lingala","lo":"Lao","lt":"Lithuanian","lu":"Luba-Katanga","lv":"Latvian","mg":"Malagasy","mh":"Marshallese","mi":"Māori","mk":"Macedonian","ml":"Malayalam","mn":"Mongolian","mr":"Marathi","ms":"Malay","mt":"Maltese","my":"Burmese","na":"Nauru","nb":"Norwegian Bokmål","nd":"North Ndebele","ne":"Nepali","ng":"Ndonga","nl":"Dutch","nn":"Norwegian Nynorsk","no":"Norwegian","nr":"South Ndebele","nv":"Navajo","ny":"Nyanja","oc":"Occitan","oj":"Ojibwa","om":"Oromo","or":"Odia","os":"Ossetic","pa":"Punjabi","pi":"Pali","pl":"Polish","ps":"Pashto","pt":"Portuguese","qu":"Quechua","rm":"Romansh","rn":"Rundi","ro":"Romanian","ru":"Russian","rw":"Kinyarwanda","sa":"Sanskrit","sc":"Sardinian","sd":"Sindhi","se":"Northern Sami","sg":"Sango","si":"Sinhala","sk":"Slovak","sl":"Slovenian","sm":"Samoan","sn":"Shona","so":"Somali","sq":"Albanian","sr":"Serbian","ss":"Swati","st":"Southern Sotho","su":"Sundanese","sv":"Swedish","sw":"Swahili","ta":"Tamil","te":"Telugu","tg":"Tajik","th":"Thai","ti":"Tigrinya","tk":"Turkmen","tl":"Tagalog","tn":"Tswana","to":"Tongan","tr":"Turkish","ts":"Tsonga","tt":"Tatar","tw":"Twi","ty":"Tahitian","ug":"Uyghur","uk":"Ukrainian","ur":"Urdu","uz":"Uzbek","ve":"Venda","vi":"Vietnamese","vo":"Volapük","wa":"Walloon","wo":"Wolof","xh":"Xhosa","yi":"Yiddish","yo":"Yoruba","za":"Zhuang","zh":"Chinese","zu":"Zulu"};
 const LANGUAGE_CODES = Object.keys(LANGUAGE_NAMES);
+const LOCATION_OPTIONS = `EU|European Union|Europe|MENA|Middle East and North Africa|Albania|Andorra|Argentina|Australia|Austria|Bahrain|Bangladesh|Belarus|Belgium|Bosnia and Herzegovina|Bulgaria|Brazil|Canada|Chile|China|Colombia|Costa Rica|Croatia|Cyprus|Czech Republic|Denmark|Ecuador|Egypt|Estonia|Finland|France|Germany|Greece|Hong Kong|Hungary|Iceland|India|Indonesia|Ireland|Israel|Italy|Japan|Kosovo|Kuwait|Latvia|Liechtenstein|Lithuania|Luxembourg|Malaysia|Malta|Mexico|Moldova|Monaco|Montenegro|Morocco|Netherlands|New Zealand|Nigeria|North Macedonia|Norway|Oman|Pakistan|Panama|Peru|Philippines|Poland|Portugal|Qatar|Romania|Russia|San Marino|Saudi Arabia|Serbia|Singapore|Slovakia|Slovenia|South Africa|South Korea|Spain|Sweden|Switzerland|Taiwan|Thailand|Turkey|Ukraine|United Arab Emirates|UK|United Kingdom|USA|United States|Uruguay|Vatican City|Venezuela|Vietnam|Paris, France|Berlin, Germany|London, UK|Amsterdam, Netherlands|Dubai, United Arab Emirates`.split('|');
+function sourceIcons(sources) {
+  const marks = {linkedin: 'in', indeed: 'i', glassdoor: 'g', zip_recruiter: 'Z',
+    bayt: 'B', naukri: 'N', bdjobs: 'BD', hellowork: 'HW'};
+  return `<span class="source-icons">${(sources || []).filter(s => SCRAPE_SOURCES[s]).map(s => `<span class="source-icon ${s}" title="${SCRAPE_SOURCES[s]}" aria-label="${SCRAPE_SOURCES[s]}">${marks[s]}</span>`).join('')}</span>`;
+}
 const LANGUAGE_OPTIONS = LANGUAGE_CODES
   .map(code => ({code, name: LANGUAGE_NAMES[code]}))
   .sort((a, b) => a.name.localeCompare(b.name));
@@ -1563,8 +1660,10 @@ function renderChipInput(id, values) {
   const chips = (values || []).map(v => chipTagHtml(v, id === 'cfg-languages' ? languageLabel(v) : v)).join('');
   const placeholder = id === 'cfg-languages' ? 'Choose languages' : 'Type and press Enter';
   const picker = id === 'cfg-languages' ? '<div class="language-options" role="listbox"></div>' : '';
-  const inner = `<div class="chip-input" id="${id}">${chips}<input type="text" class="chip-input-field" placeholder="${placeholder}" autocomplete="off"></div>`;
-  return id === 'cfg-languages' ? `<div class="language-picker">${inner}${picker}</div>` : inner;
+  const locList = id === 'cfg-locations' ? ' list="location-options"' : '';
+  const inner = `<div class="chip-input" id="${id}">${chips}<input type="text" class="chip-input-field" placeholder="${placeholder}" autocomplete="off"${locList}></div>`;
+  return id === 'cfg-languages' ? `<div class="language-picker">${inner}${picker}</div>`
+    : id === 'cfg-locations' ? `${inner}<datalist id="location-options">${LOCATION_OPTIONS.map(v => `<option value="${esc(v)}">`).join('')}</datalist>` : inner;
 }
 function chipTagHtml(v, label = v) {
   return `<span class="chip-tag">${esc(label)}<button type="button" class="chip-remove" data-value="${esc(v)}" aria-label="Remove ${esc(label)}">&times;</button></span>`;
@@ -1653,12 +1752,22 @@ function getChipValues(id) {
   return [...document.querySelectorAll(`#${id} .chip-tag`)].map(el => el.querySelector('.chip-remove').dataset.value);
 }
 
+function locationNotesHtml(warnings) {
+  return (warnings || []).map(warning => `<p>${esc(warning)}</p>`).join('');
+}
+
 async function saveConfig(payload, btn) {
   const res = await fetch('/api/config', {
     method: 'POST', headers: {'Content-Type': 'application/json'},
     body: JSON.stringify(payload)
   });
   if (res.ok) {
+    const result = await res.json().catch(() => ({}));
+    if (payload.criteria) {
+      pipelineConfig.location_warnings = result.location_warnings || [];
+      const notes = document.getElementById('cfg-location-notes');
+      if (notes) notes.innerHTML = locationNotesHtml(pipelineConfig.location_warnings);
+    }
     const scope = btn.closest('.card, .profile-sources') || document;
     const note = btn.parentElement.querySelector('.saved-note') || scope.querySelector('.saved-note');
     if (note) { note.style.display = 'inline'; setTimeout(() => { note.style.display = 'none'; }, 1500); }
@@ -2362,15 +2471,12 @@ function renderConfigSection() {
 <div class="section">
   <div class="section-title"><span class="num">1</span>Scraping criteria</div>
   <div class="card">
-    <div class="explain">Searches LinkedIn directly: every search term in every location.</div>
+    <div class="explain">Searches the selected sources for each search term and location. Choose a country, EU (27 countries), Europe (includes Switzerland and the UK), MENA, or type City, Country. Regional searches expand only to countries configured in the current scraper. Non-LinkedIn sources read up to 100 results per term and location. Glassdoor's posted-within filter uses whole days. Only postings whose title contains the search term are kept.</div>
     <div class="field"><label>Search terms</label>${renderChipInput('cfg-search-terms', c.search_terms)}</div>
     <div class="field"><label>Locations</label>${renderChipInput('cfg-locations', (c.locations || []).length ? c.locations : (c.location ? [c.location] : []))}</div>
-    <div class="field-row">
-      <div class="field"><label>Posted within (hours)</label><input type="number" id="cfg-hours-old" value="${esc(c.hours_old)}"></div>
-      <div class="field"><label>Max results per search (term × location)</label><input type="number" id="cfg-results-wanted" value="${esc(c.results_wanted)}"></div>
-    </div>
-    <label class="check-row"><input type="checkbox" id="cfg-title-match" ${c.title_must_match ? 'checked' : ''}>
-      <span><b>Title must contain the search term</b> — keeps only postings whose title includes it.</span></label>
+    <div class="field"><label>Sources</label>${SCRAPE_SELECTABLE.map(site => `<label class="source-choice"><input type="checkbox" id="cfg-site-${site}" ${(c.sites || ['linkedin']).includes(site) ? 'checked' : ''}> ${SCRAPE_SOURCES[site]}</label>`).join('')}</div>
+    <div class="field"><label>Posted within (hours)</label><input type="number" id="cfg-hours-old" value="${esc(c.hours_old)}"></div>
+    <div class="location-notes" id="cfg-location-notes">${locationNotesHtml(pipelineConfig.location_warnings)}</div>
     <div class="save-row"><button class="save-btn" id="save-scrape">Save</button><span class="saved-note mono">Saved</span></div>
   </div>
 </div>
@@ -2437,13 +2543,15 @@ function renderConfigSection() {
     const criteria = {...pipelineConfig.criteria,
       search_terms: getChipValues('cfg-search-terms'),
       locations: getChipValues('cfg-locations'),
+      sites: SCRAPE_SELECTABLE.filter(s => document.getElementById('cfg-site-' + s).checked),
       location: getChipValues('cfg-locations').join(', '),  // as one line, for anything that still reads it
       hours_old: parseInt(document.getElementById('cfg-hours-old').value, 10) || 0,
-      results_wanted: parseInt(document.getElementById('cfg-results-wanted').value, 10) || 0,
-      title_must_match: document.getElementById('cfg-title-match').checked,
     };
+    if (!criteria.sites.length) { alert('Choose at least one scraping source.'); return; }
     delete criteria.is_remote;            // LinkedIn ignores both for logged-out searches;
     delete criteria.exact_phrase_search;  // they are no longer settings
+    delete criteria.results_wanted;       // every posting whose title contains the term is scraped:
+    delete criteria.title_must_match;     // no cap to set, no rule to switch off
     pipelineConfig.criteria = criteria;
     saveConfig({criteria}, e.target);
   });
@@ -2499,6 +2607,7 @@ async function loadPipeline() {
   const res = await fetch('/api/pipeline');
   const data = await res.json();
   pipelineConfig = {criteria: data.criteria, rubric_md: data.rubric_md, profile_md: data.profile_md, profile_sources: data.profile_sources || [],
+                    location_warnings: data.location_warnings || [],
                     rubric_criteria: data.rubric_criteria, rubric_criteria_status: data.rubric_criteria_status};
   renderConfigSection();
   keywordStats = data.keyword_stats || [];

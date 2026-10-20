@@ -1,0 +1,25 @@
+{"tested_at": "2026-10-19T16:06:11.452903+00:00", "site": "indeed", "country": "Bulgaria", "query": "manager, no date restriction", "returned": 0, "job": null}
+{"tested_at": "2026-10-19T16:06:11.827262+00:00", "site": "indeed", "country": "Croatia", "query": "manager, no date restriction", "returned": 0, "job": null}
+{"tested_at": "2026-10-19T16:06:12.113023+00:00", "site": "indeed", "country": "Cyprus", "query": "manager, no date restriction", "returned": 0, "job": null}
+{"tested_at": "2026-10-19T16:06:12.292098+00:00", "site": "indeed", "country": "Estonia", "query": "manager, no date restriction", "returned": 0, "job": null}
+{"tested_at": "2026-10-19T16:06:12.486278+00:00", "site": "indeed", "country": "Hungary", "query": "manager, no date restriction", "returned": 1, "job": {"title": "Junior Account Manager", "location": "Budapest, PE, Hungary", "url": "https://hu.indeed.com/viewjob?jk=c772a7188446b88b"}}
+{"tested_at": "2026-10-19T16:06:12.912496+00:00", "site": "indeed", "country": "Latvia", "query": "manager, no date restriction", "returned": 0, "job": null}
+{"tested_at": "2026-10-19T16:06:13.079106+00:00", "site": "indeed", "country": "Lithuania", "query": "manager, no date restriction", "returned": 0, "job": null}
+{"tested_at": "2026-10-19T16:06:13.303606+00:00", "site": "indeed", "country": "Luxembourg", "query": "manager, no date restriction", "returned": 1, "job": {"title": "Key Account Manager", "location": "Bertrange, L0L, Luxembourg", "url": "https://lu.indeed.com/viewjob?jk=47f086ed1c215a23"}}
+{"tested_at": "2026-10-19T16:06:13.797293+00:00", "site": "indeed", "country": "Malta", "query": "manager, no date restriction", "returned": 0, "job": null}
+{"tested_at": "2026-10-19T16:06:14.268936+00:00", "site": "indeed", "country": "Slovakia", "query": "manager, no date restriction", "returned": 0, "job": null}
+{"tested_at": "2026-10-19T16:06:14.493222+00:00", "site": "indeed", "country": "Slovenia", "query": "manager, no date restriction", "returned": 0, "job": null}
+{"tested_at": "2026-10-19T16:06:14.669150+00:00", "site": "glassdoor", "country": "Bulgaria", "query": "manager, no date restriction", "returned": 0, "job": null}
+{"tested_at": "2026-10-19T16:06:15.007438+00:00", "site": "glassdoor", "country": "Croatia", "query": "manager, no date restriction", "returned": 0, "job": null}
+{"tested_at": "2026-10-19T16:06:15.271654+00:00", "site": "glassdoor", "country": "Cyprus", "query": "manager, no date restriction", "returned": 0, "job": null}
+{"tested_at": "2026-10-19T16:06:15.866184+00:00", "site": "glassdoor", "country": "Estonia", "query": "manager, no date restriction", "returned": 0, "job": null}
+{"tested_at": "2026-10-19T16:06:16.155899+00:00", "site": "glassdoor", "country": "Hungary", "query": "manager, no date restriction", "returned": 1, "job": {"title": "Technischer Vertriebsaußendienst (m/w/d) – Marktentwicklung Ungarn", "location": "Budapest, Hungary", "url": "https://www.glassdoor.com/job-listing/j?jl=1010299648584"}}
+{"tested_at": "2026-10-19T16:06:17.084150+00:00", "site": "glassdoor", "country": "Latvia", "query": "manager, no date restriction", "returned": 0, "job": null}
+{"tested_at": "2026-10-19T16:06:17.364595+00:00", "site": "glassdoor", "country": "Lithuania", "query": "manager, no date restriction", "returned": 0, "job": null}
+{"tested_at": "2026-10-19T16:06:17.654869+00:00", "site": "glassdoor", "country": "Luxembourg", "query": "manager, no date restriction", "returned": 1, "job": {"title": "Assistant chargé d’affaires maintenance HVAC H/F", "location": "Mamer, Luxembourg", "url": "https://www.glassdoor.com/job-listing/j?jl=1010209240691"}}
+{"tested_at": "2026-10-19T16:06:18.921061+00:00", "site": "glassdoor", "country": "Malta", "query": "manager, no date restriction", "returned": 0, "job": null}
+{"tested_at": "2026-10-19T16:06:19.199044+00:00", "site": "glassdoor", "country": "Slovakia", "query": "manager, no date restriction", "returned": 0, "job": null}
+{"tested_at": "2026-10-19T16:06:19.489422+00:00", "site": "glassdoor", "country": "Slovenia", "query": "manager, no date restriction", "returned": 0, "job": null}
+{"tested_at": "2026-10-19T16:06:19.807908+00:00", "site": "bayt", "country": "Estonia", "query": "manager, no date restriction", "returned": 1, "job": {"title": "TikTok Shop Growth Manager", "location": "Estonia", "url": "https://www.bayt.com/en/estonia/jobs/tiktok-shop-growth-manager-75260603/"}}
+{"tested_at": "2026-10-19T16:06:20.738402+00:00", "site": "bayt", "country": "Latvia", "query": "manager, no date restriction", "returned": 1, "job": {"title": "TikTok Shop Growth Manager", "location": "Latvia", "url": "https://www.bayt.com/en/latvia/jobs/tiktok-shop-growth-manager-75260602/"}}
+{"tested_at": "2026-10-19T16:06:21.482041+00:00", "site": "bayt", "country": "Lithuania", "query": "manager, no date restriction", "returned": 1, "job": {"title": "Senior Operations Manager", "location": "Lithuania", "url": "https://www.bayt.com/en/lithuania/jobs/senior-operations-manager-74542718/"}}

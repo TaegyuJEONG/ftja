@@ -73,16 +73,18 @@ language, with the numbers you have:
 
 - **Before scraping**: that the run has started, how many searches it has
   (every search term in every location: 3 terms × 4 locations is 12
-  searches) and up to how many results each, roughly how long that will
-  take (LinkedIn yields about 70 postings a minute, so 4 searches × 1000 is
-  up to an hour; 4 × 100 is about 6 minutes), and that they can watch it at
-  `http://127.0.0.1:8765` (Results tab). If the estimate is over 15
-  minutes, add that lowering "Max results per search" in the Pipeline
-  tab, or searching fewer locations, makes it shorter.
-- **After each search**: how many it found and how many searches remain.
-  Run the scrape one search per command so you can say this; do not
-  chain all of them into one long command that stays silent until the
-  end.
+  searches), that each search scrapes every posting whose title contains
+  its term and ends when LinkedIn's results stop containing it, roughly
+  how long that will take (a posting that matches takes about 3 seconds,
+  so a search with 100 of them is about 6 minutes; reading LinkedIn's
+  results to find them adds up to 10 minutes for a common title, and a
+  title with no match ends in about a minute and a half), and that they can watch it at
+  `http://127.0.0.1:8765` (Results tab). The number of matches is not
+  known beforehand: say so, and that a shorter "Posted within" or fewer
+  locations makes a run shorter.
+- **During scraping**: report completed searches and matches as the command
+  prints progress. Each source runs concurrently; searches within a source
+  remain sequential so its request rate does not increase.
 - **After Stage 0**: scraped, passed, and the biggest drop reasons.
 - **When the Remote check starts and ends** (runs that have it): how many
   jobs in how many batches, then how many passed and failed.
@@ -218,21 +220,17 @@ command takes that `run_dir` as `--dir`; every file of this run lives in it
 Results tab, and it advances there by itself as the files below appear —
 you never report progress, and you never write these files by hand.
 
-`start` also prints `searches`: the run's searches in order, one for
-every search term in every location (`criteria.json`'s `search_terms` ×
-`locations`; 3 terms and 4 locations make 12). Scrape each of them by its
-number in that list (0, 1, 2, ...), one after another — a separate command
-per search, with a line to the user between them (see "Keep the user
-informed"):
+`start` also prints `searches`: the run's concrete source requests in order.
+Run them by source, concurrently across sources and sequentially within each
+source. The command prints one progress line after each search:
 
 ```
-venv/bin/python -m ftja.live scrape --dir <run_dir> --search <number>
+venv/bin/python -m ftja.live scrape-sources --dir <run_dir>
 ```
 
-Each call reads its term, its location, the time window and the cap per
-search from the run's own snapshot, scrapes in batches of 10, and updates
-that search's count after every batch. Do all of them: a search you skip
-is a term that was never looked for in that location.
+Each source reads its searches from the run's snapshot and updates their
+counts after every batch. A rerun skips searches already completed on disk.
+Do not proceed to Stage 0 until all searches finish.
 
 ## 2. Deterministic filter (Stage 0b)
 
@@ -247,9 +245,9 @@ LinkedIn's own search UI shows for the same term — that's the Acceptance
 Criteria #2 check, not something to automate here). Location is not part
 of Stage 0 — it's already deterministic at scrape time.
 
-What the filter does, all in code with no LLM call: with `title_must_match`
-set, first drops a posting whose title does not contain the search term
-that found it; drops a JD not written
+What the filter does, all in code with no LLM call (titles are already
+settled: the scrape keeps only postings whose title contains the search
+term that found them); drops a JD not written
 in a language the candidate reads (langdetect against `criteria.json`'s
 `languages`); drops a JD that plainly requires a language outside that list
 ("Fluent in German and English"), keeping anything ambiguous ("German is a
