@@ -162,7 +162,8 @@ class Agent:
         self.env.pop("CLAUDECODE", None)  # started from inside a Claude Code session: still a fresh one
 
     def say(self, text: str) -> AgentTurn:
-        cmd = ["claude", "-p", text, "--output-format", "stream-json", "--verbose", "--model", self.model,
+        cmd = [shutil.which("claude") or "claude", "-p", text,  # which: claude.cmd on Windows
+                "--output-format", "stream-json", "--verbose", "--model", self.model,
                "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}', "--setting-sources", "project",
                "--max-budget-usd", str(self.budget)]
         if self.permissions == "skip":

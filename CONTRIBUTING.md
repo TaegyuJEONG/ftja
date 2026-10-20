@@ -65,6 +65,31 @@ screenshot of each card. On every push, the `onboarding-e2e` job in
 Windows and Linux with Python 3.11 to 3.13. Each run's page shows a table
 of steps and timings, and the report is kept as an artifact.
 
+## Setup run by a real agent
+
+`scripts/agent_e2e.py` runs `/ftja-setup` with Claude Code itself
+(`claude -p`, Sonnet by default) in an empty copy of the folder, while a
+headless browser answers each card on the web view. It tests the skill as
+a user's agent reads it, from creating the venv to writing the files, and
+reports what the agent cost, its tokens, time and turns, the permission
+prompts it hit, and how long the user waited for each card.
+
+```bash
+venv/bin/python scripts/agent_e2e.py
+```
+
+The agent gets no MCP servers, only this project's settings, its own
+viewer port (`FTJA_PORT`) and an `open` that only logs, so your viewer on
+8765 and your browser are left alone. Reports, the agent's transcript and a
+screenshot of every card go to `agent-e2e-out/`. `--model` and `--runs N`
+(a pass rate) are there for comparing.
+
+It needs `claude` logged in, or `CLAUDE_CODE_OAUTH_TOKEN` from
+`claude setup-token`; runs count against that subscription. On GitHub,
+Actions -> Agent setup E2E -> Run workflow does the same on clean macOS,
+Windows and Linux runners, once the `CLAUDE_CODE_OAUTH_TOKEN` repository
+secret is set. It never runs on push.
+
 ## Reporting bugs and ideas
 
 Open an issue with what you expected, what happened, and the steps to
