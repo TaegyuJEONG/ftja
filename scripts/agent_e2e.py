@@ -248,8 +248,11 @@ class User:
             ("rubric", "[data-confirm-rubric]", None),
         ]
         for name, selector, act in cards:
-            if name == "resume" and self.page.locator("[data-confirm-profile-sources]").count():
+            no_source = self.page.get_by_text("No source materials added yet").count() > 0
+            if name == "resume" and not no_source:
                 continue  # the resume is in; the next thing is its Confirm
+            if name == "sources" and no_source:
+                continue  # Confirm is enabled before anything is added; a person adds the resume first
             if not self._enabled(selector):
                 continue
             self.waits.append({"card": name, "seconds": round(time.monotonic() - self.last_click, 1)})
