@@ -158,6 +158,9 @@ select { -webkit-appearance: none; appearance: none; background-image: url("data
   background: var(--surface2); border: 1px solid var(--border); border-radius: 4px;
   padding: 2px 7px; font-size: 10.5px; color: var(--text2);
 }
+.ra-chips { display: flex; flex-wrap: wrap; gap: 5px; margin: 6px 0 2px; }
+.ra-chips .chip { font-size: 11px; }
+.ra-chips .chip b { font-weight: 600; color: var(--text); margin-right: 3px; }
 .meta-line { font-size: 11px; color: var(--text3); margin-top: 8px; font-family: 'IBM Plex Mono', monospace; }
 
 /* status tabs — real underline tabs, not buttons */
@@ -1977,6 +1980,14 @@ function remoteAnswersHtml(answers, blocks) {
         ${(a.evidence_sids || []).filter(sid => sentence[sid]).map(sid => `<div class="ra-quote">${quoteText(sentence[sid])}</div>`).join('')}
         ${a.note ? `<div class="ra-note">${esc(a.note)}</div>` : ''}</td></tr>`).join('')}</table>`;
 }
+// The answers a posting gave, as chips under its title: what you see at a glance
+// before opening the table. Categories the posting says nothing about are left out.
+const REMOTE_CHIP_NAMES = {remote_level: 'Remote', work_location: 'From', time_zone: 'Hours', onsite_duties: 'On-site'};
+function remoteChipsHtml(answers) {
+  const given = (answers || []).filter(a => a.answer !== '?');
+  if (!given.length) return '';
+  return `<div class="ra-chips">${given.map(a => `<span class="chip ${a.rule === 'fail' ? 'exclude' : ''}"><b>${esc(REMOTE_CHIP_NAMES[a.id] || a.label)}</b> ${esc(a.id === 'remote_level' ? a.answer_label : (a.detail || a.answer_label))}</span>`).join('')}</div>`;
+}
 async function openRemoteJobs(runId, verdict = 'fail') {
   const passed = verdict === 'pass';
   const heading = passed ? 'Passed the Remote check' : 'Stopped at the Remote check';
@@ -2008,6 +2019,7 @@ async function openRemoteJobs(runId, verdict = 'fail') {
       return `
       <div class="s1-row">
         <div class="s1-title"><a href="${esc(j.job_url)}" target="_blank">${esc(j.title)}</a> <span>— ${esc(j.company)}${j.location ? ' · ' + esc(j.location) : ''}</span></div>
+        ${j.pruned_at ? '' : remoteChipsHtml(j.answers)}
         ${j.reason ? `<div class="s1-reason">${j.decided_by === 'rule' ? '<b>Marked ✕ by you</b> — ' : ''}${esc(j.reason)}${(j.evidence_sids || []).map(sid => (j.blocks || []).find(b => b.sid === sid)).filter(Boolean).map(b => `<div class="ra-quote">${quoteText(b.sentence)}</div>`).join('')}</div>` : ''}
         ${j.pruned_at ? `<div class="pruned-note">The details were removed on ${esc(fmtDate(j.pruned_at))} to save space.</div>` : remoteAnswersHtml(j.answers, j.blocks)}
         ${(j.blocks || []).length ? fold(`Everything it read · ${plural(j.blocks.length, 'sentence')}`,
