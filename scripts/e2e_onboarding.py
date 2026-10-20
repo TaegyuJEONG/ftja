@@ -223,7 +223,7 @@ def run(fresh_venv: bool, keep: bool, browser: str = "auto", artifacts: str | No
             server = subprocess.Popen([r.python, "-m", "ftja.server", "--port", str(port)], cwd=folder,
                                       env={**os.environ, "FTJA_NO_UPDATE_CHECK": "1"},
                                       stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-            deadline = time.monotonic() + 15
+            deadline = time.monotonic() + 60  # a cold macOS CI runner takes well over 15 s to import
             while time.monotonic() < deadline:
                 if server.poll() is not None:
                     raise CheckFailed(f"viewer exited: {server.stdout.read().decode(errors='replace')}")
@@ -234,7 +234,8 @@ def run(fresh_venv: bool, keep: bool, browser: str = "auto", artifacts: str | No
                     return {"port": port}
                 except OSError:
                     time.sleep(0.2)
-            raise CheckFailed("viewer did not answer within 15 s")
+            server.kill()
+            raise CheckFailed(f"viewer did not answer within 60 s: {server.communicate()[0].decode(errors='replace')}")
         r.step("viewer starts", start_viewer)
 
         def viewer_serves():
