@@ -58,12 +58,8 @@ jobs:
             echo "::error::Add the CLAUDE_CODE_OAUTH_TOKEN repository secret (claude setup-token) first."
             exit 1
           fi
-          echo "token length: ${#CLAUDE_CODE_OAUTH_TOKEN} (a full one is about 100 characters)"
+          echo "token length: ${#CLAUDE_CODE_OAUTH_TOKEN} (a clean one is 108; a pasted newline makes it longer and fails)"
           claude auth status
-          echo "starts with sk-ant-oat: $([[ $CLAUDE_CODE_OAUTH_TOKEN == sk-ant-oat* ]] && echo yes || echo no)"
-          echo "has whitespace: $([[ $CLAUDE_CODE_OAUTH_TOKEN =~ [[:space:]] ]] && echo yes || echo no)"
-          echo "non-ASCII: $(printf %s "$CLAUDE_CODE_OAUTH_TOKEN" | LC_ALL=C grep -q '[^ -~]' && echo yes || echo no)"
-          claude -p "Reply with the word ok." --model ${{ inputs.model }} --debug 2>&1 | grep -iE "auth|token|login|401|403|error" | sed -E 's/sk-ant-[A-Za-z0-9_-]+/[token]/g' | head -30 || true
       - name: Setup by the agent
         run: python scripts/agent_e2e.py --model ${{ inputs.model }} --runs ${{ inputs.runs }} --permissions skip --artifacts agent-e2e-out
       - name: Keep the reports
