@@ -37,10 +37,12 @@ machines written and reviewed in one place.
 
 `venv/bin/python -m pytest` runs everything, including
 `tests/test_e2e_onboarding.py`: it copies the working tree into an empty
-temporary folder, runs every onboarding step with the answers in
-`tests/fixtures/e2e/`, starts the viewer on a free port and checks what it
-serves. Your own folder and the viewer on 8765 are left alone. To see each
-step with its timing, or to also check a fresh install:
+temporary folder, starts the viewer there on a free port, and plays both
+sides of setup with the answers in `tests/fixtures/e2e/`: the agent runs
+the `ftja.onboarding` commands and a `wait-for-action` for each decision,
+and the user makes that decision on the page. Your own folder and the
+viewer on 8765 are left alone. To see each step with its timing, or to also
+check a fresh install:
 
 ```bash
 venv/bin/python scripts/e2e_onboarding.py --fresh-venv
@@ -48,8 +50,9 @@ venv/bin/python scripts/e2e_onboarding.py --fresh-venv
 
 `--keep` leaves the temporary folder in place for a look.
 
-The browser check opens the Pipeline tab in headless Chromium. It needs
-the development requirements, once:
+Under pytest the user sends the page's requests directly. With Playwright
+the user clicks the page's own buttons in headless Chromium instead. It
+needs the development requirements, once:
 
 ```bash
 venv/bin/pip install -r requirements-dev.txt
@@ -57,7 +60,7 @@ venv/bin/python -m playwright install chromium
 ```
 
 Then `--browser on --artifacts e2e-out` runs it and saves the report and a
-screenshot. On every push, the `onboarding-e2e` job in
+screenshot of each card. On every push, the `onboarding-e2e` job in
 `.github/workflows/tests.yml` does all of this from scratch on macOS,
 Windows and Linux with Python 3.11 to 3.13. Each run's page shows a table
 of steps and timings, and the report is kept as an artifact.

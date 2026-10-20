@@ -1,11 +1,19 @@
 {
-  "titles": ["AI Product Manager", "Chef de produit IA"],
-  "locations": ["France"],
-  "hours_old": 24,
-  "filter": {
-    "languages": ["en", "fr"],
-    "keywords": ["LLM", "AI product", "produit IA", "0 to 1"],
-    "keyword_language": {"LLM": "en", "AI product": "en", "produit IA": "fr", "0 to 1": "en"},
-    "exclude_keywords": []
+  "profile": {
+    "titles": ["AI Product Manager", "Chef de produit IA"],
+    "criteria": {
+      "search_terms": ["AI Product Manager", "Chef de produit IA"],
+      "location": "France",
+      "locations": ["France"],
+      "hours_old": 24
+    }
+  },
+  "cards": {
+    "stage0": {
+      "languages": ["en", "fr"],
+      "keywords": ["LLM", "AI product", "produit IA", "0 to 1"],
+      "keyword_language": {"LLM": "en", "AI product": "en", "produit IA": "fr", "0 to 1": "en"},
+      "exclude_keywords": []
+    }
   }
 }
