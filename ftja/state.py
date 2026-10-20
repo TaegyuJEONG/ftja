@@ -103,6 +103,7 @@ CREATE TABLE IF NOT EXISTS seen_jobs (
     title TEXT,
     company TEXT,
     location TEXT,
+    sources TEXT,
     status TEXT NOT NULL,
     stage_reached INTEGER NOT NULL,
     verdict TEXT,
@@ -137,7 +138,7 @@ def hash_url(job_url: str) -> str:
 def _migrate(conn: sqlite3.Connection):
     """Idempotent: add columns introduced after the first M1 run, if missing."""
     cols = {row[1] for row in conn.execute("PRAGMA table_info(seen_jobs)")}
-    for col in ("title", "company", "location", "t1_matched_keywords", "t1_matched_sentences",
+    for col in ("title", "company", "location", "sources", "t1_matched_keywords", "t1_matched_sentences",
                 "reasoning", "evidence_sentences", "rubric_version",
                 "user_action", "user_reason", "user_decided_at", "run_id",
                 "decision_review_status", "criteria", "criteria_feedback",
@@ -185,6 +186,7 @@ def _json_or_none(value):
 
 def mark_seen(conn: sqlite3.Connection, job_url: str, status: str, stage_reached: int,
               verdict: str = "", title: str = "", company: str = "", location: str = "",
+              sources: list[str] | None = None,
               t1_matched_keywords: list[str] | None = None,
               t1_matched_sentences: list[str] | None = None,
               reasoning: str = "", evidence_sentences: list[str] | None = None,
@@ -198,14 +200,15 @@ def mark_seen(conn: sqlite3.Connection, job_url: str, status: str, stage_reached
     or an alias URL from content dedup must never overwrite a decision the
     user already recorded via /ftja-review."""
     conn.execute(
-        """INSERT INTO seen_jobs (job_url_hash, job_url, title, company, location, status,
+        """INSERT INTO seen_jobs (job_url_hash, job_url, title, company, location, sources, status,
                                   stage_reached, verdict, t1_matched_keywords, t1_matched_sentences,
                                   reasoning, evidence_sentences, rubric_version, run_id,
                                   criteria, description, company_line, employer, notes, t1_blocks,
                                   stage1_reason, remote, last_seen_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON CONFLICT(job_url_hash) DO UPDATE SET
              title=excluded.title, company=excluded.company, location=excluded.location,
+             sources=excluded.sources,
              status=excluded.status, stage_reached=excluded.stage_reached,
              verdict=excluded.verdict, t1_matched_keywords=excluded.t1_matched_keywords,
              t1_matched_sentences=excluded.t1_matched_sentences,
@@ -216,7 +219,7 @@ def mark_seen(conn: sqlite3.Connection, job_url: str, status: str, stage_reached
              t1_blocks=excluded.t1_blocks, stage1_reason=excluded.stage1_reason, remote=excluded.remote,
              pruned_at=NULL,
              last_seen_at=excluded.last_seen_at""",
-        (hash_url(job_url), job_url, title, company, location, status, stage_reached, verdict,
+        (hash_url(job_url), job_url, title, company, location, _json_or_none(sources or []), status, stage_reached, verdict,
          json.dumps(t1_matched_keywords or [], ensure_ascii=False),
          json.dumps(t1_matched_sentences or [], ensure_ascii=False),
          reasoning, json.dumps(evidence_sentences or [], ensure_ascii=False), rubric_version, run_id,

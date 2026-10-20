@@ -1,8 +1,25 @@
 import pandas as pd
+import logging
+import pytest
 
 from ftja import scrape as scrape_mod
 
 TITLES = ["Senior Product Manager", "Strategy Lead", "Product Managers (m/f/d)", "Co-Founder"]
+
+
+def test_clean_jobs_preserves_source_lists():
+    assert scrape_mod.clean_jobs([{"site": "linkedin", "sources": ["linkedin", "indeed"]}])[0]["sources"] == ["linkedin", "indeed"]
+
+
+def test_linkedin_rate_limit_is_not_treated_as_end_of_results(monkeypatch):
+    def limited(**kwargs):
+        logging.getLogger("JobSpy:LinkedIn").error("LinkedIn response status code 429")
+        return pd.DataFrame()
+
+    monkeypatch.setattr(scrape_mod, "scrape_jobs", limited)
+    monkeypatch.setattr(scrape_mod, "_details_fetcher", lambda: None)
+    with pytest.raises(scrape_mod.ScrapeRateLimited, match="incomplete"):
+        scrape_mod.scrape("Product Manager", "USA")
 
 
 def _linkedin(monkeypatch, pages):
@@ -47,3 +64,16 @@ def test_a_search_is_read_until_its_titles_stop_matching(monkeypatch):
     calls, _ = _linkedin(monkeypatch, lambda offset: TITLES)
     assert len(scrape_mod.scrape("Product Manager", "France")) == 8
     assert [c["offset"] for c in calls] == [0, 10, 20, 30]  # LinkedIn returns nothing past its cap
+
+
+def test_linkedin_details_adapter_uses_jobspy_130_fetcher(monkeypatch):
+    from jobspy import linkedin
+    class FakeLinkedIn:
+        def _fetch_details(self, job_id):
+            assert job_id == "123"
+            return {"description": "Build the product", "emails": ["hiring@example.com"],
+                    "job_type": None, "job_level": "senior"}
+    monkeypatch.setattr(linkedin, "LinkedIn", FakeLinkedIn)
+    details = scrape_mod._details_fetcher()({"job_url": "https://www.linkedin.com/jobs/view/123"})
+    assert details["description"] == "Build the product"
+    assert details["emails"] == "hiring@example.com"

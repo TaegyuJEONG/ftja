@@ -177,6 +177,15 @@ Do not generate a candidate profile from README alone. If a portfolio is too
 large to inspect fully, report the limit and ask the user to select projects
 for deeper review.
 
+### Note from 2026-10-13
+
+Retrieval stays deferred. The amount of material may grow well past a resume
+and a portfolio: one idea is to take in Builder's Diary, a searchable,
+up-to-date portfolio built from a person's AI conversations. To keep that
+possible without touching the pipeline later, each stage should read the
+profile through one place in the code, so the profile's form can change
+behind it.
+
 ### Explicitly out of scope for v1
 
 - vector databases and embeddings;
@@ -298,14 +307,91 @@ of freedom matters.
    judged once per search set (verdicts may legitimately differ) but shown
    once in the digest, labeled with every search that matched it.
 
+### Direction agreed 2026-10-13
+
+Discussed while moving onboarding into the chat, then deferred again:
+onboarding on Windows and macOS comes first.
+
+- A track is a whole pipeline for one position: its own resume, search
+  terms, locations, keywords, exclude words and rubric. One position can
+  still have several search terms ("Product Manager", "AI Product Manager").
+  Only facts about the person are shared (languages read, the Remote check's
+  situation).
+- The Pipeline tab gets a sub-tab per track and a + button.
+- One flow serves three entry points (first setup, the + button, a resume
+  uploaded again under a track): attach the resume, run the profile skill,
+  confirm the proposed keywords, answer the pass / fail / preference
+  questions. What the user confirms is saved to the track's files, and a run
+  reads those files when it starts.
+- Two tracks that use the same resume each keep a copy, so uploading a new
+  one changes one track only.
+- First setup proposes tracks from the resume and completes one; the others
+  stay as drafts that go through the + flow.
+- The profile skill records a hash of the sources it last processed, per
+  track, so a run can say that a file in the track has not been processed.
+- An existing installation becomes one track holding today's settings.
+- Order of work: the track structure with a single track first (no change
+  in behaviour), then several tracks and the sub-tabs.
+
 ### Open questions
 
-- Is a full profile variant per search needed, or is a shared profile plus a
-  per-search emphasis note enough?
+- Does a scheduled run cover every track that is switched on, and can a
+  manual run name one track?
+- The number of searches is tracks x search terms x locations; measure the
+  run time before allowing many tracks.
 - How the Pipeline tab presents multiple sets without overwhelming
   first-time users (default to a single set; reveal more only when added).
 - Cost: running Stage 1/2 once per matching search multiplies LLM calls for
   overlapping searches; measure overlap on real runs before deciding.
+
+## Decision history on the Pipeline tab
+
+### Status
+
+Deferred. Recorded 2026-10-13. Wanted soon, and before several tracks: the
+decisions will then pile up per track.
+
+### Problem
+
+The user's decisions on jobs (apply or skip, with a reason) are saved to
+files and nothing shows them. The user cannot see whether the pipeline is
+getting closer to their own judgment, or which reasons have already become
+rubric lines.
+
+### Proposed design
+
+A read-only section on the Pipeline tab, beside the rubric (the decisions
+are the material for changing the rubric, not the profile):
+
+- how many jobs were applied to and skipped, with the reasons grouped;
+- which reasons are already in the rubric and which `/ftja-review` has not
+  looked at yet;
+- how many postings passed each stage, per run.
+
+The section shows the `/ftja-review` command to type in the chat; the page
+does not reach the agent.
+
+## Compare rubrics on one set of postings
+
+### Status
+
+Deferred. Recorded 2026-10-13. Not urgent.
+
+### Problem
+
+A user may want to try two rubrics on the same postings (for example, a set
+of remote roles already collected) to see which one finds the roles that
+suit them.
+
+### Decided so far
+
+- A run continued later uses the rubric as it is then, not a copy taken when
+  the run started.
+- Each judgment should record which rubric it was made with; without that
+  two results cannot be compared.
+- With tracks (see Per-Search Pipeline Profiles), two tracks that differ
+  only in the rubric, run over the same postings, would give this. The track
+  design should not rule that out.
 
 ## Stage 1 as a screen-out filter (keywords as dealbreaker signals)
 
@@ -454,29 +540,12 @@ Decided 2026-10-12: listing the forms is enough to start with. Take it up
 when a run shows postings in a second language being dropped for a missing
 word form.
 
-## Setup in the chat
+## Setup in the chat (dropped)
 
-### What it is
-
-`/ftja-setup` done entirely in the chat: the resume, the profile summary,
-the search settings, the code filter and the three questions, with the web
-view opened only at the end. The page stops handing requests to a waiting
-agent session and shows the command to type instead.
-
-### Where it is
-
-Written and tested on the `chat-onboarding` branch, commit `68ac5fb`, as
-0.4.0. Not merged. The four commits under it on that branch are the Windows
-work (0.3.1: file chooser, process check, UTF-8 files, the onboarding
-fixes, the viewer's connection handling) and are not part of this item.
-
-### Why it is parked
-
-Decided 2026-10-13: what a remote job seeker needs first is a search that
-returns the titles they asked for, then Windows onboarding. The title
-search was made on `chat-onboarding` first and carried over to `main`
-without the chat setup; when this is taken up again, that branch has to be
-brought up to date with `main` before anything else.
+Decided 2026-10-20: not taken up. The core of FTJA is the interaction
+between the agent and the web view, so setup stays viewer-driven. The
+chat-only setup (`68ac5fb`) and the work built on it are kept, unmerged, on
+the `archive/chat-only-onboarding` branch for reference.
 
 ## More job boards than LinkedIn
 

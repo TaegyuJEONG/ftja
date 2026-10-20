@@ -1,4 +1,4 @@
-"""LinkedIn guest scraping via jobspy. No login, no session — ported from
+"""Job board scraping via JobSpy. LinkedIn needs no login or session — ported from
 JobSpyProject's app_db.run_db_scraper throttle pattern (batch_size=10 with an
 offset loop), which is the config that was already proven not to trip
 LinkedIn's rate limiting in production. Do not raise batch_size without
@@ -6,13 +6,14 @@ re-validating against a live run.
 """
 import argparse
 import json
+import logging
 import random
 import sys
 import time
 
 from jobspy import scrape_jobs
+from ftja.geography import SOURCES
 
-SITES = ["linkedin"]
 BATCH_SIZE = 10
 # Seconds between two search requests, jobspy's own wait between search
 # pages (its delay and band_delay). With 2s, a search whose titles all
@@ -28,8 +29,24 @@ SEARCH_RESULTS_CAP = 1000  # LinkedIn returns no search results past this; jobsp
 NO_MATCH_PAGES = 15
 
 
+class ScrapeRateLimited(RuntimeError):
+    """The provider stopped returning search pages because it throttled us."""
+
+
+class _LinkedInSearchErrors(logging.Handler):
+    def __init__(self):
+        super().__init__(logging.ERROR)
+        self.rate_limited = False
+
+    def emit(self, record):
+        message = record.getMessage()
+        if "LinkedIn response status code 429" in message:
+            self.rate_limited = True
+
+
 def scrape(search_term: str, location: str, hours_old: int = 72, job_type: str = "",
-           on_batch=None, skipped: list | None = None) -> list[dict]:
+           on_batch=None, skipped: list | None = None, site: str = "linkedin",
+           country_indeed: str = "") -> list[dict]:
     """Scrape the LinkedIn listings whose title contains `search_term`.
 
     LinkedIn's logged-out search matches by meaning: a search for
@@ -65,26 +82,69 @@ def scrape(search_term: str, location: str, hours_old: int = 72, job_type: str =
 
     search_term = search_term.strip()
     jobs: list[dict] = []
-    details = _details_fetcher()
+    if site not in SOURCES:
+        raise ValueError(f"Unsupported source: {site}")
+    if site in ("indeed", "glassdoor") and not country_indeed:
+        raise ValueError(f"{site.title()} requires an explicit country_indeed")
+    if site != "linkedin":
+        # A bounded request per source/location avoids LinkedIn's slow page
+        # throttle. Other boards page internally up to this limit.
+        query = (search_term if search_term.startswith('"') and search_term.endswith('"')
+                 else f'"{search_term}"') if site in ("indeed", "glassdoor") else search_term
+        kwargs = {"site_name": [site], "search_term": query, "location": location,
+                  "hours_old": hours_old, "verbose": 1}
+        kwargs["results_wanted"] = 100
+        if site in ("indeed", "glassdoor"):
+            kwargs["country_indeed"] = country_indeed
+        if site in ("glassdoor", "zip_recruiter", "bayt", "naukri", "bdjobs", "hellowork"):
+            kwargs["fetch_description"] = True
+        if job_type and job_type.strip():
+            kwargs["job_type"] = job_type
+        df = scrape_jobs(**kwargs)
+        batch = [] if df is None or df.empty else df.to_dict(orient="records")
+        matched = [job for job in batch if title_matches_search({"title": job.get("title")}, [search_term])]
+        if skipped is not None:
+            skipped.extend(str(job.get("title") or "") for job in batch if job not in matched)
+        for job in matched:
+            job["site"] = site
+            job["sources"] = [site]
+        if on_batch:
+            on_batch(len(matched), len(batch))
+        return matched
+    details = _details_fetcher() if site == "linkedin" else None
     seen_urls: set = set()
     pages_without_match = 0
 
     for offset in range(0, SEARCH_RESULTS_CAP, BATCH_SIZE):
         started = time.monotonic()
         kwargs = {
-            "site_name": SITES,
+            "site_name": [site],
             "search_term": search_term,
             "location": location,
             "results_wanted": BATCH_SIZE,
             "hours_old": hours_old,
             "offset": offset,
-            "linkedin_fetch_description": False,
             "verbose": 1,
         }
+        if site == "linkedin":
+            kwargs["linkedin_fetch_description"] = False
+        else:
+            kwargs["country_indeed"] = country_indeed
         if job_type and job_type.strip():
             kwargs["job_type"] = job_type
 
-        df = scrape_jobs(**kwargs)
+        logger = logging.getLogger("JobSpy:LinkedIn")
+        errors = _LinkedInSearchErrors()
+        logger.addHandler(errors)
+        try:
+            df = scrape_jobs(**kwargs)
+        finally:
+            logger.removeHandler(errors)
+        if errors.rate_limited:
+            raise ScrapeRateLimited(
+                f"LinkedIn limited the search at offset {offset}; this search is incomplete. "
+                "Retry after the limit clears."
+            )
         if df is None or df.empty:
             break
 
@@ -94,7 +154,10 @@ def scrape(search_term: str, location: str, hours_old: int = 72, job_type: str =
         if skipped is not None:
             skipped.extend(str(job.get("title") or "") for job in batch if job not in matched)
         for job in matched:
-            job.update(details(job))
+            job["site"] = site
+            job["sources"] = [site]
+            if details:
+                job.update(details(job))
         jobs.extend(matched)
         if on_batch:
             on_batch(len(jobs), len(seen_urls))
@@ -108,27 +171,21 @@ def scrape(search_term: str, location: str, hours_old: int = 72, job_type: str =
 
 
 def _details_fetcher():
-    """What jobspy's `linkedin_fetch_description` adds to a job, for one job at a time:
-    jobspy's own page fetch (a private method — jobspy is pinned in
-    requirements.txt), with its values shaped the way scrape_jobs shapes them.
-    A page that cannot be read adds nothing."""
+    """Fetch details only for LinkedIn titles we kept, using pinned JobSpy."""
     from jobspy.linkedin import LinkedIn
-    from jobspy.model import ScraperInput, Site
-    from jobspy.util import extract_emails_from_text
+    from jobspy.model import ScraperInput
 
     scraper = LinkedIn()
-    scraper.scraper_input = ScraperInput(site_type=[Site.LINKEDIN])  # markdown descriptions, as scrape_jobs asks for
+    scraper.scraper_input = ScraperInput()  # markdown descriptions, as scrape_jobs asks for
 
     def details(job: dict) -> dict:
         job_id = str(job.get("job_url") or "").rstrip("/").split("/")[-1]
-        found = scraper._get_job_details(job_id) if job_id else {}
+        found = scraper._fetch_details(job_id) if job_id else {}
         if not found:
             return {}
-        emails = extract_emails_from_text(found.get("description"))
         return {**found,
                 "job_type": ", ".join(t.value[0] for t in found["job_type"]) if found.get("job_type") else None,
-                "job_level": (found.get("job_level") or "").lower(),
-                "emails": ", ".join(emails) if emails else None}
+                "emails": ", ".join(found["emails"]) if found.get("emails") else None}
 
     return details
 
@@ -145,6 +202,10 @@ def clean_jobs(jobs: list[dict]) -> list[dict]:
             pass
         if isinstance(v, (str, int, float, bool)):
             return v
+        if isinstance(v, (list, tuple)):
+            return [_clean(item) for item in v]
+        if isinstance(v, dict):
+            return {str(key): _clean(item) for key, item in v.items()}
         return str(v)
 
     return [{k: _clean(v) for k, v in job.items()} for job in jobs]

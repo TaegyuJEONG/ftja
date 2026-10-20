@@ -1,6 +1,7 @@
 import json
 import os
 import shutil
+import threading
 
 import pytest
 
@@ -10,6 +11,30 @@ from ftja.lock import acquire, release
 from ftja.runs_view import list_runs
 from ftja.state import connect, is_seen
 from ftja.verdict import save_criteria
+
+
+def test_scrape_sources_runs_sites_concurrently_but_each_site_in_order(tmp_path, monkeypatch):
+    run_dir = tmp_path / "run"
+    (run_dir / "scrape").mkdir(parents=True)
+    (run_dir / "run.json").write_text(json.dumps({"criteria_snapshot": {}}))
+    plan = [{"site": "linkedin"}, {"site": "linkedin"},
+            {"site": "indeed"}, {"site": "indeed"}]
+    monkeypatch.setattr(live, "searches", lambda _: plan)
+    together = threading.Barrier(2)
+    completed = {"linkedin": [], "indeed": []}
+
+    def fake_scrape(_, n):
+        site = plan[n]["site"]
+        if n in (0, 2):
+            together.wait(timeout=2)  # both sources must have started
+        completed[site].append(n)
+        return 1
+
+    monkeypatch.setattr(live, "scrape_term", fake_scrape)
+    result = live.scrape_sources(str(run_dir))
+    assert completed == {"linkedin": [0, 1], "indeed": [2, 3]}
+    assert result["by_site"] == {"linkedin": {"scraped": 2, "completed": 2},
+                                 "indeed": {"scraped": 2, "completed": 2}}
 
 REPO = os.path.dirname(os.path.dirname(__file__))
 BUILD = "You will prototype features yourself with Cursor every day."
@@ -37,6 +62,23 @@ def project(tmp_path, monkeypatch):
         {"id": "intern", "kind": "fail", "label": "Internship", "text": "Internship."}])
     acquire(str(tmp_path / ".ftja.lock"))
     return str(tmp_path)
+
+
+def test_scrape_preview_remains_visible_without_lock_or_judgment(project):
+    run = live.start(project)
+    run_dir = run["run_dir"]
+    for n, jobs in enumerate((JOBS[:2], JOBS[1:])):
+        live._write_json(os.path.join(run_dir, "scrape", f"{n}.json"), jobs)
+        live._write_json(os.path.join(run_dir, "scrape", f"{n}.progress.json"),
+                         {**run["searches"][n], "count": len(jobs), "read": len(jobs), "done": True})
+    assert live.stage0(run_dir, project, os.path.join(project, "seen.db"))["passed"] == 2
+    assert live.preview_scrape(run_dir) == {"scraped": 3, "kept": 2}
+    release(os.path.join(project, ".ftja.lock"))
+    shown = live.state(project)
+    assert shown["scrape_preview"] and shown["stage0"]["passed"] == 2
+    assert len(shown["jobs"]) == 2 and shown["stage1"] is None
+    with connect(os.path.join(project, "seen.db")) as db:
+        assert not is_seen(db, JOBS[0]["job_url"])
 
 
 def test_a_run_from_start_to_finish_as_the_viewer_sees_it(project, capsys):

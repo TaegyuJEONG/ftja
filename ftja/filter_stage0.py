@@ -211,7 +211,12 @@ def dedupe_by_content(jobs: list[dict]) -> tuple[list[dict], int]:
     for i, job in enumerate(jobs):
         sig = job.get("_content_hash") or ""
         if sig:
-            union(by_hash.setdefault(sig, i), i)
+            previous = by_hash.setdefault(sig, i)
+            other = jobs[previous]
+            # A short matching tier-1 excerpt is insufficient evidence across
+            # boards: two distinct requisitions can repeat the same boilerplate.
+            if not (job.get("site") and other.get("site") and job["site"] != other["site"]):
+                union(previous, i)
         key = (_normalize_text(job.get("company") or ""), _normalize_title(job.get("title") or ""))
         if all(key):
             by_title.setdefault(key, []).append(i)
@@ -233,8 +238,11 @@ def dedupe_by_content(jobs: list[dict]) -> tuple[list[dict], int]:
     merged_count = 0
     for group in groups.values():
         rep = dict(group[0])
+        rep["sources"] = list(dict.fromkeys(
+            source for item in group for source in
+            (item.get("sources") or ([item["site"]] if item.get("site") else []))))
         if len(group) > 1:
-            rep["_duplicate_job_urls"] = [j["job_url"] for j in group[1:]]
+            rep["_duplicate_job_urls"] = list(dict.fromkeys(j["job_url"] for j in group[1:]))
             others = list(dict.fromkeys(j.get("location") for j in group[1:]
                                         if j.get("location") and j.get("location") != rep.get("location")))
             if others:
