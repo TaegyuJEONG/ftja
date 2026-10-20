@@ -58,6 +58,8 @@ jobs:
             echo "::error::Add the CLAUDE_CODE_OAUTH_TOKEN repository secret (claude setup-token) first."
             exit 1
           fi
+          echo "token length: ${#CLAUDE_CODE_OAUTH_TOKEN} (a full one is about 100 characters)"
+          claude auth status
       - name: Setup by the agent
         run: python scripts/agent_e2e.py --model ${{ inputs.model }} --runs ${{ inputs.runs }} --permissions skip --artifacts agent-e2e-out
       - name: Keep the reports
