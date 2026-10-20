@@ -6,8 +6,9 @@ description: Update this FTJA folder to the latest published version (git pull, 
 # FTJA update
 
 **Port.** The viewer listens on port 8765 unless the environment
-variable `FTJA_PORT` is set (`echo $FTJA_PORT`; Windows `$env:FTJA_PORT`).
-When it is, use that port wherever this file says 8765: `ftja.server`
+variable `FTJA_PORT` sets another one. `venv/bin/python -m ftja.server
+--url` prints the address to use (Windows `venv\Scripts\python`); when it
+is not 8765, use its port wherever this file says 8765. `ftja.server`
 picks it up by itself, but URLs, `curl` checks and `lsof` lookups need it
 written in.
 

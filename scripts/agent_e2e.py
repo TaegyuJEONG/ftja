@@ -169,7 +169,9 @@ class Agent:
         if self.permissions == "skip":
             cmd.append("--dangerously-skip-permissions")
         else:
-            cmd += ["--allowedTools", *ALLOWED_TOOLS]
+            # acceptEdits: a person approves the skill's file writes (.claude/settings.local.json
+            # always asks); -p has no one to ask
+            cmd += ["--permission-mode", "acceptEdits", "--allowedTools", *ALLOWED_TOOLS]
         if self.session_id:
             cmd += ["--resume", self.session_id]
         turn = AgentTurn(cmd, self.folder, self.env, os.path.join(self.artifacts, "agent-stream.jsonl"))
@@ -316,8 +318,11 @@ def run_once(model: str, permissions: str, artifacts: str, keep: bool, budget: f
         agent.finished(turn)
         phase("turn 1: install and open the viewer", t0, **turn.metrics())
         check(turn.result and not turn.result.get("is_error"), f"turn 1 ended in an error: {turn.metrics()}")
-        status, _ = http("GET", base + "/api/version")
-        check(status == 200, f"no viewer on the test's port {port} after turn 1")
+        try:
+            status, _ = http("GET", base + "/api/version")
+        except OSError:
+            status = None
+        check(status == 200, f"no viewer on the test's port {port} after turn 1: {turn.last_text[-300:]}")
         check(os.path.isdir(os.path.join(folder, "venv")), "turn 1 made no venv")
 
         # Turn 2 onward: the agent drives the page; the user answers it

@@ -651,7 +651,11 @@ def main():
     ap.add_argument("--port", type=int, default=DEFAULT_PORT)
     ap.add_argument("--db", default="seen.db")
     ap.add_argument("--project-dir", default=".")
+    ap.add_argument("--url", action="store_true", help="print this viewer's address (port 8765, or FTJA_PORT) and exit")
     args = ap.parse_args()
+    if args.url:
+        print(f"http://127.0.0.1:{args.port}")
+        return
 
     server = ViewerServer(("127.0.0.1", args.port), make_handler(args.db, args.project_dir))
     url = f"http://127.0.0.1:{args.port}"
