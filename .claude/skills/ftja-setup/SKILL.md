@@ -5,6 +5,12 @@ description: One-time (but re-invocable) onboarding for FTJA — interviews the 
 
 # FTJA setup
 
+**Port.** The viewer listens on port 8765 unless the environment
+variable `FTJA_PORT` is set (`echo $FTJA_PORT`; Windows `$env:FTJA_PORT`).
+When it is, use that port wherever this file says 8765: `ftja.server`
+picks it up by itself, but URLs, `curl` checks and `lsof` lookups need it
+written in.
+
 ## Resume from the protocol
 
 Once FTJA and its environment are installed, at the start of every onboarding turn run `venv/bin/python -m
@@ -60,10 +66,13 @@ command in this turn on the FTJA folder's absolute path.
    `"CLAUDE_CODE_ENABLE_TODO_TOOLS": "1"`. Do this now, in this turn, even
    though the native task tools it enables won't be checkable until turn 2.
 3. Call `mcp__ccd_directory__change_directory` with the exact absolute path.
-   Continue only when the result confirms `Folder access granted`. If the
-   tool is unavailable or permission is denied, stop and report that the
-   session folder is not connected; do not continue with a scratch
-   workspace.
+   Continue only when the result confirms `Folder access granted`. If
+   permission is denied, stop and report that the session folder is not
+   connected; do not continue with a scratch workspace. If the tool does
+   not exist in this client (a terminal, `claude -p`, Codex), check with
+   `pwd` that the session already runs in the FTJA folder: if it does, go
+   on; if it does not, stop and tell the user to start the agent in that
+   folder.
 4. Create the repository's Python environment (`venv`) and install
    dependencies if they don't already exist, with the Python the platform
    file finds (3.10 or newer).

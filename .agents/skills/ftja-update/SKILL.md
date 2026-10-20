@@ -5,6 +5,12 @@ description: Update this FTJA folder to the latest published version (git pull, 
 
 # FTJA update
 
+**Port.** The viewer listens on port 8765 unless the environment
+variable `FTJA_PORT` is set (`echo $FTJA_PORT`; Windows `$env:FTJA_PORT`).
+When it is, use that port wherever this file says 8765: `ftja.server`
+picks it up by itself, but URLs, `curl` checks and `lsof` lookups need it
+written in.
+
 FTJA is installed by cloning its repository, so it only changes when the
 user pulls. This skill does that pull safely. The user's own files
 (`criteria.json`, `rubric.md`, `rubric-criteria.json`, `profile/`,

@@ -13,7 +13,7 @@ rewriting the interaction model.
 
 Binds to 127.0.0.1 only — never exposed beyond the local machine.
 
-Run: venv/bin/python -m ftja.server [--port 8765] [--db seen.db] [--project-dir .]
+Run: venv/bin/python -m ftja.server [--port 8765, or $FTJA_PORT] [--db seen.db] [--project-dir .]
 """
 import argparse
 import csv
@@ -36,7 +36,7 @@ from ftja import runs_store, run_bridge
 from ftja.onboarding import OnboardingError, apply_action, bridge_is_ready, build_checklist, is_repeat, live_bridge, read_bridge, read_state, write_action, write_state
 from ftja.geography import resolve_location, search_targets, unsupported_countries
 
-DEFAULT_PORT = 8765
+DEFAULT_PORT = int(os.environ.get("FTJA_PORT") or 8765)  # FTJA_PORT: a second viewer (a test) beside the usual one
 APP_HTML_PATH = os.path.join(os.path.dirname(__file__), "app.html")
 REPO_ROOT = os.path.dirname(os.path.dirname(__file__))
 LANDING_HTML_PATH = os.path.join(REPO_ROOT, "landing.html")

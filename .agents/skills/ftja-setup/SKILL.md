@@ -5,6 +5,12 @@ description: One-time (but re-invocable) onboarding for FTJA — interviews the 
 
 # FTJA setup
 
+**Port.** The viewer listens on port 8765 unless the environment
+variable `FTJA_PORT` is set (`echo $FTJA_PORT`; Windows `$env:FTJA_PORT`).
+When it is, use that port wherever this file says 8765: `ftja.server`
+picks it up by itself, but URLs, `curl` checks and `lsof` lookups need it
+written in.
+
 ## Resume from the protocol
 
 Once FTJA and its environment are installed, at the start of every onboarding turn run `venv/bin/python -m
