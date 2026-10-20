@@ -78,7 +78,11 @@ command in this turn on the FTJA folder's absolute path.
    dependencies if they don't already exist, with the Python the platform
    file finds (3.10 or newer).
 5. Initialize or resume `onboarding-state.json` in the FTJA folder.
-6. First check whose viewer holds port 8765, even when one answers:
+6. Get this folder's viewer address with `venv/bin/python -m ftja.server
+   --url` (do not read `$FTJA_PORT` yourself: a command with `$` asks the
+   user for approval). It is `http://127.0.0.1:8765` unless `FTJA_PORT`
+   sets another port; use the port it prints in every step below.
+   Then check whose viewer holds that port, even when one answers:
    `curl -s --max-time 3 http://127.0.0.1:8765/api/version` (every FTJA
    folder uses this one port, so an answering viewer may be another
    folder's). If it names this FTJA folder as `project_dir`, use it. If it
