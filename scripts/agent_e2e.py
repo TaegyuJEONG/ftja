@@ -403,6 +403,31 @@ def summary_md(reports: list[dict]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def ensure_logged_in():
+    """Before spending a run: is `claude` signed in? If not, and someone is
+    at the terminal, start the browser sign-in (`claude auth login`): it opens
+    the sign-in page and prints its link, and returns once you have signed in."""
+    if os.environ.get("CLAUDE_CODE_OAUTH_TOKEN") or os.environ.get("ANTHROPIC_API_KEY"):
+        return
+    claude = shutil.which("claude") or "claude"
+
+    def logged_in() -> bool:
+        out = subprocess.run([claude, "auth", "status"], capture_output=True, text=True, timeout=30).stdout
+        try:
+            return bool(json.loads(out).get("loggedIn"))
+        except json.JSONDecodeError:
+            return False
+
+    if logged_in():
+        return
+    check(sys.stdin.isatty(), "claude is not signed in: run `claude auth login`, or set CLAUDE_CODE_OAUTH_TOKEN")
+    print("claude is not signed in. Opening the sign-in page in your browser; "
+          "if it does not open, click the link below.", flush=True)
+    subprocess.run([claude, "auth", "login", "--claudeai"])
+    check(logged_in(), "the sign-in did not finish")
+    print("Signed in.", flush=True)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--model", default=DEFAULT_MODEL)
@@ -414,6 +439,7 @@ def main():
     ap.add_argument("--keep", action="store_true")
     args = ap.parse_args()
     check(shutil.which("claude"), "the claude command is not on PATH")
+    ensure_logged_in()
     reports = []
     for i in range(args.runs):
         out = os.path.abspath(os.path.join(args.artifacts, f"run-{i + 1}"))
