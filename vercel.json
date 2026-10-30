@@ -45,6 +45,14 @@
     {
       "source": "/p/:path*",
       "destination": "https://ftja-remote.vercel.app/p/:path*"
+    },
+    {
+      "source": "/robots.txt",
+      "destination": "https://ftja-remote.vercel.app/robots.txt"
+    },
+    {
+      "source": "/sitemap.xml",
+      "destination": "https://ftja-remote.vercel.app/sitemap.xml"
     }
   ]
 }
