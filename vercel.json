@@ -4,5 +4,47 @@
   "installCommand": "true",
   "buildCommand": "python3 scripts/verify_landing.py && mkdir -p _site && cp landing.html _site/index.html && cp remote-eu-pm.html _site/remote-eu-pm.html && cp -R assets _site/assets && python3 scripts/fetch_demo_media.py _site",
   "outputDirectory": "_site",
-  "cleanUrls": true
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/product/",
+      "destination": "https://ftja-remote.vercel.app/product/"
+    },
+    {
+      "source": "/privacy/",
+      "destination": "https://ftja-remote.vercel.app/privacy/"
+    },
+    {
+      "source": "/terms/",
+      "destination": "https://ftja-remote.vercel.app/terms/"
+    },
+    {
+      "source": "/product",
+      "destination": "https://ftja-remote.vercel.app/product/"
+    },
+    {
+      "source": "/privacy",
+      "destination": "https://ftja-remote.vercel.app/privacy/"
+    },
+    {
+      "source": "/terms",
+      "destination": "https://ftja-remote.vercel.app/terms/"
+    },
+    {
+      "source": "/product/:path*",
+      "destination": "https://ftja-remote.vercel.app/product/:path*"
+    },
+    {
+      "source": "/privacy/:path*",
+      "destination": "https://ftja-remote.vercel.app/privacy/:path*"
+    },
+    {
+      "source": "/terms/:path*",
+      "destination": "https://ftja-remote.vercel.app/terms/:path*"
+    },
+    {
+      "source": "/p/:path*",
+      "destination": "https://ftja-remote.vercel.app/p/:path*"
+    }
+  ]
 }
