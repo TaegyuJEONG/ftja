@@ -11,6 +11,24 @@ import sys
 import time
 
 from jobspy import scrape_jobs
+from jobspy.model import Country
+
+# jobspy reads a posting's location "Dakar, Dakar Region, Senegal" through
+# Country.from_string, which knows only the countries Indeed and Glassdoor
+# serve and raises for any other: one such posting crashed the whole search
+# (measured 2026-10-17, "Software Engineer" in Senegal over a week). Its
+# Location takes a plain name as the country too, so keep the name instead.
+_country_from_string = Country.from_string.__func__
+
+
+def _country_or_name(cls, country_str: str):
+    try:
+        return _country_from_string(cls, country_str)
+    except ValueError:
+        return country_str.strip()
+
+
+Country.from_string = classmethod(_country_or_name)
 
 SITES = ["linkedin"]
 BATCH_SIZE = 10
