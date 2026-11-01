@@ -43,6 +43,10 @@
       "destination": "https://ftja-remote.vercel.app/terms/:path*"
     },
     {
+      "source": "/p/:token/",
+      "destination": "https://ftja-remote.vercel.app/p/:token/"
+    },
+    {
       "source": "/p/:path*",
       "destination": "https://ftja-remote.vercel.app/p/:path*"
     },
@@ -53,6 +57,18 @@
     {
       "source": "/sitemap.xml",
       "destination": "https://ftja-remote.vercel.app/sitemap.xml"
+    },
+    {
+      "source": "/marketing/",
+      "destination": "https://ftja-remote.vercel.app/marketing/"
+    },
+    {
+      "source": "/marketing",
+      "destination": "https://ftja-remote.vercel.app/marketing/"
+    },
+    {
+      "source": "/marketing/:path*",
+      "destination": "https://ftja-remote.vercel.app/marketing/:path*"
     }
   ]
 }
