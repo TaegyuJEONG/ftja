@@ -47,3 +47,12 @@ def test_a_search_is_read_until_its_titles_stop_matching(monkeypatch):
     calls, _ = _linkedin(monkeypatch, lambda offset: TITLES)
     assert len(scrape_mod.scrape("Product Manager", "France")) == 8
     assert [c["offset"] for c in calls] == [0, 10, 20, 30]  # LinkedIn returns nothing past its cap
+
+
+def test_a_country_jobspy_does_not_know_is_kept_as_its_name():
+    from jobspy.model import Country, Location
+
+    assert Country.from_string("France") is Country.FRANCE
+    assert Country.from_string("Senegal") == "Senegal"
+    location = Location(city="Dakar", state="Dakar Region", country=Country.from_string("Senegal"))
+    assert location.display_location() == "Dakar, Dakar Region, Senegal"
