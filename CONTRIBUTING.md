@@ -33,6 +33,22 @@ machines written and reviewed in one place.
 - **No personal data.** Never include your own `criteria.json`, `rubric.md`,
   `profile/`, `seen.db`, digests, or logs. These are git-ignored on purpose.
 
+## Sharing company job boards
+
+FTJA reads a posting from the company's own job board (Greenhouse, Lever,
+Ashby and others) when it knows the board, instead of LinkedIn's page. The
+boards it knows ship in `ats_boards.json`; the ones your runs found are kept
+in your folder's `ats_local.json`. To share yours:
+
+1. `venv/bin/python -m ftja.ats export` writes `ats_contributions.json`:
+   company name, board vendor and board name only — nothing about your
+   searches, your criteria or the postings you looked at.
+2. Open a pull request that adds that file as `contributions/ats/<any name>.json`.
+
+A check reads every board in it and fails on any that lists no postings.
+The maintainer then adds the passing ones with
+`python -m ftja.ats merge contributions/ats/<file> --source "<your GitHub name>"`.
+
 ## Reporting bugs and ideas
 
 Open an issue with what you expected, what happened, and the steps to

@@ -5,6 +5,25 @@ What changed in each version, newest first. If you cloned FTJA earlier, run
 these. Your own files — `criteria.json`, `rubric.md`, `profile/`, `seen.db`,
 digests — are never touched by an update.
 
+## Unreleased
+
+### What changes for you after updating
+
+- **Postings come from the company's own job board when FTJA knows it.**
+  LinkedIn still finds the postings; for a company on Greenhouse, Lever,
+  Ashby, Workable, SmartRecruiters, Recruitee, Teamtailor, Personio or
+  BambooHR, the text is read from its board, every posting of that company
+  in one request, instead of one LinkedIn page each. FTJA ships with 1,314
+  boards, each checked to list postings (from the MIT-licensed OpenJobs
+  and career-ops lists), and looks for the board of any other company it
+  meets; what it finds is kept in your folder's `ats_local.json`.
+- **Closed postings are marked Expired by themselves.** At the start of a
+  run, a passed posting that was read from a company board and is no longer
+  on it is marked Expired, unless you already decided on it.
+- **Share the boards your runs found.** `venv/bin/python -m ftja.ats export`
+  writes them (company and board only) for a pull request; see
+  CONTRIBUTING.md.
+
 ## 0.3.3 — 2026-10-17
 
 ### What changes for you after updating

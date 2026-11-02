@@ -1,0 +1,36 @@
+name: ATS boards
+
+# A shared job board enters ats_boards.json only if it lists postings:
+# every board a pull request adds (to ats_boards.json or as a file under
+# contributions/ats/) is read once here. Only public board APIs are called.
+on:
+  pull_request:
+    paths:
+      - ats_boards.json
+      - "contributions/ats/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify the boards this pull request adds
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || 'origin/main' }}
+        run: |
+          git show "$BASE:ats_boards.json" > /tmp/base-boards.json 2>/dev/null || echo '{"boards": {}}' > /tmp/base-boards.json
+          python -m ftja.ats verify ats_boards.json --only-new-against /tmp/base-boards.json
+          for f in $(git diff --name-only --diff-filter=AM "$BASE" -- 'contributions/ats/*.json'); do
+            python -m ftja.ats verify "$f"
+          done

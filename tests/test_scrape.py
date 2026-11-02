@@ -47,3 +47,21 @@ def test_a_search_is_read_until_its_titles_stop_matching(monkeypatch):
     calls, _ = _linkedin(monkeypatch, lambda offset: TITLES)
     assert len(scrape_mod.scrape("Product Manager", "France")) == 8
     assert [c["offset"] for c in calls] == [0, 10, 20, 30]  # LinkedIn returns nothing past its cap
+
+
+def test_a_posting_on_its_company_board_is_read_from_there(monkeypatch):
+    _, fetched = _linkedin(monkeypatch, lambda offset: [] if offset else TITLES)
+
+    class Boards:
+        asked = []
+
+        def discover(self, companies):
+            self.asked.append(len(companies))
+
+        def details(self, job):
+            return {"description": "from the board", "_source": "ats:greenhouse/acme"} if "Senior" in job["title"] else {}
+
+    jobs = scrape_mod.scrape("Product Manager", "France", boards=Boards())
+    assert [(j["title"], j["description"]) for j in jobs] == [(TITLES[0], "from the board"), (TITLES[2], "the posting")]
+    assert fetched == [TITLES[2]]  # LinkedIn's page only for the posting the board has not got
+    assert Boards.asked == [2]  # the batch's companies looked for once, before their postings
