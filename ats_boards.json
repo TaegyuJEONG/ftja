@@ -1,5 +1,5 @@
 {
- "about": "Company job boards FTJA reads postings from (see ftja/ats.py). Each entry was checked to list postings when added; `source` says where it came from. Add yours: python -m ftja.ats export, then a pull request with the file it writes.",
+ "about": "Company job boards FTJA reads postings from (see ftja/ats.py). Each entry was checked to list postings when added; `source` says where it came from; the licences of the lists it was built from are in THIRD_PARTY_NOTICES.md. Add yours: python -m ftja.ats export, then a pull request with the file it writes.",
  "boards": {
   "1000heads": {
    "name": "1000heads",
@@ -7729,12 +7729,6 @@
    "source": "outscal/OpenJobs@cdcc533 (MIT)",
    "vendor": "lever"
   },
-  "xepelin": {
-   "name": "Xepelin",
-   "slug": "xepelin",
-   "source": "outscal/OpenJobs@cdcc533 (MIT)",
-   "vendor": "lever"
-  },
   "xflow": {
    "name": "XFlow",
    "slug": "xflow.bamboohr.com",
@@ -7806,12 +7800,6 @@
    "slug": "zapier",
    "source": "outscal/OpenJobs@cdcc533 (MIT)",
    "vendor": "ashby"
-  },
-  "zeeco": {
-   "name": "Zeeco, Inc.",
-   "slug": "zeeco",
-   "source": "outscal/OpenJobs@cdcc533 (MIT)",
-   "vendor": "lever"
   },
   "zenoti": {
    "name": "Zenoti",

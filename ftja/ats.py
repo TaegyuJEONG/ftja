@@ -44,6 +44,7 @@ JOBS_FILE = "ats_jobs.json"  # postings read from a board: which board, to check
 CLOSED_REASON = "Closed: no longer on the company's job board (checked automatically)."
 EXPORT_FILE = "ats_contributions.json"
 RECHECK_DAYS = 30
+KEEP_JOBS_DAYS = 30  # a posting read from a board that never passed is forgotten after this
 TIMEOUT = 20
 WORKERS = 16
 UA = {"User-Agent": "Mozilla/5.0 (FTJA; +https://github.com/TaegyuJEONG/ftja)", "Accept": "application/json"}
@@ -322,6 +323,12 @@ class Boards:
         if not text:
             return {}
         self.stats["from_ats"] += 1
+        key = company_key(job.get("company"))
+        if key in self.local and not self.local[key].get("confirmed"):
+            # a guessed board name can belong to another company; a posting LinkedIn shows under this
+            # company's name, with the same title, makes it this company's board, and only then is it shared
+            self.local[key]["confirmed"] = True
+            _save(self.local_path, self.local)
         out = {"description": text, "_source": f"ats:{found[0]}/{found[1]}"}
         if job.get("job_url"):
             self.jobs[job["job_url"]] = {"source": out["_source"], "title": job.get("title"),
@@ -357,12 +364,15 @@ def close_gone(project_dir: str = ".", db_path: str | None = None) -> dict:
     if not os.path.exists(db_path):
         return {"checked": 0, "closed": 0}
     checked = closed = 0
+    old = (datetime.now(timezone.utc) - timedelta(days=KEEP_JOBS_DAYS)).isoformat()
     with connect(db_path) as conn:
         rows = conn.execute("SELECT job_url, user_action FROM seen_jobs WHERE status IN ('passed', 'review')").fetchall()
         shown = {url: action for url, action in rows}
         for url, entry in list(boards.jobs.items()):
             if url not in shown:
-                continue  # not passed (or not judged yet): nobody is waiting on it
+                if entry.get("read_at", "") < old:
+                    del boards.jobs[url]  # never passed: nobody will wait on it
+                continue
             if shown[url]:
                 del boards.jobs[url]  # decided already: never checked again
                 continue
@@ -379,11 +389,13 @@ def close_gone(project_dir: str = ".", db_path: str | None = None) -> dict:
 
 def export(project_dir: str = ".", shared_path: str = SHARED_PATH) -> dict:
     """The boards this folder found that the shipped list has not got, as a list
-    to send in: company name, vendor and board name only."""
+    to send in: company name, vendor and board name only. Only boards that gave
+    a posting LinkedIn showed under that company's name (`confirmed`): a board
+    found by guessing its name may be another company's."""
     shared = shared_boards(shared_path)
     found = {k: {"name": v.get("name") or k, "vendor": v["vendor"], "slug": v["slug"]}
              for k, v in _load(os.path.join(project_dir, LOCAL_FILE)).items()
-             if v.get("vendor") and v.get("slug") and k not in shared}
+             if v.get("vendor") and v.get("slug") and v.get("confirmed") and k not in shared}
     path = os.path.join(project_dir, EXPORT_FILE)
     _save(path, {"boards": found})
     return {"path": path, "boards": len(found)}
@@ -397,7 +409,8 @@ def verify(boards: dict) -> dict:
             return key, "the key is not company_key(name)"
         if not valid_board(entry.get("vendor"), entry.get("slug")):
             return key, "not a known vendor and board name"
-        return key, None if postings(entry["vendor"], entry["slug"]) else "the board lists no postings"
+        listed = postings(entry["vendor"], entry["slug"]) or postings(entry["vendor"], entry["slug"])  # once more: a slow answer is not an empty board
+        return key, None if listed else "the board lists no postings"
     with ThreadPoolExecutor(max_workers=WORKERS) as pool:
         return {k: why for k, why in pool.map(check, boards.items()) if why}
 

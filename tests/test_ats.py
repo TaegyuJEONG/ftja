@@ -65,6 +65,16 @@ def test_details_come_from_the_board_of_a_known_company(monkeypatch, tmp_path):
     assert boards.stats["from_ats"] == 1
 
 
+def test_a_found_board_is_confirmed_by_a_matching_posting(monkeypatch, tmp_path):
+    _boards(monkeypatch, {ats.LIST_URL["greenhouse"].format(s="acme"): GREENHOUSE})
+    (tmp_path / ats.LOCAL_FILE).write_text(json.dumps({"acme": {"name": "Acme", "vendor": "greenhouse", "slug": "acme"}}))
+    boards = ats.Boards(str(tmp_path), str(tmp_path / "none.json"))
+    boards.details({"company": "Acme", "title": "Engineer"})
+    assert "confirmed" not in json.loads((tmp_path / ats.LOCAL_FILE).read_text())["acme"]
+    boards.details({"company": "Acme", "title": "Designer"})
+    assert json.loads((tmp_path / ats.LOCAL_FILE).read_text())["acme"]["confirmed"] is True
+
+
 def test_discover_keeps_hits_and_misses_locally(monkeypatch, tmp_path):
     asked = _boards(monkeypatch, {ats.LIST_URL["ashby"].format(s="ramp"): {"jobs": [{"title": "PM"}]}})
     boards = ats.Boards(str(tmp_path), str(tmp_path / "none.json"))
@@ -90,7 +100,8 @@ def test_export_leaves_out_what_is_shared_and_what_was_missed(monkeypatch, tmp_p
     shared.write_text(json.dumps({"boards": {"acme": {"name": "Acme", "vendor": "greenhouse", "slug": "acme"}}}))
     (tmp_path / ats.LOCAL_FILE).write_text(json.dumps({
         "acme": {"name": "Acme", "vendor": "greenhouse", "slug": "acme", "checked_at": "x"},
-        "ramp": {"name": "Ramp", "vendor": "ashby", "slug": "ramp", "checked_at": "x"},
+        "ramp": {"name": "Ramp", "vendor": "ashby", "slug": "ramp", "checked_at": "x", "confirmed": True},
+        "guess": {"name": "Guess", "vendor": "ashby", "slug": "guess", "checked_at": "x"},
         "nowhere": {"name": "Nowhere", "checked_at": "x"}}))
     out = ats.export(str(tmp_path), str(shared))
     assert out["boards"] == 1
@@ -139,7 +150,7 @@ def test_close_gone_marks_closed_postings_expired(monkeypatch, tmp_path):
         actions = dict(conn.execute("SELECT job_url, user_action FROM seen_jobs").fetchall())
     assert actions == {"u-open": None, "u-gone": "expired", "u-decided": "applied", "u-failed": None}
     left = json.loads((tmp_path / ats.JOBS_FILE).read_text())
-    assert set(left) == {"u-open", "u-failed"}  # the closed and the decided are never checked again
+    assert set(left) == {"u-open"}  # u-failed has no read_at: as old as can be, forgotten  # the closed and the decided are never checked again
 
 
 def test_titles_match_without_their_gender_note():

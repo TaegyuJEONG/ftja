@@ -61,8 +61,9 @@ def main():
     bad = ats.verify(new)
     boards.update({k: v for k, v in new.items() if k not in bad})
     data["about"] = ("Company job boards FTJA reads postings from (see ftja/ats.py). Each entry was checked to list "
-                     "postings when added; `source` says where it came from. Add yours: python -m ftja.ats export, "
-                     "then a pull request with the file it writes.")
+                     "postings when added; `source` says where it came from, and the licences of the lists it was built "
+                     "from are in THIRD_PARTY_NOTICES.md. Add yours: python -m ftja.ats export, then a pull request "
+                     "with the file it writes.")
     ats._save(path, data)
     print(json.dumps({"candidates": len(new), "added": len(new) - len(bad), "rejected": len(bad),
                       "total": len(boards)}, indent=1))
