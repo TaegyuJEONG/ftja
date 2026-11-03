@@ -31,6 +31,7 @@ import html
 import json
 import os
 import re
+import time
 import sys
 import tempfile
 import urllib.request
@@ -409,7 +410,12 @@ def verify(boards: dict) -> dict:
             return key, "the key is not company_key(name)"
         if not valid_board(entry.get("vendor"), entry.get("slug")):
             return key, "not a known vendor and board name"
-        listed = postings(entry["vendor"], entry["slug"]) or postings(entry["vendor"], entry["slug"])  # once more: a slow answer is not an empty board
+        listed = postings(entry["vendor"], entry["slug"])
+        for pause in (3, 10):  # once more, later: a vendor that turns away a burst of requests answers empty, not "no board"
+            if listed:
+                break
+            time.sleep(pause)
+            listed = postings(entry["vendor"], entry["slug"])
         return key, None if listed else "the board lists no postings"
     with ThreadPoolExecutor(max_workers=WORKERS) as pool:
         return {k: why for k, why in pool.map(check, boards.items()) if why}
