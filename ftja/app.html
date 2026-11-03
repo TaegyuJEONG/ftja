@@ -456,13 +456,30 @@ button.save-btn:disabled { opacity: .45; cursor: default; }
 .page-btn.active { background: var(--accent); color: var(--on-accent); border-color: var(--accent-strong); }
 
 /* ---- Pipeline tab ---- */
-.judge-card .judge-modes { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
-.judge-card .judge-modes button { font: inherit; padding: 4px 12px; border-radius: 3px; border: 1px solid var(--accent-border); background: transparent; color: var(--accent-text); cursor: pointer; }
-.judge-card .judge-modes button.on { background: var(--accent-text); color: var(--bg, #fff); border-color: var(--accent-text); }
-.judge-card .judge-key { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-.judge-card .judge-key input, .judge-card select, .judge-card p input { flex: 1 1 220px; min-width: 0; font: inherit; padding: 4px 8px; }
-.judge-card .judge-key label { display: flex; flex: 1 1 220px; gap: 6px; align-items: center; }
-.judge-card p { margin: 4px 0; }
+.judge-card .explain { margin-bottom: 16px; }
+.judge-seg { display: inline-flex; border: 1px solid var(--accent-border); border-radius: 8px; overflow: hidden; margin-bottom: 4px; }
+.judge-seg button { font: inherit; font-size: 12.5px; padding: 8px 16px; border: 0; background: transparent; color: var(--accent-text); cursor: pointer; }
+.judge-seg button + button { border-left: 1px solid var(--accent-border); }
+.judge-seg button.on { background: var(--accent); color: var(--on-accent); }
+.judge-api { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); }
+.judge-api .field-row { align-items: flex-end; }
+.judge-api select, .judge-api input[type="password"] { font-family: inherit; font-size: 12.5px; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; width: 100%; }
+.judge-api input[type="password"]:focus { outline: none; border-color: var(--accent); }
+.judge-btn { font: inherit; font-size: 12.5px; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--accent-border); background: transparent; color: var(--accent-text); cursor: pointer; white-space: nowrap; }
+.judge-btn:hover { background: var(--accent-dim); }
+.judge-btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.judge-inline { display: flex; gap: 8px; }
+.judge-inline > :first-child { flex: 1 1 auto; min-width: 0; }
+.judge-saved { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--text); padding: 8px 0; }
+.judge-saved code { font-family: 'IBM Plex Mono', monospace; background: var(--surface2); padding: 2px 6px; border-radius: 4px; }
+.judge-help { font-size: 12px; color: var(--text3); line-height: 1.6; margin-top: 6px; }
+.judge-help a, .judge-link { color: var(--accent-text); }
+.judge-link { font: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.judge-status { margin-top: 18px; font-size: 12.5px; padding: 10px 12px; border-radius: 8px; }
+.judge-status.ready { background: var(--accent-dim); color: var(--accent-text); }
+.judge-status.todo { background: var(--warn-bg); color: var(--warn-text); }
+.judge-note { margin-top: 10px; font-size: 12px; color: var(--text2); }
+@media (max-width: 520px) { .judge-api .field-row > .judge-btn { flex: 1 1 100%; } }
 .section { margin-bottom: 46px; }
 .section-title {
   font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;
@@ -3374,39 +3391,49 @@ function renderJudge(j, note) {
   if (!el || !j) return;
   const custom = j.provider === 'custom';
   const options = j.providers.map(p => `<option value="${esc(p.id)}" ${p.id === j.provider ? 'selected' : ''}>${esc(p.label)}</option>`).join('');
-  const keyLine = j.key_set
-    ? `<p><b>${esc(j.key_var)}</b> is set in <code>.env</code>.</p>`
-    : `<p>No key yet. ${j.key_page ? `Get one at <a href="${esc(j.key_page)}" target="_blank" rel="noopener">${esc(j.key_page.replace('https://', ''))}</a>, then paste` : 'Paste'} it here, or into <code>.env</code> as <code>${esc(j.key_var)}=…</code>.</p>`;
-  const api = j.mode === 'api' ? `
-    <p><label>Supplier <select id="judge-provider">${options}</select></label></p>
-    ${custom ? `<p><label>API address <input id="judge-base" value="${esc(j.base)}" placeholder="https://…/v1"></label></p>` : ''}
-    ${keyLine}
-    <div class="judge-key"><input type="password" id="judge-key-input" autocomplete="off" placeholder="${j.key_set ? 'Paste a new key to replace it' : 'Paste your API key'}"><button data-judge-save>Save key to .env</button></div>
-    <p>Pick two models: a cheap one for Stage 1 and the Remote check, a stronger one for Stage 2. Model names and prices change often, so FTJA does not guess them:
-      ${j.key_set ? '<button data-judge-list>Show the models my key can use</button>' : 'save your key first to list the models it can use'}${j.pricing_page ? `, compare their prices on <a href="${esc(j.pricing_page)}" target="_blank" rel="noopener">${esc(j.pricing_page.replace('https://', '').split('/')[0])}</a>` : ''},
-      or ask your coding agent: <i>“choose my FTJA judge models”</i>. It checks the current prices and suggests a pair.</p>
+  const site = u => esc(u.replace('https://', '').split('/')[0]);
+  const keyField = j.key_set && !judgeReplacing
+    ? `<div class="judge-saved">Saved <code>${esc(j.key_var)} ${esc(j.key_hint)}</code><button class="judge-link" data-judge-replace>Replace</button></div>`
+    : `<div class="judge-inline"><input type="password" id="judge-key-input" autocomplete="off" aria-label="API key" placeholder="Paste your ${esc(j.providers.find(p => p.id === j.provider).label)} key"><button class="judge-btn primary" data-judge-save>Save key</button></div>
+       <div class="judge-help">${j.key_page ? `Get one at <a href="${esc(j.key_page)}" target="_blank" rel="noopener">${site(j.key_page)}</a>. ` : ''}Stored in <code>.env</code> on this computer, never shown again.</div>`;
+  const missing = [!j.key_set && 'a key', custom && !j.base && 'the API address', !j.models.s1 && 'a Stage 1 model', !j.models.s2 && 'a Stage 2 model'].filter(Boolean);
+  const api = j.mode !== 'api' ? '' : `<div class="judge-api">
+    <div class="field-row">
+      <div class="field"><label for="judge-provider">Supplier</label><select id="judge-provider">${options}</select></div>
+      ${custom ? `<div class="field"><label for="judge-base">API address</label><input type="text" id="judge-base" value="${esc(j.base)}" placeholder="https://…/v1"></div>` : ''}
+    </div>
+    <div class="field"><label for="judge-key-input">API key</label>${keyField}</div>
     <datalist id="judge-model-list">${(judgeModels || []).map(m => `<option value="${esc(m)}">`).join('')}</datalist>
-    <div class="judge-key"><label>Stage 1 model <input id="judge-m1" list="judge-model-list" value="${esc(j.models.s1)}" placeholder="cheap model"></label><label>Stage 2 model <input id="judge-m2" list="judge-model-list" value="${esc(j.models.s2)}" placeholder="stronger model"></label><button data-judge-models>Save models</button></div>
-    ${judgeModels && judgeModels.length ? `<p class="mono">Your key can use: ${judgeModels.map(esc).join(' · ')}</p>` : ''}
-    ${j.ready ? '' : '<p><b>Not ready yet:</b> ' + [!j.key_set && 'a key', custom && !j.base && 'the address', !(j.models.s1 && j.models.s2) && 'both models'].filter(Boolean).join(', ') + ' missing. Until then runs use the coding agent.</p>'}` : '';
+    <div class="field-row">
+      <div class="field"><label for="judge-m1">Stage 1 model · cheap</label><input type="text" id="judge-m1" list="judge-model-list" value="${esc(j.models.s1)}" placeholder="pick from your key's list"></div>
+      <div class="field"><label for="judge-m2">Stage 2 model · stronger</label><input type="text" id="judge-m2" list="judge-model-list" value="${esc(j.models.s2)}" placeholder="pick from your key's list"></div>
+      <button class="judge-btn" data-judge-models>Save models</button>
+    </div>
+    <div class="judge-help">${j.key_set ? '<button class="judge-link" data-judge-list>List the models my key can use</button>' : 'Save a key to list its models'}${j.pricing_page ? ` · <a href="${esc(j.pricing_page)}" target="_blank" rel="noopener">Prices on ${site(j.pricing_page)}</a>` : ''} · or ask your agent to <i>“choose my FTJA judge models”</i>.
+      ${judgeModels && judgeModels.length ? `<br>Your key can use: <span class="mono">${judgeModels.map(esc).join(', ')}</span>` : ''}</div>
+    <div class="judge-status ${missing.length ? 'todo' : 'ready'}">${missing.length
+      ? `Missing ${missing.join(', ')}. Runs use your coding agent until then.`
+      : `Ready. Runs judge with ${esc(j.models.s1)} (Stage 1) and ${esc(j.models.s2)} (Stage 2).`}</div>
+  </div>`;
   el.innerHTML = `<div class="section"><div class="section-title"><span class="num">0</span>Who judges the jobs</div><div class="card judge-card">
-    <p>Stage 1, Stage 2 and the Remote check can run on your coding agent's tokens, or on your own API key from the supplier you prefer (billed to your account with them).</p>
-    <div class="judge-modes"><button data-judge-mode="agent" class="${j.mode === 'agent' ? 'on' : ''}">Coding agent</button><button data-judge-mode="api" class="${j.mode === 'api' ? 'on' : ''}">My API key</button></div>
+    <p class="explain">Run Stage 1, Stage 2 and the Remote check on your coding agent's tokens, or on your own API key, billed by the supplier you pick.</p>
+    <div class="judge-seg" role="group" aria-label="Who judges"><button data-judge-mode="agent" class="${j.mode === 'agent' ? 'on' : ''}" aria-pressed="${j.mode === 'agent'}">Coding agent</button><button data-judge-mode="api" class="${j.mode === 'api' ? 'on' : ''}" aria-pressed="${j.mode === 'api'}">My API key</button></div>
     ${api}
-    ${note ? `<p>${esc(note)}</p>` : ''}</div></div>`;
+    ${note ? `<p class="judge-note" role="status">${esc(note)}</p>` : ''}</div></div>`;
 }
 function postJudge(body, ok) {
   fetch('/api/judge', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)})
     .then(r => r.json()).then(j => j.error ? renderJudge(lastJudge, j.error) : (lastJudge = j, renderJudge(j, ok)));
 }
-let lastJudge = null, judgeModels = null;
+let lastJudge = null, judgeModels = null, judgeReplacing = false;
 document.addEventListener('click', ev => {
   const m = ev.target.closest('[data-judge-mode]');
   if (m) postJudge({mode: m.dataset.judgeMode}, 'Saved. The next run uses this.');
   if (ev.target.closest('[data-judge-save]')) {
     const input = document.getElementById('judge-key-input');
-    if (input && input.value.trim()) { postJudge({key: input.value.trim()}, 'Key saved to .env.'); input.value = ''; }
+    if (input && input.value.trim()) { judgeReplacing = false; postJudge({key: input.value.trim()}, 'Key saved.'); input.value = ''; }
   }
+  if (ev.target.closest('[data-judge-replace]')) { judgeReplacing = true; renderJudge(lastJudge); document.getElementById('judge-key-input').focus(); }
   if (ev.target.closest('[data-judge-list]')) {
     fetch('/api/judge-models').then(r => r.json()).then(d => { judgeModels = d.models || []; renderJudge(lastJudge, d.error || (judgeModels.length ? '' : 'The supplier listed no models.')); });
   }

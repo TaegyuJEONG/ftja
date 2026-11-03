@@ -155,9 +155,12 @@ def status(project_dir: str = ".") -> dict:
     models["rc"] = models["rc"] or models["s1"]
     base = _setting(env, "FTJA_API_BASE", p["base"])
     mode = _setting(env, "FTJA_JUDGE", "agent")
-    key_set = bool(_setting(env, p["key_var"]))
+    key = _setting(env, p["key_var"])
+    key_set = bool(key)
     return {"mode": mode if mode in ("agent", "api") else "agent", "provider": provider,
-            "key_var": p["key_var"], "key_set": key_set, "key_page": p["key_page"], "pricing_page": p["pricing_page"],
+            "key_var": p["key_var"], "key_set": key_set,
+            # enough to recognise which key is saved, never enough to use it
+            "key_hint": f"…{key[-4:]}" if len(key) >= 16 else ("set" if key else ""), "key_page": p["key_page"], "pricing_page": p["pricing_page"],
             "base": base, "models": models,
             "ready": key_set and bool(base) and all(models.values()),
             "providers": [{"id": k, "label": v["label"]} for k, v in PROVIDERS.items()]}
