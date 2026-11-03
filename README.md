@@ -81,11 +81,13 @@ session usage limit partway through.
 Start with one or two titles and 100 results per title, then widen.
 
 **Or judge with your own API key.** On the web view's Pipeline tab, choose
-*My API key* and paste an Anthropic key (get one at
-console.anthropic.com/settings/keys). It is saved to `.env` in your FTJA
+*My API key*, pick your supplier (Anthropic, OpenAI, DeepSeek, Google
+Gemini, Mistral, OpenRouter, or any OpenAI-compatible address such as a
+local Ollama) and paste its key. It is saved to `.env` in your FTJA
 folder, which git ignores, and is never shown again. Runs then send the
-Remote check, Stage 1 and Stage 2 prompts straight to the model API
-(Haiku for the first two, Sonnet for Stage 2), billed to your API account,
+Remote check, Stage 1 and Stage 2 prompts straight to that API (a cheap
+model for the first two, a stronger one for Stage 2; you can change
+both), billed to your account with that supplier,
 instead of spawning agent subagents that each carry a large fixed overhead.
 Your agent still scrapes and assembles the run. `.env.example` lists the
 settings, including the model for each stage.
@@ -113,9 +115,9 @@ What does leave your computer:
   session, so the job descriptions, your rubric, your profile summary and
   (during setup) the resume you select are sent to that provider under your
   account with them, as with any other work you do there.
-- **Anthropic's API, if you chose your own key.** The same prompts the
-  agent would judge (job text, rubric, profile summary) go to the Messages
-  API under your key.
+- **The API supplier you chose, if you use your own key.** The same
+  prompts the agent would judge (job text, rubric, profile summary) go to
+  that supplier under your key.
 - **LinkedIn.** Your search titles and location are sent as public,
   logged-out searches.
 - **OpenStreetMap (Nominatim).** What you type in the web view's location

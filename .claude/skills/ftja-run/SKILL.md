@@ -143,8 +143,9 @@ instead of it.
   and never pass 0 for a count you did not make: a missing total shows as
   "-", a wrong one is believed.
 - **Check who judges**: `venv/bin/python -m ftja.judge status`. When it
-  prints `"mode": "api"` with `"key_set": true`, the user chose to judge
-  with their own model API key (`.env`, set on the Pipeline tab): wherever
+  prints `"mode": "api"` with `"ready": true`, the user chose to judge
+  with their own API key from the supplier they prefer (`.env`, set on the
+  Pipeline tab): wherever
   steps 2-4 below say to call `Agent` subagents for `rc/`, `s1/` or `s2/`,
   run instead
 
@@ -159,9 +160,10 @@ instead of it.
   takes those); a rerun the check commands ask for is
   `--jobs <n,n> --force`. Everything else (`check-*`, `prepare-*`,
   `results`, `finalize`) is unchanged. With `"mode": "api"` but
-  `"key_set": false`, tell the user to paste a key on the Pipeline tab
-  (or into `.env` as `ANTHROPIC_API_KEY=`, key from the printed
-  `key_page`) and fall back to subagents for this run. Never print, read
+  `"ready": false`, tell the user to finish the supplier setup on the
+  Pipeline tab (key, and for OpenRouter / custom the models and address;
+  the key goes in `.env` as the printed `key_var`, from `key_page`) and
+  fall back to subagents for this run. Never print, read
   aloud or copy the key.
 - **Check the criteria list**: `venv/bin/python -m ftja.verdict status`.
   `rubric-criteria.json` is the rubric as a list of single criteria with

@@ -6,14 +6,15 @@ prompts and write the same `<n>.out.json` answers, so `check-stage1`,
 `prepare-stage2`, `results` and `finalize` do not know which one ran.
 
 The key lives in `.env` in the FTJA folder (gitignored), next to the
-choice of judge:
+choice of judge and supplier:
 
     FTJA_JUDGE=api            # "agent" (default) or "api"
-    ANTHROPIC_API_KEY=sk-ant-...
+    FTJA_PROVIDER=deepseek    # any key of PROVIDERS
+    DEEPSEEK_API_KEY=sk-...
 
-A provider is one function `(prompt, model, key) -> (text, input_tokens,
-output_tokens)` in PROVIDERS, so adding another model API is one function
-and one entry.
+Anthropic is called natively; every other supplier through the
+OpenAI-compatible chat-completions API, so adding one is one PROVIDERS
+entry.
 """
 
 import argparse
@@ -30,12 +31,9 @@ from ftja import live
 
 ENV_FILE = ".env"
 STAGES = ("rc", "s1", "s2")
-# The agent path's haiku / sonnet, as API model ids. Overridable in .env.
-DEFAULT_MODELS = {"rc": "claude-haiku-5-5", "s1": "claude-haiku-5-5", "s2": "claude-sonnet-5-5"}
 MODEL_VARS = {"rc": "FTJA_REMOTE_MODEL", "s1": "FTJA_STAGE1_MODEL", "s2": "FTJA_STAGE2_MODEL"}
 MAX_TOKENS = {"rc": 1024, "s1": 1024, "s2": 4096}
 WORKERS = 8
-KEY_PAGE = "https://console.anthropic.com/settings/keys"
 
 
 # ---------- .env ----------
@@ -87,49 +85,119 @@ def _setting(env: dict, name: str, default: str = "") -> str:
 
 # ---------- providers ----------
 
-def anthropic(prompt: str, model: str, key: str, max_tokens: int = 1024) -> tuple[str, int, int]:
-    body = json.dumps({"model": model, "max_tokens": max_tokens,
-                       "messages": [{"role": "user", "content": prompt}]}).encode()
-    req = urllib.request.Request("https://api.anthropic.com/v1/messages", data=body, headers={
-        "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"})
-    with urllib.request.urlopen(req, timeout=180) as r:
-        out = json.loads(r.read())
+def _post(url: str, body: dict, headers: dict) -> dict:
+    req = urllib.request.Request(url, data=json.dumps(body).encode(),
+                                 headers={"content-type": "application/json", **headers})
+    with urllib.request.urlopen(req, timeout=300) as r:
+        return json.loads(r.read())
+
+
+def anthropic(prompt: str, model: str, key: str, max_tokens: int, base: str) -> tuple[str, int, int]:
+    out = _post(base.rstrip("/") + "/v1/messages",
+                {"model": model, "max_tokens": max_tokens, "messages": [{"role": "user", "content": prompt}]},
+                {"x-api-key": key, "anthropic-version": "2023-06-01"})
     text = "".join(b.get("text", "") for b in out.get("content", []) if b.get("type") == "text")
     usage = out.get("usage") or {}
     return text, int(usage.get("input_tokens") or 0), int(usage.get("output_tokens") or 0)
 
 
-PROVIDERS = {"anthropic": (anthropic, "ANTHROPIC_API_KEY")}
+def openai_compatible(prompt: str, model: str, key: str, max_tokens: int, base: str) -> tuple[str, int, int]:
+    """The chat-completions API most suppliers speak (OpenAI, DeepSeek,
+    Gemini, Mistral, OpenRouter, Groq, a local Ollama...). No max_tokens:
+    reasoning models count their thinking against it and some reject it."""
+    out = _post(base.rstrip("/") + "/chat/completions",
+                {"model": model, "messages": [{"role": "user", "content": prompt}]},
+                {"authorization": f"Bearer {key}"})
+    text = ((out.get("choices") or [{}])[0].get("message") or {}).get("content") or ""
+    usage = out.get("usage") or {}
+    return text, int(usage.get("prompt_tokens") or 0), int(usage.get("completion_tokens") or 0)
+
+
+# One entry per supplier: how to call it, where its key goes and where to
+# get one, and a cheap model (Remote check, Stage 1) and a stronger one
+# (Stage 2). Every model can be changed in .env or the viewer; "custom" is
+# any OpenAI-compatible address, with models the user names.
+PROVIDERS = {
+    "anthropic": {"label": "Anthropic (Claude)", "call": anthropic, "base": "https://api.anthropic.com",
+                  "key_var": "ANTHROPIC_API_KEY", "key_page": "https://console.anthropic.com/settings/keys",
+                  "models": ("claude-haiku-5-5", "claude-sonnet-5-5")},
+    "openai": {"label": "OpenAI", "call": openai_compatible, "base": "https://api.openai.com/v1",
+               "key_var": "OPENAI_API_KEY", "key_page": "https://platform.openai.com/api-keys",
+               "models": ("gpt-5-mini", "gpt-5")},
+    "deepseek": {"label": "DeepSeek", "call": openai_compatible, "base": "https://api.deepseek.com",
+                 "key_var": "DEEPSEEK_API_KEY", "key_page": "https://platform.deepseek.com/api_keys",
+                 "models": ("deepseek-chat", "deepseek-reasoner")},
+    "gemini": {"label": "Google Gemini", "call": openai_compatible,
+               "base": "https://generativelanguage.googleapis.com/v1beta/openai",
+               "key_var": "GEMINI_API_KEY", "key_page": "https://aistudio.google.com/apikey",
+               "models": ("gemini-2.5-flash", "gemini-2.5-pro")},
+    "mistral": {"label": "Mistral", "call": openai_compatible, "base": "https://api.mistral.ai/v1",
+                "key_var": "MISTRAL_API_KEY", "key_page": "https://console.mistral.ai/api-keys",
+                "models": ("mistral-small-latest", "mistral-large-latest")},
+    "openrouter": {"label": "OpenRouter (any model)", "call": openai_compatible, "base": "https://openrouter.ai/api/v1",
+                   "key_var": "OPENROUTER_API_KEY", "key_page": "https://openrouter.ai/settings/keys",
+                   "models": ("", "")},
+    "custom": {"label": "Other (OpenAI-compatible)", "call": openai_compatible, "base": "",
+               "key_var": "FTJA_API_KEY", "key_page": "", "models": ("", "")},
+}
 
 
 def status(project_dir: str = ".") -> dict:
-    """What the viewer and the run skill need: which judge is chosen and
-    whether a key is set. Never the key itself."""
+    """What the viewer and the run skill need: which judge and supplier are
+    chosen, the models, and whether a key is set. Never the key itself."""
     env = read_env(project_dir)
     provider = _setting(env, "FTJA_PROVIDER", "anthropic")
-    key_var = PROVIDERS.get(provider, (None, ""))[1]
+    p = PROVIDERS.get(provider) or PROVIDERS["anthropic"]
+    provider = provider if provider in PROVIDERS else "anthropic"
+    cheap, strong = p["models"]
+    defaults = {"rc": cheap, "s1": cheap, "s2": strong}
+    models = {s: _setting(env, MODEL_VARS[s], defaults[s]) for s in STAGES}
+    base = _setting(env, "FTJA_API_BASE", p["base"])
     mode = _setting(env, "FTJA_JUDGE", "agent")
+    key_set = bool(_setting(env, p["key_var"]))
     return {"mode": mode if mode in ("agent", "api") else "agent", "provider": provider,
-            "key_var": key_var, "key_set": bool(key_var and _setting(env, key_var)),
-            "models": {s: _setting(env, MODEL_VARS[s], DEFAULT_MODELS[s]) for s in STAGES},
-            "key_page": KEY_PAGE}
+            "key_var": p["key_var"], "key_set": key_set, "key_page": p["key_page"],
+            "base": base, "models": models,
+            "ready": key_set and bool(base) and all(models.values()),
+            "providers": [{"id": k, "label": v["label"], "key_page": v["key_page"],
+                           "models": {"s1": v["models"][0], "s2": v["models"][1]}} for k, v in PROVIDERS.items()]}
 
 
-def choose(project_dir: str, mode: str | None = None, key: str | None = None) -> dict:
-    """The viewer's Pipeline tab: pick agent or API, and/or save a pasted
-    key to .env. Returns status(), which never includes the key."""
+def choose(project_dir: str, mode: str | None = None, key: str | None = None, provider: str | None = None,
+           base: str | None = None, models: dict | None = None) -> dict:
+    """The viewer's Pipeline tab: pick agent or API, a supplier, its models,
+    and/or save a pasted key to .env. Returns status(), which never
+    includes the key."""
     updates = {}
     if mode is not None:
         if mode not in ("agent", "api"):
             raise ValueError("mode must be agent or api")
         updates["FTJA_JUDGE"] = mode
-    if key is not None:
-        key = key.strip()
-        if not re.fullmatch(r"[A-Za-z0-9_\-]{20,300}", key):
-            raise ValueError("that does not look like an API key")
-        updates[status(project_dir)["key_var"]] = key
+    if provider is not None:
+        if provider not in PROVIDERS:
+            raise ValueError("unknown supplier")
+        if provider != status(project_dir)["provider"]:
+            # the old supplier's models and address do not fit the new one
+            updates.update({"FTJA_PROVIDER": provider, "FTJA_API_BASE": None, **{v: None for v in MODEL_VARS.values()}})
+    if base is not None:
+        base = base.strip()
+        if base and not re.fullmatch(r"https?://[^\s]{3,300}", base):
+            raise ValueError("the address must start with http:// or https://")
+        updates["FTJA_API_BASE"] = base or None
+    for stage, model in (models or {}).items():
+        if stage in ("s1", "s2"):
+            model = str(model).strip()
+            if model and not re.fullmatch(r"[\w./:@-]{1,200}", model):
+                raise ValueError("that does not look like a model name")
+            for s in (("rc", "s1") if stage == "s1" else ("s2",)):
+                updates[MODEL_VARS[s]] = model or None
     if updates:
         write_env(project_dir, updates)
+    if key is not None:
+        key = key.strip()
+        if not re.fullmatch(r"[A-Za-z0-9_.:\-]{16,400}", key):
+            raise ValueError("that does not look like an API key")
+        write_env(project_dir, {status(project_dir)["key_var"]: key})
     return status(project_dir)
 
 
@@ -190,13 +258,15 @@ def run(run_dir: str, stage: str, project_dir: str = ".", jobs: list[int] | None
         raise ValueError(f"stage must be one of {', '.join(STAGES)}")
     env = read_env(project_dir)
     st = status(project_dir)
-    if st["provider"] not in PROVIDERS:
-        raise SystemExit(f"unknown FTJA_PROVIDER {st['provider']!r}")
-    fn, key_var = PROVIDERS[st["provider"]]
-    key = _setting(env, key_var)
+    p = PROVIDERS[st["provider"]]
+    key = _setting(env, p["key_var"])
     if not key:
-        raise SystemExit(f"no {key_var} in {ENV_FILE}: get a key at {KEY_PAGE} and paste it there")
-    model = st["models"][stage]
+        where = f"get a key at {p['key_page']} and " if p["key_page"] else ""
+        raise SystemExit(f"no {p['key_var']} in {ENV_FILE}: {where}paste it on the Pipeline tab or into {ENV_FILE}")
+    model, base = st["models"][stage], st["base"]
+    if not model or not base:
+        raise SystemExit(f"set the API address and the {stage} model for {p['label']} on the Pipeline tab")
+    fn = lambda prompt, model, key, max_tokens: p["call"](prompt, model, key, max_tokens, base)
     folder = os.path.join(run_dir, stage)
     numbers = sorted(int(n[:-4]) for n in os.listdir(folder) if re.fullmatch(r"\d+\.txt", n))
     if jobs is not None:
@@ -228,7 +298,7 @@ def run(run_dir: str, stage: str, project_dir: str = ".", jobs: list[int] | None
                 failed[n] = error
             else:
                 written.append(n)
-    return {"stage": stage, "model": model, "judged": len(written), "failed": failed,
+    return {"stage": stage, "provider": st["provider"], "model": model, "judged": len(written), "failed": failed,
             "tokens": tokens, "total": live.tokens_total(run_dir)}
 
 

@@ -460,7 +460,8 @@ button.save-btn:disabled { opacity: .45; cursor: default; }
 .judge-card .judge-modes button { font: inherit; padding: 4px 12px; border-radius: 3px; border: 1px solid var(--accent-border); background: transparent; color: var(--accent-text); cursor: pointer; }
 .judge-card .judge-modes button.on { background: var(--accent-text); color: var(--bg, #fff); border-color: var(--accent-text); }
 .judge-card .judge-key { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-.judge-card .judge-key input { flex: 1 1 220px; min-width: 0; font: inherit; padding: 4px 8px; }
+.judge-card .judge-key input, .judge-card select, .judge-card p input { flex: 1 1 220px; min-width: 0; font: inherit; padding: 4px 8px; }
+.judge-card .judge-key label { display: flex; flex: 1 1 220px; gap: 6px; align-items: center; }
 .judge-card p { margin: 4px 0; }
 .section { margin-bottom: 46px; }
 .section-title {
@@ -3367,19 +3368,26 @@ function renderConfigSection() {
   });
 }
 
-// Who judges Stage 1/2 and the Remote check: the coding agent's subagents, or the user's own model API key in .env.
+// Who judges Stage 1/2 and the Remote check: the coding agent's subagents, or the user's own API key (any supplier) in .env.
 function renderJudge(j, note) {
   const el = document.getElementById('pipeline-judge');
   if (!el || !j) return;
+  const custom = j.provider === 'custom';
+  const options = j.providers.map(p => `<option value="${esc(p.id)}" ${p.id === j.provider ? 'selected' : ''}>${esc(p.label)}</option>`).join('');
   const keyLine = j.key_set
     ? `<p><b>${esc(j.key_var)}</b> is set in <code>.env</code>.</p>`
-    : `<p>No key yet. Get one at <a href="${esc(j.key_page)}" target="_blank" rel="noopener">${esc(j.key_page.replace('https://', ''))}</a> and paste it here, or into <code>.env</code> as <code>${esc(j.key_var)}=…</code>.</p>`;
-  el.innerHTML = `<div class="section"><div class="section-title"><span class="num">0</span>Who judges the jobs</div><div class="card judge-card">
-    <p>Stage 1, Stage 2 and the Remote check can run on your coding agent's tokens, or on your own model API key (billed to your API account, usually far fewer tokens).</p>
-    <div class="judge-modes"><button data-judge-mode="agent" class="${j.mode === 'agent' ? 'on' : ''}">Coding agent</button><button data-judge-mode="api" class="${j.mode === 'api' ? 'on' : ''}">My API key</button></div>
+    : `<p>No key yet. ${j.key_page ? `Get one at <a href="${esc(j.key_page)}" target="_blank" rel="noopener">${esc(j.key_page.replace('https://', ''))}</a>, then paste` : 'Paste'} it here, or into <code>.env</code> as <code>${esc(j.key_var)}=…</code>.</p>`;
+  const api = j.mode === 'api' ? `
+    <p><label>Supplier <select id="judge-provider">${options}</select></label></p>
+    ${custom ? `<p><label>API address <input id="judge-base" value="${esc(j.base)}" placeholder="https://…/v1"></label></p>` : ''}
     ${keyLine}
-    <div class="judge-key"><input type="password" id="judge-key-input" autocomplete="off" placeholder="${j.key_set ? 'Paste a new key to replace it' : 'sk-ant-…'}"><button data-judge-save>Save key to .env</button></div>
-    ${j.mode === 'api' ? `<p class="mono">Models: Stage 1 ${esc(j.models.s1)} · Stage 2 ${esc(j.models.s2)}</p>` : ''}
+    <div class="judge-key"><input type="password" id="judge-key-input" autocomplete="off" placeholder="${j.key_set ? 'Paste a new key to replace it' : 'Paste your API key'}"><button data-judge-save>Save key to .env</button></div>
+    <div class="judge-key"><label>Stage 1 model <input id="judge-m1" value="${esc(j.models.s1)}"></label><label>Stage 2 model <input id="judge-m2" value="${esc(j.models.s2)}"></label><button data-judge-models>Save models</button></div>
+    ${j.ready ? '' : '<p><b>Not ready yet:</b> add a key' + (custom ? ', the address' : '') + ' and both models. Until then runs use the coding agent.</p>'}` : '';
+  el.innerHTML = `<div class="section"><div class="section-title"><span class="num">0</span>Who judges the jobs</div><div class="card judge-card">
+    <p>Stage 1, Stage 2 and the Remote check can run on your coding agent's tokens, or on your own API key from the supplier you prefer (billed to your account with them).</p>
+    <div class="judge-modes"><button data-judge-mode="agent" class="${j.mode === 'agent' ? 'on' : ''}">Coding agent</button><button data-judge-mode="api" class="${j.mode === 'api' ? 'on' : ''}">My API key</button></div>
+    ${api}
     ${note ? `<p>${esc(note)}</p>` : ''}</div></div>`;
 }
 function postJudge(body, ok) {
@@ -3389,11 +3397,19 @@ function postJudge(body, ok) {
 let lastJudge = null;
 document.addEventListener('click', ev => {
   const m = ev.target.closest('[data-judge-mode]');
-  if (m) postJudge({mode: m.dataset.judgeMode}, m.dataset.judgeMode === 'api' && !(lastJudge && lastJudge.key_set) ? 'Add your key below before the next run.' : 'Saved. The next run uses this.');
+  if (m) postJudge({mode: m.dataset.judgeMode}, 'Saved. The next run uses this.');
   if (ev.target.closest('[data-judge-save]')) {
     const input = document.getElementById('judge-key-input');
     if (input && input.value.trim()) { postJudge({key: input.value.trim()}, 'Key saved to .env.'); input.value = ''; }
   }
+  if (ev.target.closest('[data-judge-models]')) {
+    const base = document.getElementById('judge-base');
+    postJudge({models: {s1: document.getElementById('judge-m1').value, s2: document.getElementById('judge-m2').value},
+               ...(base ? {base: base.value} : {})}, 'Saved.');
+  }
+});
+document.addEventListener('change', ev => {
+  if (ev.target.id === 'judge-provider') postJudge({provider: ev.target.value}, 'Supplier saved. Paste its key below.');
 });
 
 async function loadPipeline() {

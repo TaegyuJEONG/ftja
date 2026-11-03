@@ -10,10 +10,11 @@ digests — are never touched by an update.
 ### What changes for you after updating
 
 - **Judge jobs with your own API key instead of your agent's tokens.** On
-  the Pipeline tab, choose *My API key* and paste an Anthropic key; it is
-  saved to `.env` in your folder (ignored by git, never shown back). Runs
-  then judge the Remote check, Stage 1 and Stage 2 by calling the model
-  API directly (`venv/bin/python -m ftja.judge run`), one posting per call,
+  the Pipeline tab, choose *My API key*, pick your supplier (Anthropic,
+  OpenAI, DeepSeek, Gemini, Mistral, OpenRouter or any OpenAI-compatible
+  address) and paste its key; it is saved to `.env` in your folder
+  (ignored by git, never shown back). Runs then judge the Remote check,
+  Stage 1 and Stage 2 by calling that API directly (`venv/bin/python -m ftja.judge run`), one posting per call,
   and count the real tokens used. The default stays the coding agent.
 - **Postings come from the company's own job board when FTJA knows it.**
   LinkedIn still finds the postings; for a company on Greenhouse, Lever,

@@ -17,17 +17,19 @@ def _run(tmp_path, stage="s1", prompts=("Judge job zero", "Judge job one")):
 
 
 def _fake(monkeypatch, replies, seen=None):
-    def provider(prompt, model, key, max_tokens):
+    def provider(prompt, model, key, max_tokens, base):
         if seen is not None:
             seen.append((prompt, model, key))
         r = replies(prompt)
         if isinstance(r, Exception):
             raise r
         return r, 100, 20
-    monkeypatch.setitem(judge.PROVIDERS, "anthropic", (provider, "ANTHROPIC_API_KEY"))
+    for name in judge.PROVIDERS:
+        monkeypatch.setitem(judge.PROVIDERS, name, {**judge.PROVIDERS[name], "call": provider})
     monkeypatch.setattr(judge.time, "sleep", lambda s: None)
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-    monkeypatch.delenv("FTJA_JUDGE", raising=False)
+    for var in ("FTJA_JUDGE", "FTJA_PROVIDER", "FTJA_API_BASE", "DEEPSEEK_API_KEY", *judge.MODEL_VARS.values()):
+        monkeypatch.delenv(var, raising=False)
 
 
 def test_env_is_gitignored():
@@ -129,6 +131,51 @@ def test_anthropic_request_shape(monkeypatch):
         sent["url"], sent["headers"], sent["body"] = req.full_url, dict(req.headers), json.loads(req.data)
         return Resp()
     monkeypatch.setattr(judge.urllib.request, "urlopen", urlopen)
-    assert judge.anthropic("hi", "claude-haiku-5-5", "k", 50) == ("{}", 7, 3)
+    assert judge.anthropic("hi", "claude-haiku-5-5", "k", 50, "https://api.anthropic.com") == ("{}", 7, 3)
     assert sent["url"].endswith("/v1/messages") and sent["headers"]["X-api-key"] == "k"
     assert sent["body"]["model"] == "claude-haiku-5-5" and sent["body"]["max_tokens"] == 50
+
+
+def test_openai_compatible_request_shape(monkeypatch):
+    sent = {}
+
+    class Resp:
+        def __enter__(self): return self
+        def __exit__(self, *a): pass
+        def read(self):
+            return json.dumps({"choices": [{"message": {"content": "{}"}}], "usage": {"prompt_tokens": 9, "completion_tokens": 4}}).encode()
+
+    def urlopen(req, timeout):
+        sent["url"], sent["headers"], sent["body"] = req.full_url, dict(req.headers), json.loads(req.data)
+        return Resp()
+    monkeypatch.setattr(judge.urllib.request, "urlopen", urlopen)
+    assert judge.openai_compatible("hi", "deepseek-chat", "k", 50, "https://api.deepseek.com/") == ("{}", 9, 4)
+    assert sent["url"] == "https://api.deepseek.com/chat/completions"
+    assert sent["headers"]["Authorization"] == "Bearer k" and sent["body"]["model"] == "deepseek-chat"
+
+
+def test_choosing_a_supplier_uses_its_key_models_and_address(tmp_path, monkeypatch):
+    seen = []
+    _fake(monkeypatch, lambda p: '{"verdict": "fail"}', seen)
+    d = str(tmp_path)
+    judge.choose(d, mode="api", provider="anthropic", models={"s1": "my-old-model"})
+    st = judge.choose(d, provider="deepseek", key="sk-0123456789abcdef0123")
+    assert st["key_var"] == "DEEPSEEK_API_KEY" and st["ready"]
+    assert st["models"] == {"rc": "deepseek-chat", "s1": "deepseek-chat", "s2": "deepseek-reasoner"}  # old model dropped
+    assert "0123456789abcdef" not in json.dumps(st)
+    run_dir = _run(tmp_path, prompts=("one",))
+    out = judge.run(run_dir, "s1", d)
+    assert out["provider"] == "deepseek" and seen[0][1:] == ("deepseek-chat", "sk-0123456789abcdef0123")
+
+
+def test_custom_supplier_needs_address_and_models(tmp_path, monkeypatch):
+    _fake(monkeypatch, lambda p: "{}")
+    d = str(tmp_path)
+    st = judge.choose(d, mode="api", provider="custom", key="local-key-0123456789")
+    assert not st["ready"]
+    with pytest.raises(SystemExit, match="Pipeline tab"):
+        judge.run(_run(tmp_path), "s1", d)
+    with pytest.raises(ValueError):
+        judge.choose(d, base="file:///etc/passwd")
+    st = judge.choose(d, base="http://localhost:11434/v1", models={"s1": "qwen3:8b", "s2": "qwen3:32b"})
+    assert st["ready"] and st["models"]["rc"] == "qwen3:8b"

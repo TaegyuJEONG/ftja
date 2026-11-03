@@ -439,7 +439,7 @@ def make_handler(db_path: str, project_dir: str):
             elif self.path == "/api/judge":
                 # the key is written to .env and never sent back
                 try:
-                    self._send_json(200, judge.choose(project_dir, data.get("mode"), data.get("key")))
+                    self._send_json(200, judge.choose(project_dir, data.get("mode"), data.get("key"), data.get("provider"), data.get("base"), data.get("models")))
                 except ValueError as err:
                     self._send_json(400, {"error": str(err)})
             elif self.path == "/api/keywords-cancel":
