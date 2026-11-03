@@ -57,7 +57,8 @@ def test_choose_writes_env_privately_and_keeps_other_lines(tmp_path, monkeypatch
     assert st["key_set"] and st["mode"] == "api" and "abcdefg" not in json.dumps(st)
     text = (tmp_path / ".env").read_text()
     assert "# mine" in text and "OTHER=1" in text and "ANTHROPIC_API_KEY=sk-ant-abcdefghijklmnopqrstuvwxyz" in text
-    assert stat.S_IMODE(os.stat(tmp_path / ".env").st_mode) == 0o600
+    if os.name != "nt":  # Windows keeps no Unix permission bits
+        assert stat.S_IMODE(os.stat(tmp_path / ".env").st_mode) == 0o600
     with pytest.raises(ValueError):
         judge.choose(str(tmp_path), key="not a key\nFTJA_JUDGE=agent")
     with pytest.raises(ValueError):

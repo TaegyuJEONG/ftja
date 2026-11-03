@@ -22,7 +22,7 @@ digests — are never touched by an update.
   LinkedIn still finds the postings; for a company on Greenhouse, Lever,
   Ashby, Workable, SmartRecruiters, Recruitee, Teamtailor, Personio or
   BambooHR, the text is read from its board, every posting of that company
-  in one request, instead of one LinkedIn page each. FTJA ships with 1,314
+  in one request, instead of one LinkedIn page each. FTJA ships with 1,307
   boards, each checked to list postings (from the MIT-licensed OpenJobs
   and career-ops lists), and looks for the board of any other company it
   meets; what it finds is kept in your folder's `ats_local.json`.

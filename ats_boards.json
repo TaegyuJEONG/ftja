@@ -4069,12 +4069,6 @@
    "source": "outscal/OpenJobs@cdcc533 (MIT)",
    "vendor": "smartrecruiters"
   },
-  "leapwork": {
-   "name": "Leapwork",
-   "slug": "leapwork",
-   "source": "outscal/OpenJobs@cdcc533 (MIT)",
-   "vendor": "greenhouse"
-  },
   "legion": {
    "name": "legion",
    "slug": "legion",
@@ -4195,18 +4189,6 @@
    "source": "outscal/OpenJobs@cdcc533 (MIT)",
    "vendor": "smartrecruiters"
   },
-  "localsoft": {
-   "name": "Localsoft",
-   "slug": "localsoft-sl",
-   "source": "outscal/OpenJobs@cdcc533 (MIT)",
-   "vendor": "workable"
-  },
-  "localsoft games": {
-   "name": "Localsoft games",
-   "slug": "localsoft-sl",
-   "source": "outscal/OpenJobs@cdcc533 (MIT)",
-   "vendor": "workable"
-  },
   "lockwood": {
    "name": "Lockwood",
    "slug": "lockwood",
@@ -4326,12 +4308,6 @@
    "slug": "luminary",
    "source": "outscal/OpenJobs@cdcc533 (MIT)",
    "vendor": "ashby"
-  },
-  "magic media": {
-   "name": "Magic Media",
-   "slug": "magic-media",
-   "source": "outscal/OpenJobs@cdcc533 (MIT)",
-   "vendor": "workable"
   },
   "magic school": {
    "name": "Magic School",
@@ -6072,12 +6048,6 @@
    "slug": "SegulaTechnologies",
    "source": "outscal/OpenJobs@cdcc533 (MIT)",
    "vendor": "smartrecruiters"
-  },
-  "seismic squirrel": {
-   "name": "Seismic Squirrel",
-   "slug": "seismicsquirrel.bamboohr.com",
-   "source": "outscal/OpenJobs@cdcc533 (MIT)",
-   "vendor": "bamboohr"
   },
   "semgrep": {
    "name": "Semgrep",
