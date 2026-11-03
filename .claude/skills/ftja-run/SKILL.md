@@ -142,6 +142,27 @@ instead of it.
   run). `finalize` sums what was recorded. Never keep the total in your head
   and never pass 0 for a count you did not make: a missing total shows as
   "-", a wrong one is believed.
+- **Check who judges**: `venv/bin/python -m ftja.judge status`. When it
+  prints `"mode": "api"` with `"key_set": true`, the user chose to judge
+  with their own model API key (`.env`, set on the Pipeline tab): wherever
+  steps 2-4 below say to call `Agent` subagents for `rc/`, `s1/` or `s2/`,
+  run instead
+
+  ```
+  venv/bin/python -m ftja.judge run --dir <run_dir> --stage <rc|s1|s2>
+  ```
+
+  once per stage (no batches, no waves). It judges every prompt of that
+  stage without an answer, writes the same `<n>.out.json` files, and
+  records the real tokens itself — do not call `record-tokens` for it. Its
+  `failed` lists jobs it could not answer: run it again once (it only
+  takes those); a rerun the check commands ask for is
+  `--jobs <n,n> --force`. Everything else (`check-*`, `prepare-*`,
+  `results`, `finalize`) is unchanged. With `"mode": "api"` but
+  `"key_set": false`, tell the user to paste a key on the Pipeline tab
+  (or into `.env` as `ANTHROPIC_API_KEY=`, key from the printed
+  `key_page`) and fall back to subagents for this run. Never print, read
+  aloud or copy the key.
 - **Check the criteria list**: `venv/bin/python -m ftja.verdict status`.
   `rubric-criteria.json` is the rubric as a list of single criteria with
   stable ids; Stage 2 answers per criterion and `finalize` computes the

@@ -26,7 +26,7 @@ from urllib.parse import urlparse, parse_qs
 
 from ftja.state import connect, record_criterion_feedback, update_decision, VALID_FEEDBACK_VOTES, VALID_USER_ACTIONS
 from ftja.pipeline_view import read_config, write_config, keyword_stats
-from ftja import live, osutil, share, version
+from ftja import judge, live, osutil, share, version
 from ftja import remote as remote_check
 from ftja import keywords as keyword_languages
 from ftja.verdict import DEFAULT_CRITERIA_PATH, criteria_status, load_criteria, save_criteria
@@ -372,6 +372,8 @@ def make_handler(db_path: str, project_dir: str):
                     "has_profile": bool(config.get("profile_sources")) or bool(config.get("profile_md")),
                     "config": config,
                 })
+            elif path == "/api/judge":
+                self._send_json(200, judge.status(project_dir))
             elif path == "/api/pipeline":
                 self._send_json(200, {
                     **read_config(project_dir),
@@ -432,6 +434,12 @@ def make_handler(db_path: str, project_dir: str):
             elif self.path == "/api/share":
                 try:
                     self._send_json(200, {**share.choose(project_dir, str(data.get("choice") or "")), **share.status(project_dir)})
+                except ValueError as err:
+                    self._send_json(400, {"error": str(err)})
+            elif self.path == "/api/judge":
+                # the key is written to .env and never sent back
+                try:
+                    self._send_json(200, judge.choose(project_dir, data.get("mode"), data.get("key")))
                 except ValueError as err:
                     self._send_json(400, {"error": str(err)})
             elif self.path == "/api/keywords-cancel":

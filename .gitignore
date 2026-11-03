@@ -49,3 +49,6 @@ _site/
 # Folders the Codex app makes in every session folder
 outputs/
 work/
+
+# your model API key for judging (see .env.example) — never committed
+.env

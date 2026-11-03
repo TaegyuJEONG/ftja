@@ -456,6 +456,12 @@ button.save-btn:disabled { opacity: .45; cursor: default; }
 .page-btn.active { background: var(--accent); color: var(--on-accent); border-color: var(--accent-strong); }
 
 /* ---- Pipeline tab ---- */
+.judge-card .judge-modes { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.judge-card .judge-modes button { font: inherit; padding: 4px 12px; border-radius: 3px; border: 1px solid var(--accent-border); background: transparent; color: var(--accent-text); cursor: pointer; }
+.judge-card .judge-modes button.on { background: var(--accent-text); color: var(--bg, #fff); border-color: var(--accent-text); }
+.judge-card .judge-key { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.judge-card .judge-key input { flex: 1 1 220px; min-width: 0; font: inherit; padding: 4px 8px; }
+.judge-card p { margin: 4px 0; }
 .section { margin-bottom: 46px; }
 .section-title {
   font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;
@@ -760,6 +766,7 @@ select.sort-select {
 
 <div id="view-pipeline" class="view">
   <div class="no-run-banner" data-no-run-banner><span>→</span><div><b>Setup is done — one last review, then your first run.</b>Check everything below. If it looks right, type <code>/ftja-run</code> in the Claude Code session connected to this FTJA folder to run your first search.</div></div>
+  <div id="pipeline-judge"></div>
   <div id="pipeline-config"></div>
   <div id="pipeline-keywords"></div>
 </div>
@@ -3360,7 +3367,37 @@ function renderConfigSection() {
   });
 }
 
+// Who judges Stage 1/2 and the Remote check: the coding agent's subagents, or the user's own model API key in .env.
+function renderJudge(j, note) {
+  const el = document.getElementById('pipeline-judge');
+  if (!el || !j) return;
+  const keyLine = j.key_set
+    ? `<p><b>${esc(j.key_var)}</b> is set in <code>.env</code>.</p>`
+    : `<p>No key yet. Get one at <a href="${esc(j.key_page)}" target="_blank" rel="noopener">${esc(j.key_page.replace('https://', ''))}</a> and paste it here, or into <code>.env</code> as <code>${esc(j.key_var)}=…</code>.</p>`;
+  el.innerHTML = `<div class="section"><div class="section-title"><span class="num">0</span>Who judges the jobs</div><div class="card judge-card">
+    <p>Stage 1, Stage 2 and the Remote check can run on your coding agent's tokens, or on your own model API key (billed to your API account, usually far fewer tokens).</p>
+    <div class="judge-modes"><button data-judge-mode="agent" class="${j.mode === 'agent' ? 'on' : ''}">Coding agent</button><button data-judge-mode="api" class="${j.mode === 'api' ? 'on' : ''}">My API key</button></div>
+    ${keyLine}
+    <div class="judge-key"><input type="password" id="judge-key-input" autocomplete="off" placeholder="${j.key_set ? 'Paste a new key to replace it' : 'sk-ant-…'}"><button data-judge-save>Save key to .env</button></div>
+    ${j.mode === 'api' ? `<p class="mono">Models: Stage 1 ${esc(j.models.s1)} · Stage 2 ${esc(j.models.s2)}</p>` : ''}
+    ${note ? `<p>${esc(note)}</p>` : ''}</div></div>`;
+}
+function postJudge(body, ok) {
+  fetch('/api/judge', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)})
+    .then(r => r.json()).then(j => j.error ? renderJudge(lastJudge, j.error) : (lastJudge = j, renderJudge(j, ok)));
+}
+let lastJudge = null;
+document.addEventListener('click', ev => {
+  const m = ev.target.closest('[data-judge-mode]');
+  if (m) postJudge({mode: m.dataset.judgeMode}, m.dataset.judgeMode === 'api' && !(lastJudge && lastJudge.key_set) ? 'Add your key below before the next run.' : 'Saved. The next run uses this.');
+  if (ev.target.closest('[data-judge-save]')) {
+    const input = document.getElementById('judge-key-input');
+    if (input && input.value.trim()) { postJudge({key: input.value.trim()}, 'Key saved to .env.'); input.value = ''; }
+  }
+});
+
 async function loadPipeline() {
+  fetch('/api/judge').then(r => r.json()).then(j => { lastJudge = j; renderJudge(j); }).catch(() => {});
   if (!pipelineLoaded) await refreshKeywordLanguages();
   fetch('/api/runs').then(r => r.json()).then(list => { runs = list.filter(r => r.run_id); renderNoRunBanners(); }).catch(() => {});
   if (pipelineLoaded) return;

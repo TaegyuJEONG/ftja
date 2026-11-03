@@ -80,6 +80,16 @@ used roughly 12 million tokens by the agent's own estimate, and hit the
 session usage limit partway through.
 Start with one or two titles and 100 results per title, then widen.
 
+**Or judge with your own API key.** On the web view's Pipeline tab, choose
+*My API key* and paste an Anthropic key (get one at
+console.anthropic.com/settings/keys). It is saved to `.env` in your FTJA
+folder, which git ignores, and is never shown again. Runs then send the
+Remote check, Stage 1 and Stage 2 prompts straight to the model API
+(Haiku for the first two, Sonnet for Stage 2), billed to your API account,
+instead of spawning agent subagents that each carry a large fixed overhead.
+Your agent still scrapes and assembles the run. `.env.example` lists the
+settings, including the model for each stage.
+
 ## Why you can trust what it tells you
 
 - **Every step is visible.** How many postings were scraped, how many each
@@ -103,6 +113,9 @@ What does leave your computer:
   session, so the job descriptions, your rubric, your profile summary and
   (during setup) the resume you select are sent to that provider under your
   account with them, as with any other work you do there.
+- **Anthropic's API, if you chose your own key.** The same prompts the
+  agent would judge (job text, rubric, profile summary) go to the Messages
+  API under your key.
 - **LinkedIn.** Your search titles and location are sent as public,
   logged-out searches.
 - **OpenStreetMap (Nominatim).** What you type in the web view's location
