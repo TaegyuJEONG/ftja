@@ -46,7 +46,7 @@ class _LinkedInSearchErrors(logging.Handler):
 
 def scrape(search_term: str, location: str, hours_old: int = 72, job_type: str = "",
            on_batch=None, skipped: list | None = None, site: str = "linkedin",
-           country_indeed: str = "") -> list[dict]:
+           country_indeed: str = "", boards=None) -> list[dict]:
     """Scrape the LinkedIn listings whose title contains `search_term`.
 
     LinkedIn's logged-out search matches by meaning: a search for
@@ -77,6 +77,11 @@ def scrape(search_term: str, location: str, hours_old: int = 72, job_type: str =
     batch — the live view's "scraped so far" number, and how many search
     results it was found among. `skipped`, if given, collects the titles
     that were left out.
+
+    `boards` (an ftja.ats.Boards), if given, is asked first for each
+    posting's text: a company whose job board is known, or found now, gives
+    the text from its board in the same request as its other postings, and
+    LinkedIn's page is read only for the rest.
     """
     from ftja.filter_stage0 import title_matches_search
 
@@ -89,8 +94,9 @@ def scrape(search_term: str, location: str, hours_old: int = 72, job_type: str =
     if site != "linkedin":
         # A bounded request per source/location avoids LinkedIn's slow page
         # throttle. Other boards page internally up to this limit.
+        # Indeed answers a quoted phrase with no results at all; the title check below keeps the matches
         query = (search_term if search_term.startswith('"') and search_term.endswith('"')
-                 else f'"{search_term}"') if site in ("indeed", "glassdoor") else search_term
+                 else f'"{search_term}"') if site == "glassdoor" else search_term
         kwargs = {"site_name": [site], "search_term": query, "location": location,
                   "hours_old": hours_old, "verbose": 1}
         kwargs["results_wanted"] = 100
@@ -153,11 +159,13 @@ def scrape(search_term: str, location: str, hours_old: int = 72, job_type: str =
         matched = [job for job in batch if title_matches_search({"title": job.get("title")}, [search_term])]
         if skipped is not None:
             skipped.extend(str(job.get("title") or "") for job in batch if job not in matched)
+        if boards is not None:
+            boards.discover([job.get("company") for job in matched])
         for job in matched:
             job["site"] = site
             job["sources"] = [site]
             if details:
-                job.update(details(job))
+                job.update((boards.details(job) if boards is not None else {}) or details(job))
         jobs.extend(matched)
         if on_batch:
             on_batch(len(jobs), len(seen_urls))

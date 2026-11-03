@@ -1,6 +1,7 @@
 import pandas as pd
 import pytest
 
+from ftja import geography
 from ftja.geography import EU, EUROPE, resolve_location, search_targets, unsupported_countries
 from ftja import live, scrape as scraper
 from ftja.filter_stage0 import dedupe_by_content
@@ -68,7 +69,7 @@ def test_eu_and_mena_are_explicit_country_searches():
     assert linkedin == [{"site": "linkedin", "location": "European Union"}]
     assert all(t["country_indeed"] in EU and t["location"] == "" for t in indeed)
     assert "France" in {t["country_indeed"] for t in indeed}
-    assert unsupported_countries(eu, "indeed") == []
+    assert sorted(unsupported_countries(eu, "indeed")) == sorted(geography.INDEED_NO_SITE)  # no Indeed site there
     assert "Algeria" in unsupported_countries(resolve_location("MENA"), "indeed")
 
 
@@ -110,7 +111,7 @@ def test_glassdoor_eu_coverage_and_europe_warnings():
                 "sites": ["linkedin", "indeed", "glassdoor"], "hours_old": 24}
     warnings = _location_warnings(criteria)
     assert not any("Glassdoor searches" in warning for warning in warnings)
-    assert len(live.searches(criteria)) == 55
+    assert len(live.searches(criteria)) == 55 - len(geography.INDEED_NO_SITE)
     europe_warnings = _location_warnings({**criteria, "locations": ["Europe"]})
     assert any("Glassdoor scraper searches" in warning for warning in europe_warnings)
 
@@ -158,7 +159,7 @@ def test_indeed_fetches_with_explicit_country_and_keeps_source(monkeypatch):
     jobs = scraper.scrape("Product Manager", "Paris", site="indeed", country_indeed="France")
     assert calls[0]["site_name"] == ["indeed"] and calls[0]["country_indeed"] == "France"
     assert calls[0]["location"] == "Paris" and "linkedin_fetch_description" not in calls[0]
-    assert calls[0]["search_term"] == '"Product Manager"' and calls[0]["results_wanted"] == 100
+    assert calls[0]["search_term"] == "Product Manager" and calls[0]["results_wanted"] == 100  # Indeed finds nothing for a quoted phrase
     assert len(calls) == 1
     assert jobs[0]["sources"] == ["indeed"]
     with pytest.raises(ValueError, match="explicit country"):

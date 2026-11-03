@@ -26,7 +26,7 @@ from urllib.parse import urlparse, parse_qs
 
 from ftja.state import connect, record_criterion_feedback, update_decision, VALID_FEEDBACK_VOTES, VALID_USER_ACTIONS
 from ftja.pipeline_view import read_config, write_config, keyword_stats
-from ftja import live, osutil, version
+from ftja import judge, live, osutil, share, version
 from ftja import remote as remote_check
 from ftja import keywords as keyword_languages
 from ftja.geography import SOURCES
@@ -140,7 +140,7 @@ def _fetch_jobs(db_path: str, run_id: str, status: str, page: int) -> dict:
                       reasoning, evidence_sentences, t1_matched_keywords,
                       user_action, user_reason, last_seen_at,
                       criteria, criteria_feedback, company_line, employer, notes,
-                      t1_blocks, stage1_reason, pruned_at, remote
+                      t1_blocks, stage1_reason, pruned_at, remote, source, source_url
                FROM seen_jobs
                WHERE stage_reached = 2 AND run_id = ? AND (status = ? OR ? = 'all')
                ORDER BY CASE status WHEN 'passed' THEN 0 WHEN 'review' THEN 1 ELSE 2 END, last_seen_at DESC""",
@@ -150,7 +150,7 @@ def _fetch_jobs(db_path: str, run_id: str, status: str, page: int) -> dict:
             "reasoning", "evidence_sentences", "t1_matched_keywords",
             "user_action", "user_reason", "last_seen_at",
             "criteria", "criteria_feedback", "company_line", "employer", "notes",
-            "t1_blocks", "stage1_reason", "pruned_at", "remote"]
+            "t1_blocks", "stage1_reason", "pruned_at", "remote", "source", "source_url"]
     seen_groups: dict[tuple, dict] = {}
     for row in rows:
         job = dict(zip(cols, row))
@@ -358,6 +358,9 @@ def make_handler(db_path: str, project_dir: str):
                 self._send_json(200, run_bridge.listening(project_dir))
             elif path == "/api/storage":
                 self._send_json(200, runs_store.storage(project_dir, db_path))
+            elif path == "/api/share":
+                # whether the user agreed to share the company job boards their runs found
+                self._send_json(200, share.status(project_dir))
             elif path == "/api/delete-run-preview":
                 try:
                     self._send_json(200, runs_store.delete_preview(project_dir, db_path, (qs.get("run_id") or [""])[0]))
@@ -419,6 +422,13 @@ def make_handler(db_path: str, project_dir: str):
                     "has_profile": bool(config.get("profile_sources")) or bool(config.get("profile_md")),
                     "config": config,
                 })
+            elif path == "/api/judge":
+                self._send_json(200, judge.status(project_dir))
+            elif path == "/api/judge-models":
+                try:
+                    self._send_json(200, {"models": judge.list_models(project_dir)})
+                except Exception as err:  # the supplier refused the key, or is unreachable
+                    self._send_json(502, {"error": f"{judge.status(project_dir)['provider']} did not list models: {getattr(err, 'code', '') or err}"})
             elif path == "/api/pipeline":
                 config = read_config(project_dir)
                 self._send_json(200, {
@@ -478,6 +488,17 @@ def make_handler(db_path: str, project_dir: str):
                 # the user went through the agent's keywords: add them
                 added = keyword_languages.add_keywords(project_dir, data.get("items") or [])
                 self._send_json(200, {"ok": True, "added": added, **_keyword_languages(project_dir)})
+            elif self.path == "/api/share":
+                try:
+                    self._send_json(200, {**share.choose(project_dir, str(data.get("choice") or "")), **share.status(project_dir)})
+                except ValueError as err:
+                    self._send_json(400, {"error": str(err)})
+            elif self.path == "/api/judge":
+                # the key is written to .env and never sent back
+                try:
+                    self._send_json(200, judge.choose(project_dir, data.get("mode"), data.get("key"), data.get("provider"), data.get("base"), data.get("models")))
+                except ValueError as err:
+                    self._send_json(400, {"error": str(err)})
             elif self.path == "/api/keywords-cancel":
                 if keyword_languages.read_request(project_dir)["status"] != "generating":
                     keyword_languages.discard(project_dir)

@@ -47,6 +47,10 @@ BAYT_COUNTRIES = frozenset(EUROPE + MENA + ("USA", "Canada", "India", "Banglades
 ALIASES = {"eu": "EU", "european union": "EU", "europe": "Europe", "mena": "MENA",
            "middle east and north africa": "MENA", "us": "USA", "united states": "USA",
            "united states of america": "USA", "united kingdom": "UK", "uae": "United Arab Emirates"}
+# JobSpy knows these countries but Indeed answers them with "400 Bad Request": they have no Indeed site
+# (checked 2026-11-03 with a broad search over a week)
+INDEED_NO_SITE = frozenset({"Bulgaria", "Croatia", "Cyprus", "Estonia", "Latvia", "Lithuania", "Malta",
+                            "Slovakia", "Slovenia"})
 COUNTRIES = {name.replace("_", " ").casefold(): name.replace("_", " ") for name in INDEED_COUNTRIES}
 COUNTRIES.update({name.casefold(): name for group in REGIONS.values() for name in group})
 
@@ -105,7 +109,8 @@ def search_targets(location: SearchLocation, site: str) -> list[dict]:
         return [{"site": site, "location": location.locality if location.locality else "",
                  "display_location": location.label if location.locality else country}
                 for country in supported]
-    supported = [country for country in countries if country.replace(" ", "_") in INDEED_COUNTRIES] if site == "indeed" else [
+    supported = [country for country in countries if country.replace(" ", "_") in INDEED_COUNTRIES
+                 and country not in INDEED_NO_SITE] if site == "indeed" else [
         country for country in countries if country not in GLASSDOOR_UNRESOLVED]
     if not supported:
         return []  # other selected boards can still search this place
@@ -128,5 +133,5 @@ def unsupported_countries(location: SearchLocation, site: str) -> list[str]:
                      "hellowork": {"France"}}[site]
         return [country for country in countries if country not in available]
     return [country for country in countries if
-            (country.replace(" ", "_") not in INDEED_COUNTRIES if site == "indeed"
+            (country.replace(" ", "_") not in INDEED_COUNTRIES or country in INDEED_NO_SITE if site == "indeed"
              else country in GLASSDOOR_UNRESOLVED)]

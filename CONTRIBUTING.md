@@ -65,6 +65,30 @@ screenshot of each card. On every push, the `onboarding-e2e` job in
 Windows and Linux with Python 3.11 to 3.13. Each run's page shows a table
 of steps and timings, and the report is kept as an artifact.
 
+## Sharing company job boards
+
+FTJA reads a posting from the company's own job board (Greenhouse, Lever,
+Ashby and others) when it knows the board, instead of LinkedIn's page. The
+boards it knows ship in `ats_boards.json`; the ones your runs found are kept
+in your folder's `ats_local.json`.
+
+The simplest way to share them is the question the web view asks once: on a
+yes, each finished run sends the boards a posting confirmed (company name,
+board vendor and board name) with a random id made in your folder, kept in
+`ats_share.json`. `venv/bin/python -m ftja.share status` shows what is
+waiting and what was sent; `venv/bin/python -m ftja.share never` stops it.
+
+To share them through a pull request instead:
+
+1. `venv/bin/python -m ftja.ats export` writes `ats_contributions.json`:
+   company name, board vendor and board name only — nothing about your
+   searches, your criteria or the postings you looked at.
+2. Open a pull request that adds that file as `contributions/ats/<any name>.json`.
+
+A check reads every board in it and fails on any that lists no postings.
+The maintainer then adds the passing ones with
+`python -m ftja.ats merge contributions/ats/<file> --source "<your GitHub name>"`.
+
 ## Reporting bugs and ideas
 
 Open an issue with what you expected, what happened, and the steps to

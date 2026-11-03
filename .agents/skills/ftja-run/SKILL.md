@@ -1,6 +1,6 @@
 ---
 name: ftja-run
-description: Run the daily FTJA job-search pipeline (scrape LinkedIn -> deterministic filter -> cheap-model sentence-block judgment -> mid-model resume/portfolio judgment -> digest + notification). Invoke when the user says "run job search", "run FTJA", "check today's postings", or on the scheduled launchd trigger. Also invoke for "/ftja-run continue" or "continue to Stage 1 / Stage 2", which takes a run that stopped early through one more stage.
+description: Run the daily FTJA job-search pipeline (scrape LinkedIn -> deterministic filter -> cheap-model sentence-block judgment -> mid-model resume/portfolio judgment -> digest + notification). Invoke when the user says "run job search", "run FTJA", "check today's postings", or on the scheduled launchd trigger. Also invoke for "choose my FTJA judge models" (pick the API models to judge with), and for "/ftja-run continue" or "continue to Stage 1 / Stage 2", which takes a run that stopped early through one more stage.
 ---
 
 # FTJA run
@@ -166,6 +166,29 @@ instead of it.
   run). `finalize` sums what was recorded. Never keep the total in your head
   and never pass 0 for a count you did not make: a missing total shows as
   "-", a wrong one is believed.
+- **Check who judges**: `venv/bin/python -m ftja.judge status`. When it
+  prints `"mode": "api"` with `"ready": true`, the user chose to judge
+  with their own API key from the supplier they prefer (`.env`, set on the
+  Pipeline tab): wherever
+  steps 2-4 below say to call `Agent` subagents for `rc/`, `s1/` or `s2/`,
+  run instead
+
+  ```
+  venv/bin/python -m ftja.judge run --dir <run_dir> --stage <rc|s1|s2>
+  ```
+
+  once per stage (no batches, no waves). It judges every prompt of that
+  stage without an answer, writes the same `<n>.out.json` files, and
+  records the real tokens itself — do not call `record-tokens` for it. Its
+  `failed` lists jobs it could not answer: run it again once (it only
+  takes those); a rerun the check commands ask for is
+  `--jobs <n,n> --force`. Everything else (`check-*`, `prepare-*`,
+  `results`, `finalize`) is unchanged. With `"mode": "api"` but
+  `"ready": false`, fall back to subagents for this run and tell the user
+  what is missing: a key (Pipeline tab, or `.env` as the printed
+  `key_var`, from `key_page`), the address (custom only), or the models —
+  for those, offer "Choosing the judge models" at the end of this file. Never print, read
+  aloud or copy the key.
 - **Check the criteria list**: `venv/bin/python -m ftja.verdict status`.
   `rubric-criteria.json` is the rubric as a list of single criteria with
   stable ids; Stage 2 answers per criterion and `finalize` computes the
@@ -578,3 +601,29 @@ Stage 1 can only be asked for on a run that stopped after the Remote check.
 
 Do not scrape, do not run Stage 0 or an earlier stage again, and do not
 run the version check or the pending-review preflight for a continue.
+
+## Choosing the judge models
+
+For "choose my FTJA judge models", or when `ftja.judge status` shows API
+judging with a model missing. FTJA ships no model names: suppliers rename
+and reprice models often, and a guessed name fails or costs more than it
+should. So:
+
+1. `venv/bin/python -m ftja.judge models` — the model ids the user's key
+   can use, from the supplier itself. Only suggest ids from this list. (If
+   it fails, the key or the address is wrong: say so and stop.)
+2. Read the supplier's current prices at the `pricing_page` that
+   `ftja.judge status` prints (fetch the page; do not answer from memory).
+   Note anything that changes cost: thinking/reasoning modes billed as
+   output, peak and off-peak rates, cached-input prices.
+3. Suggest two models from the list: the cheapest one fit for short
+   yes/no screening (Stage 1 and the Remote check) and a stronger one for
+   Stage 2, which quotes the job description against each criterion.
+   Show each one's input and output price per million tokens, and a rough
+   cost per run (Stage 1 ≈ 2k input + 300 output tokens per posting,
+   Stage 2 ≈ 15k input + 1.5k output per posting reaching it; use the
+   counts from `runs.jsonl` when there are any).
+4. Only after the user agrees:
+   `venv/bin/python -m ftja.judge set-models --s1 <id> --s2 <id>`.
+   The Pipeline tab shows them on its next load.
+

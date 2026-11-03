@@ -9,7 +9,7 @@ from ftja import finalize as finalize_mod
 from ftja import live
 from ftja.lock import acquire, release
 from ftja.runs_view import list_runs
-from ftja.state import connect, is_seen
+from ftja.state import connect, is_seen, mark_seen
 from ftja.verdict import save_criteria
 
 
@@ -428,3 +428,31 @@ def test_a_single_location_from_before_there_could_be_several_still_works(projec
     assert run["criteria_snapshot"]["locations"] == ["France"] and run["criteria_snapshot"]["location"] == "France"
     old_run = {"search_terms": ["Product Manager"], "location": "European Union"}  # a run.json written by an older version
     assert live.searches(old_run) == [{"term": "Product Manager", "location": "European Union"}]
+
+
+def test_the_same_posting_on_several_sites_is_judged_once(project):
+    db = os.path.join(project, "seen.db")
+    run = live.start(project)
+    run_dir = run["run_dir"]
+    linkedin = {**JOBS[0], "job_url": "https://www.linkedin.com/jobs/view/1", "sources": ["linkedin"]}
+    indeed_de = {**JOBS[0], "job_url": "https://de.indeed.com/viewjob?jk=a", "title": "Product Builder (m/w/d)",
+                 "sources": ["indeed"]}
+    indeed_nl = {**JOBS[0], "job_url": "https://nl.indeed.com/viewjob?jk=b", "sources": ["indeed"], "company": "Alpha GmbH"}
+    for n, jobs in enumerate(([linkedin], [indeed_de, indeed_nl])):
+        live._write_json(os.path.join(run_dir, "scrape", f"{n}.json"), jobs)
+    counts = live.stage0(run_dir, project, db)
+    kept = live._read_json(os.path.join(run_dir, "stage0.json"))
+    assert counts["scraped"] == 1 and [j["job_url"] for j in kept] == [linkedin["job_url"]]
+    assert kept[0]["sources"] == ["linkedin", "indeed"]
+
+
+def test_a_posting_judged_lately_under_another_url_is_not_judged_again(project):
+    db = os.path.join(project, "seen.db")
+    with connect(db) as conn:
+        mark_seen(conn, "https://www.linkedin.com/jobs/view/1", "review", 2, title="Product Builder", company="Alpha")
+    run = live.start(project)
+    run_dir = run["run_dir"]
+    live._write_json(os.path.join(run_dir, "scrape", "0.json"),
+                     [{**JOBS[0], "job_url": "https://fr.indeed.com/viewjob?jk=z", "sources": ["indeed"]}])
+    counts = live.stage0(run_dir, project, db)
+    assert counts["passed"] == 0 and counts["dropped"]["already_seen"] == 1

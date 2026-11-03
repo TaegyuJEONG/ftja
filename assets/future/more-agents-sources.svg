@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="960" height="640" viewBox="0 0 480 320" role="img" aria-labelledby="ms-title ms-desc">
   <title id="ms-title">More agents and more sources</title>
-  <desc id="ms-desc">On the left, three agents: Claude Code today, Codex and Hermes Agent next. On the right, three sources: LinkedIn today, Indeed and company career pages next. All connect to FTJA in the middle.</desc>
+  <desc id="ms-desc">On the left, two agents: Claude Code and Codex, both today. On the right, three sources: LinkedIn and company career pages today, Indeed next. All connect to FTJA in the middle.</desc>
   <style>
     .ink{fill:none;stroke:#47675d;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
     .soft{fill:#f7f6f0;stroke:#a4b5aa;stroke-width:1.2}
@@ -22,26 +22,24 @@
   <text class="head" x="70" y="18">AGENTS</text>
   <text class="head" x="410" y="18">SOURCES</text>
 
-  <path class="route" d="M96 68C150 68 170 150 208 156"/>
-  <path class="route later" d="M96 160H206"/>
-  <path class="route later" d="M96 252C150 252 170 170 208 164"/>
+  <path class="route" d="M96 110C150 110 170 152 208 156"/>
+  <path class="route" d="M96 210C150 210 170 168 208 164"/>
   <path class="route" d="M384 68C330 68 310 150 272 156"/>
   <path class="route later" d="M384 160H274"/>
-  <path class="route later" d="M384 252C330 252 310 170 272 164"/>
+  <path class="route" d="M384 252C330 252 310 170 272 164"/>
 
   <g filter="url(#ms-shadow)">
-    <rect class="soft" x="48" y="46" width="44" height="44" rx="13"/>
-    <rect class="next" x="48" y="138" width="44" height="44" rx="13"/>
-    <rect class="next" x="48" y="230" width="44" height="44" rx="13"/>
+    <rect class="soft" x="48" y="88" width="44" height="44" rx="13"/>
+    <rect class="soft" x="48" y="188" width="44" height="44" rx="13"/>
     <rect class="soft" x="388" y="46" width="44" height="44" rx="13"/>
     <rect class="next" x="388" y="138" width="44" height="44" rx="13"/>
-    <rect class="next" x="388" y="230" width="44" height="44" rx="13"/>
+    <rect class="soft" x="388" y="230" width="44" height="44" rx="13"/>
     <circle class="hub" cx="240" cy="160" r="34"/>
   </g>
   <text class="hubt" x="240" y="166">FTJA</text>
 
   <!-- agent glyph: a prompt -->
-  <g class="ink"><path d="M61 62l7 6-7 6M72 75h8"/><path d="M61 154l7 6-7 6M72 167h8"/><path d="M61 246l7 6-7 6M72 259h8"/></g>
+  <g class="ink"><path d="M61 104l7 6-7 6M72 117h8"/><path d="M61 204l7 6-7 6M72 217h8"/></g>
   <!-- source glyph: a posting -->
   <g class="ink">
     <path d="M400 58h20v20h-20zM404 64h12M404 69h12M404 74h7"/>
@@ -49,20 +47,19 @@
     <path d="M400 242h20v20h-20zM404 248h12M404 253h12M404 258h7"/>
   </g>
 
-  <text class="lbl" x="70" y="106">Claude Code</text>
-  <text class="lbl" x="70" y="198">Codex</text>
-  <text class="lbl" x="70" y="290">Hermes Agent</text>
+  <text class="lbl" x="70" y="148">Claude Code</text>
+  <text class="lbl" x="70" y="248">Codex</text>
   <text class="lbl" x="410" y="106">LinkedIn</text>
   <text class="lbl" x="410" y="198">Indeed</text>
   <text class="lbl" x="410" y="290">Company career pages</text>
-  <text class="sub" x="410" y="304">Greenhouse · Lever · Ashby</text>
+  <text class="sub" x="410" y="303">Greenhouse · Lever · Ashby</text>
+  <text class="sub" x="410" y="316">and seven more</text>
 
   <g>
-    <rect class="tagnow" x="78" y="38" width="30" height="13" rx="6.5"/><text class="tagt" x="93" y="47.5" fill="#f3f0e9">NOW</text>
-    <rect class="tagnext" x="78" y="130" width="32" height="13" rx="6.5"/><text class="tagt" x="94" y="139.5" fill="#47675d">NEXT</text>
-    <rect class="tagnext" x="78" y="222" width="32" height="13" rx="6.5"/><text class="tagt" x="94" y="231.5" fill="#47675d">NEXT</text>
+    <rect class="tagnow" x="78" y="80" width="30" height="13" rx="6.5"/><text class="tagt" x="93" y="89.5" fill="#f3f0e9">NOW</text>
+    <rect class="tagnow" x="78" y="180" width="30" height="13" rx="6.5"/><text class="tagt" x="93" y="189.5" fill="#f3f0e9">NOW</text>
     <rect class="tagnow" x="418" y="38" width="30" height="13" rx="6.5"/><text class="tagt" x="433" y="47.5" fill="#f3f0e9">NOW</text>
     <rect class="tagnext" x="418" y="130" width="32" height="13" rx="6.5"/><text class="tagt" x="434" y="139.5" fill="#47675d">NEXT</text>
-    <rect class="tagnext" x="418" y="222" width="32" height="13" rx="6.5"/><text class="tagt" x="434" y="231.5" fill="#47675d">NEXT</text>
+    <rect class="tagnow" x="418" y="222" width="30" height="13" rx="6.5"/><text class="tagt" x="433" y="231.5" fill="#f3f0e9">NOW</text>
   </g>
 </svg>

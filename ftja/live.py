@@ -47,11 +47,12 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 
+from ftja import ats
 from ftja import remote as remote_check
 from ftja import osutil
 from ftja.lock import is_locked
 from ftja.runs_store import run_stamp
-from ftja.state import connect, is_seen
+from ftja.state import connect, is_seen, seen_postings
 from ftja.verdict import (DEFAULT_CRITERIA_PATH, STATUS_FOR_VERDICT, clean_extras, judge, load_criteria,
                           render_criteria_list)
 
@@ -225,7 +226,11 @@ def start(project_dir: str = ".") -> dict:
         from ftja.keywords import active_remote_config  # keywords of a language no longer read are switched off
         _write_json(os.path.join(run_dir, remote_check.CONFIG_FILE),
                     active_remote_config(remote_check.config_or_default(project_dir), criteria.get("languages")))
-    run = {"run_id": ts_start, "ts_start": ts_start, "criteria_snapshot": snapshot}
+    try:  # postings from company boards that have closed since: Expired, before anything new is shown
+        closed = ats.close_gone(project_dir)
+    except Exception as e:  # noqa: BLE001 - a check that fails must never stop a run
+        closed = {"error": str(e)}
+    run = {"run_id": ts_start, "ts_start": ts_start, "criteria_snapshot": snapshot, "closed_on_boards": closed}
     _write_json(os.path.join(run_dir, "run.json"), run)
     plan = searches(snapshot)
     for n, search in enumerate(plan):
@@ -244,14 +249,22 @@ def scrape_term(run_dir: str, n: int) -> int:
     term = search["term"]
     progress_path = os.path.join(run_dir, "scrape", f"{n}.progress.json")
 
+    # company boards stand in for LinkedIn's posting pages; other sites carry the text in their results,
+    # and only one search may write the folder's board lists while sources are scraped at once
+    site = search.get("site", "linkedin")
+    boards = ats.Boards(os.path.dirname(os.path.dirname(os.path.abspath(run_dir)))) if site == "linkedin" else None  # run_dir is <project>/.ftja-run/<id>
+
     def report(count: int, read: int, done: bool = False):
-        _write_json(progress_path, {**search, "count": count, "read": read, "done": done})
+        _write_json(progress_path, {**search, "count": count, "read": read, "done": done,
+                                    **({"from_ats": boards.stats["from_ats"]} if boards else {})})
 
     skipped: list[str] = []
-    jobs = scrape(search_term=term, location=search["location"], site=search.get("site", "linkedin"),
+    jobs = scrape(search_term=term, location=search["location"], site=site,
                   country_indeed=search.get("country_indeed", ""),
                   hours_old=int(snapshot.get("hours_old") or 72),
-                  on_batch=report, skipped=skipped)
+                  on_batch=report, skipped=skipped, boards=boards)
+    if boards:
+        boards.save_jobs()
     tally: dict[str, int] = {}
     for title in skipped:
         tally[title] = tally.get(title, 0) + 1
@@ -298,6 +311,12 @@ def scrape_sources(run_dir: str) -> dict:
                                               for site, count, done in results}}
 
 
+def posting_key(job: dict) -> tuple[str, str] | None:
+    """One posting however many sites (or Indeed's country sites) list it: its company and title."""
+    company, title = ats.company_key(job.get("company")), ats.norm(job.get("title"))
+    return (company, title) if company and title else None
+
+
 def stage0(run_dir: str, project_dir: str = ".", db_path: str = "seen.db") -> dict:
     """Step 2: merge the scrapes (one entry per job_url) and run the code-only
     filter. Its last check drops jobs an earlier run already judged (they
@@ -317,7 +336,19 @@ def stage0(run_dir: str, project_dir: str = ".", db_path: str = "seen.db") -> di
                     kept["sources"] = list(dict.fromkeys([*_job_sources(kept), *_job_sources(job)]))
                     if term and term not in kept.setdefault("_search_terms", []):
                         kept["_search_terms"].append(term)  # which searches returned it
-    jobs = list(merged.values())
+    # the same posting on several sites: one job, judged once, with every site that listed it
+    by_posting: dict[tuple, dict] = {}
+    for job in merged.values():
+        key = posting_key(job) or ("url", job["job_url"])
+        kept = by_posting.get(key)
+        if kept is None:
+            by_posting[key] = job
+            continue
+        kept["sources"] = list(dict.fromkeys([*_job_sources(kept), *_job_sources(job)]))
+        kept["_search_terms"] = list(dict.fromkeys([*kept.get("_search_terms", []), *job.get("_search_terms", [])]))
+        if not str(kept.get("description") or "").strip() and str(job.get("description") or "").strip():
+            kept["description"] = job["description"]
+    jobs = list(by_posting.values())
     criteria = _read_json(os.path.join(project_dir, "criteria.json"), {})
     dropped_jobs: list[dict] = []
     stages = run_stages(run_dir)
@@ -327,7 +358,8 @@ def stage0(run_dir: str, project_dir: str = ".", db_path: str = "seen.db") -> di
         passed, dropped = filter_stage0(jobs, criteria, dropped_jobs, remote=_remote_config(run_dir),
                                         stage1="stage1" in stages)
     with connect(db_path) as conn:
-        fresh = [j for j in passed if not is_seen(conn, j.get("job_url", ""))]
+        judged = seen_postings(conn)  # judged lately under another site's URL
+        fresh = [j for j in passed if not is_seen(conn, j.get("job_url", "")) and posting_key(j) not in judged]
     dropped = {**dropped, "already_seen": len(passed) - len(fresh)}
     passed = fresh
     _write_json(os.path.join(run_dir, "stage0.json"), passed)
@@ -727,7 +759,10 @@ def assemble_results(run_dir: str) -> dict:
         job = by_url.get(entry["job_url"], {})
         keywords, sentences = _matched(job)
         out = {"job_url": entry["job_url"], "title": entry.get("title") or "", "company": entry.get("company") or "",
-               "location": entry.get("location") or "", "sources": job.get("sources") or []}
+               "location": entry.get("location") or "", "sources": job.get("sources") or [],
+               "source": job.get("_source") or job.get("site") or "linkedin"}  # where the text was read: a job site or "ats:vendor/slug"
+        if job.get("_source") and job.get("job_url_direct"):
+            out["source_url"] = job["job_url_direct"]  # the posting on the company's board
         if job.get("_duplicate_job_urls"):
             out["duplicate_job_urls"] = job["_duplicate_job_urls"]
         if keywords:
@@ -778,7 +813,8 @@ def assemble_results(run_dir: str) -> dict:
              "scraped_by_term": [{"term": p["term"], "location": p.get("location") or "",
                                   **{k: p[k] for k in ("site", "country_indeed", "search_location") if p.get(k)},
                                   "count": p["count"],
-                                  **({"read": p["read"]} if p.get("read") is not None else {})}  # how many search results it read
+                                  **({"read": p["read"]} if p.get("read") is not None else {}),  # how many search results it read
+                                  **({"from_ats": p["from_ats"]} if p.get("from_ats") is not None else {})}  # of them read from company boards
                                  for p in _scrape_progress(run_dir)],
              "already_seen_skipped": (counts.get("dropped") or {}).get("already_seen")}
     _write_json(os.path.join(run_dir, "stats.json"), stats)
