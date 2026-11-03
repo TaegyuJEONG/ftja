@@ -31,7 +31,7 @@
 .future-text h3{font:400 clamp(28px,3.4vw,42px)/1.04 "Instrument Serif",Georgia,serif;letter-spacing:-.025em;margin:0 0 16px}
 .future-text p{color:var(--muted);font-size:14px;line-height:1.7;margin:0 0 12px;max-width:460px}
 .future-text p b{color:var(--ink);font-weight:600}
-.future-art{display:block;width:100%;height:auto}.future-checks{list-style:none;margin:18px 0 0;padding:0;border-top:1px solid var(--border)}.future-checks li{display:grid;grid-template-columns:22px 1fr;gap:10px;padding:12px 0;border-bottom:1px solid var(--border);font-size:14px;line-height:1.5}.future-checks li::before{content:"";width:16px;height:16px;margin-top:2px;border:1px solid var(--accent-border);border-radius:50%}.future-checks li.done{opacity:.5}.future-checks li.done::before{content:"✓";display:grid;place-items:center;background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-size:10px;font-weight:700}.future-checks b{font-weight:600}.future-checks small{display:block;color:var(--muted);font:10px "IBM Plex Mono",monospace;letter-spacing:.06em;margin-top:2px}.future-pool{margin-top:18px;padding:14px 16px;border:1px solid var(--accent-border);background:var(--accent2);font-size:13px;line-height:1.55}.future-pool strong{display:block;color:var(--accent);font:10px "IBM Plex Mono",monospace;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
+.future-art{display:block;width:100%;height:auto}.milestone-progress{height:4px;background:var(--border);margin:18px 0 6px;overflow:hidden}.milestone-progress span{display:block;height:100%;background:var(--accent)}.milestone-count{color:var(--accent);font:10px "IBM Plex Mono",monospace;letter-spacing:.12em}.future-checks li.now::before{border:2px solid var(--accent);background:var(--accent2)}.future-checks li.now small{color:var(--accent)}.future-checks{counter-reset:m;list-style:none;margin:18px 0 0;padding:0;border-top:1px solid var(--border)}.future-checks li{display:grid;grid-template-columns:22px 1fr;gap:10px;padding:12px 0;border-bottom:1px solid var(--border);font-size:14px;line-height:1.5}.future-checks li::before{content:"";width:16px;height:16px;margin-top:2px;border:1px solid var(--accent-border);border-radius:50%}.future-checks li.done{opacity:.5}.future-checks li.done::before{content:"✓";display:grid;place-items:center;background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-size:10px;font-weight:700}.future-checks b{font-weight:600}.future-checks small{display:block;color:var(--muted);font:10px "IBM Plex Mono",monospace;letter-spacing:.06em;margin-top:2px}
 .future-row.dark .future-tag{color:#f0c987}.future-row.dark .future-text p{color:#d6e5dc}.future-row.dark .future-text p b{color:var(--on-accent)}
 .future-row.dark .future-note{font:10px "IBM Plex Mono",monospace;color:#b9d1c4;margin-top:18px}
 @media(max-width:720px){.future-row{grid-template-columns:1fr;gap:22px}.future-row.flip .future-text{order:0}}
@@ -61,8 +61,8 @@
       <div class="install">
         <div class="install-head"><div><h3 id="setup-card-title">Which app do you use?</h3><p class="install-note">FTJA runs inside your own AI coding app. Pick yours and you get the steps for your computer.</p></div></div>
         <div class="client-pick" role="radiogroup" aria-label="Your AI app">
-          <button type="button" class="client-option" role="radio" aria-checked="false" data-client="claude"><span class="client-mark claude-mark" aria-hidden="true">✳</span><span><b>Claude Code</b><small>Claude desktop app, Code tab</small></span></button>
-          <button type="button" class="client-option" role="radio" aria-checked="false" data-client="codex"><img src="https://chatgpt.com/favicon.ico" alt="" width="22" height="22"><span><b>Codex</b><small>ChatGPT desktop app, Codex mode</small></span></button>
+          <button type="button" class="client-option" role="radio" aria-checked="false" data-client="claude"><img src="assets/claude-logo.svg" alt="" width="22" height="22"><span><b>Claude Code</b><small>Claude desktop app, Code tab</small></span></button>
+          <button type="button" class="client-option" role="radio" aria-checked="false" data-client="codex"><img src="assets/codex-logo.svg" alt="" width="22" height="22"><span><b>Codex</b><small>ChatGPT desktop app, Codex mode</small></span></button>
         </div>
         <div id="setup-guide" hidden>
           <div class="os-toggle" role="radiogroup" aria-label="Your computer"><span class="os-label" id="os-detected"></span><button type="button" class="os-option" role="radio" data-os="mac">macOS</button><button type="button" class="os-option" role="radio" data-os="windows">Windows</button></div>
@@ -105,14 +105,15 @@
     <h2>Search is the first step.</h2>
     <p class="section-intro">Three things FTJA is heading toward, in order.</p>
     <div class="future-row">
-      <div class="future-text"><div class="future-tag">01 · Now</div><h3>Your agent, more places to look.</h3><p>FTJA runs in your coding agent and reads LinkedIn. Two of the three steps here are done.</p>
-        <ul class="future-checks">
-          <li class="done"><span><b>Codex</b>: FTJA runs in Codex as well as Claude Code.<small>DONE · 0.3.3</small></span></li>
-          <li class="done"><span><b>Company job boards</b>: postings are read straight from the company's own board (Greenhouse, Lever, Ashby and seven more), with fewer LinkedIn pages, and a posting that closes is marked Expired by itself.<small>DONE · 0.4.0</small></span></li>
-          <li><span><b>Indeed</b>: a second place to find postings.<small>NEXT</small></span></li>
-        </ul>
-        <div class="future-pool"><strong>A shared pool of company boards</strong>FTJA ships with 1,307 company boards and finds new ones as your runs meet other companies. If you agree, the boards your runs confirm join a pool everyone shares: only each company's name and its board's address, never your searches or anything that says who you are. Each board is checked before it ships in the next update, so every run reads more postings straight from the company.</div></div>
-      <img class="future-art" src="assets/future/more-agents-sources.svg" alt="Agents on the left (Claude Code and Codex, both now) and sources on the right (LinkedIn and company career pages now, Indeed next), all connected to FTJA" width="960" height="640" loading="lazy">
+      <div class="future-text"><div class="future-tag">01 · Milestones</div><h3>Your agent, more places to look.</h3><p>FTJA started in Claude Code, reading LinkedIn. Each milestone adds an agent or a place to find jobs.</p>
+        <div class="milestone-progress" aria-label="3 of 4 milestones shipped"><span style="width:75%"></span></div><div class="milestone-count">3 OF 4 SHIPPED</div>
+        <ol class="future-checks">
+          <li class="done"><span><b>Codex</b>: runs in Codex as well as Claude Code.<small>M1 · SHIPPED · 0.3.3</small></span></li>
+          <li class="done"><span><b>Company job boards</b>: postings read straight from Greenhouse, Lever, Ashby and seven more, with fewer LinkedIn pages.<small>M2 · SHIPPED · 0.4.0</small></span></li>
+          <li class="done"><span><b>Shared board pool</b>: a board one person's run finds reaches everyone's next update, if they opt in.<small>M3 · SHIPPED · 0.4.0</small></span></li>
+          <li class="now"><span><b>Job posts on social</b>: hiring posts on LinkedIn, Reddit, X and Threads.<small>M4 · IN PROGRESS</small></span></li>
+        </ol></div>
+      <img class="future-art" src="assets/future/more-agents-sources.svg" alt="Agents on the left: Claude Code, where FTJA started, and Codex (milestone 1, shipped). Sources on the right: LinkedIn, where it started, company job boards (milestone 2, shipped) and job posts on Reddit, X and Threads (milestone 4, next). Around FTJA, the shared board pool (milestone 3, shipped)." width="960" height="640" loading="lazy">
     </div>
     <div class="future-row flip">
       <div class="future-text"><div class="future-tag">02 · Then</div><h3>Applications, drafted for you.</h3><p>When a role is worth applying to, your agent prepares the application: your resume attached, the motivation written, each question answered. It draws on your profile, on what it has learned from your conversations, and on the job posting itself.</p><p><b>You review it and confirm.</b> Nothing is sent without you.</p></div>
