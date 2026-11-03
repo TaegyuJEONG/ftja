@@ -38,7 +38,15 @@ machines written and reviewed in one place.
 FTJA reads a posting from the company's own job board (Greenhouse, Lever,
 Ashby and others) when it knows the board, instead of LinkedIn's page. The
 boards it knows ship in `ats_boards.json`; the ones your runs found are kept
-in your folder's `ats_local.json`. To share yours:
+in your folder's `ats_local.json`.
+
+The simplest way to share them is the question the web view asks once: on a
+yes, each finished run sends the boards a posting confirmed (company name,
+board vendor and board name) with a random id made in your folder, kept in
+`ats_share.json`. `venv/bin/python -m ftja.share status` shows what is
+waiting and what was sent; `venv/bin/python -m ftja.share never` stops it.
+
+To share them through a pull request instead:
 
 1. `venv/bin/python -m ftja.ats export` writes `ats_contributions.json`:
    company name, board vendor and board name only — nothing about your

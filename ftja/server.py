@@ -26,7 +26,7 @@ from urllib.parse import urlparse, parse_qs
 
 from ftja.state import connect, record_criterion_feedback, update_decision, VALID_FEEDBACK_VOTES, VALID_USER_ACTIONS
 from ftja.pipeline_view import read_config, write_config, keyword_stats
-from ftja import live, osutil, version
+from ftja import live, osutil, share, version
 from ftja import remote as remote_check
 from ftja import keywords as keyword_languages
 from ftja.verdict import DEFAULT_CRITERIA_PATH, criteria_status, load_criteria, save_criteria
@@ -308,6 +308,9 @@ def make_handler(db_path: str, project_dir: str):
                 self._send_json(200, run_bridge.listening(project_dir))
             elif path == "/api/storage":
                 self._send_json(200, runs_store.storage(project_dir, db_path))
+            elif path == "/api/share":
+                # whether the user agreed to share the company job boards their runs found
+                self._send_json(200, share.status(project_dir))
             elif path == "/api/delete-run-preview":
                 try:
                     self._send_json(200, runs_store.delete_preview(project_dir, db_path, (qs.get("run_id") or [""])[0]))
@@ -426,6 +429,11 @@ def make_handler(db_path: str, project_dir: str):
                 # the user went through the agent's keywords: add them
                 added = keyword_languages.add_keywords(project_dir, data.get("items") or [])
                 self._send_json(200, {"ok": True, "added": added, **_keyword_languages(project_dir)})
+            elif self.path == "/api/share":
+                try:
+                    self._send_json(200, {**share.choose(project_dir, str(data.get("choice") or "")), **share.status(project_dir)})
+                except ValueError as err:
+                    self._send_json(400, {"error": str(err)})
             elif self.path == "/api/keywords-cancel":
                 if keyword_languages.read_request(project_dir)["status"] != "generating":
                     keyword_languages.discard(project_dir)

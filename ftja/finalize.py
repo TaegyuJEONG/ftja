@@ -479,6 +479,9 @@ def main():
     if args.run_dir:  # the live view stops showing the run; Results shows the finished one
         with open(os.path.join(args.run_dir, "done.json"), "w", encoding="utf-8") as f:
             json.dump(summary, f)
+    # the company job boards this run confirmed, if the user agreed to share them (never stops the run)
+    from ftja import share
+    summary["shared_boards"] = share.send(args.out_dir)
     print(json.dumps(summary, ensure_ascii=False), file=sys.stderr)
 
 

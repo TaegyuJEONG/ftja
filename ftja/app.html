@@ -293,6 +293,10 @@ a.src-badge:hover { color: var(--text); border-color: currentColor; }
   padding: 9px 14px; margin: -14px 0 24px;
 }
 .update-banner code { font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; }
+.share-banner p { margin: 0 0 8px; }
+.share-banner .share-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.share-banner button { font: inherit; padding: 4px 12px; border-radius: 3px; border: 1px solid var(--accent-border); background: transparent; color: var(--accent-text); cursor: pointer; }
+.share-banner button.primary { background: var(--accent-text); color: var(--bg, #fff); border-color: var(--accent-text); }
 .server-down-banner { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; margin: 0; font-size: 13px; padding: 12px 18px; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
 
 /* a run in progress */
@@ -737,6 +741,7 @@ select.sort-select {
 
 <div id="update-banner" class="update-banner" hidden></div>
 <div id="server-down-banner" class="update-banner server-down-banner" hidden></div>
+<div id="share-banner" class="update-banner share-banner" hidden></div>
 <div id="view-results" class="view">
   <div class="no-run-banner" data-no-run-banner><span>→</span><div><b>You haven't run FTJA yet.</b>Type <code>/ftja-run</code> in the Claude Code session connected to this FTJA folder. Results appear here as the run goes.</div></div>
   <div class="results-layout">
@@ -3634,6 +3639,32 @@ async function checkServer() {
 }
 setInterval(() => { if (!document.hidden) checkServer(); }, 5000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) checkServer(); });
+// Company job boards this folder's runs found: ask once whether to share them with everyone using FTJA.
+function refreshShare() {
+  fetch('/api/share').then(r => r.json()).then(s => {
+    const banner = document.getElementById('share-banner');
+    banner.hidden = !s.ask;
+    if (banner.hidden) return;
+    banner.innerHTML = `<p>Your runs found <b>${fmtN(s.waiting)}</b> company job board${s.waiting === 1 ? '' : 's'} FTJA did not know. Share them so everyone using FTJA reads more postings straight from the company, with fewer LinkedIn pages?
+      Only each company's name and its board's address are sent, never your searches, criteria or the postings you looked at, and nothing that says who you are.</p>
+      <div class="share-actions"><button class="primary" data-share="yes">Share automatically after each run</button>
+      <button data-share="no">Not now</button><button data-share="never">Never</button></div>`;
+  }).catch(() => {});
+}
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-share]');
+  if (!b) return;
+  b.disabled = true;
+  fetch('/api/share', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({choice: b.dataset.share})})
+    .then(r => r.json()).then(s => {
+      const banner = document.getElementById('share-banner');
+      if (s.choice === 'yes') {
+        banner.innerHTML = s.error ? `<p>Saved. ${esc(s.error)}</p>` : `<p>Thank you — ${fmtN(s.sent || 0)} board${s.sent === 1 ? '' : 's'} shared. New ones are sent after each run.</p>`;
+        setTimeout(() => { banner.hidden = true; }, 6000);
+      } else banner.hidden = true;
+    }).catch(() => { b.disabled = false; });
+});
+refreshShare();
 // A clone only changes when its owner pulls; say so when there is something to pull.
 fetch('/api/version').then(r => r.json()).then(v => {
   // two clones share the port: say which folder's data this is

@@ -20,9 +20,18 @@ digests — are never touched by an update.
 - **Closed postings are marked Expired by themselves.** At the start of a
   run, a passed posting that was read from a company board and is no longer
   on it is marked Expired, unless you already decided on it.
-- **Share the boards your runs found.** `venv/bin/python -m ftja.ats export`
-  writes them (company and board only) for a pull request; see
-  CONTRIBUTING.md.
+- **Share the boards your runs found, if you want to.** The web view asks
+  once. On a yes, each finished run sends the company job boards it
+  confirmed that FTJA did not know: each company's name and its board's
+  address, nothing about your searches, criteria or the postings you looked
+  at, and nothing that says who you are. "Not now" asks again in two weeks;
+  "Never" does not ask again. Change your answer any time with
+  `venv/bin/python -m ftja.share yes | no | never`. The pull-request route
+  (`venv/bin/python -m ftja.ats export`) still works; see CONTRIBUTING.md.
+- **Each job shows where its text was read.** The Scraping line counts the
+  postings read from company boards and from LinkedIn, and each job carries a
+  LinkedIn or board badge; a board badge opens the posting on the company's
+  own board.
 
 ## 0.3.3 — 2026-10-17
 
