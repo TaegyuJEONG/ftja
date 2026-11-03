@@ -125,6 +125,8 @@ CREATE TABLE IF NOT EXISTS seen_jobs (
     t1_blocks TEXT,
     stage1_reason TEXT,
     pruned_at TEXT,
+    source TEXT,
+    source_url TEXT,
     last_seen_at TEXT NOT NULL
 );
 """
@@ -142,7 +144,7 @@ def _migrate(conn: sqlite3.Connection):
                 "user_action", "user_reason", "user_decided_at", "run_id",
                 "decision_review_status", "criteria", "criteria_feedback",
                 "description", "company_line", "employer", "notes", "t1_blocks",
-                "stage1_reason", "pruned_at", "remote"):
+                "stage1_reason", "pruned_at", "remote", "source", "source_url"):
         if col not in cols:
             conn.execute(f"ALTER TABLE seen_jobs ADD COLUMN {col} TEXT")
     conn.commit()
@@ -192,7 +194,8 @@ def mark_seen(conn: sqlite3.Connection, job_url: str, status: str, stage_reached
               criteria: list[dict] | None = None, description: str | None = None,
               company_line: str | None = None, employer: list[dict] | None = None,
               notes: list[dict] | None = None, t1_blocks: list[dict] | None = None,
-              stage1_reason: str | None = None, remote: dict | None = None):
+              stage1_reason: str | None = None, remote: dict | None = None, source: str | None = None,
+              source_url: str | None = None):
     """Note: the ON CONFLICT clause intentionally does NOT touch
     user_action/user_reason/user_decided_at/criteria_feedback — a re-scrape
     or an alias URL from content dedup must never overwrite a decision the
@@ -202,8 +205,8 @@ def mark_seen(conn: sqlite3.Connection, job_url: str, status: str, stage_reached
                                   stage_reached, verdict, t1_matched_keywords, t1_matched_sentences,
                                   reasoning, evidence_sentences, rubric_version, run_id,
                                   criteria, description, company_line, employer, notes, t1_blocks,
-                                  stage1_reason, remote, last_seen_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                  stage1_reason, remote, source, source_url, last_seen_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON CONFLICT(job_url_hash) DO UPDATE SET
              title=excluded.title, company=excluded.company, location=excluded.location,
              status=excluded.status, stage_reached=excluded.stage_reached,
@@ -214,6 +217,8 @@ def mark_seen(conn: sqlite3.Connection, job_url: str, status: str, stage_reached
              criteria=excluded.criteria, description=excluded.description,
              company_line=excluded.company_line, employer=excluded.employer, notes=excluded.notes,
              t1_blocks=excluded.t1_blocks, stage1_reason=excluded.stage1_reason, remote=excluded.remote,
+             source=COALESCE(excluded.source, seen_jobs.source),
+             source_url=COALESCE(excluded.source_url, seen_jobs.source_url),
              pruned_at=NULL,
              last_seen_at=excluded.last_seen_at""",
         (hash_url(job_url), job_url, title, company, location, status, stage_reached, verdict,
@@ -221,7 +226,7 @@ def mark_seen(conn: sqlite3.Connection, job_url: str, status: str, stage_reached
          json.dumps(t1_matched_sentences or [], ensure_ascii=False),
          reasoning, json.dumps(evidence_sentences or [], ensure_ascii=False), rubric_version, run_id,
          _json_or_none(criteria), description, company_line, _json_or_none(employer), _json_or_none(notes),
-         _json_or_none(t1_blocks), stage1_reason, _json_or_none(remote),
+         _json_or_none(t1_blocks), stage1_reason, _json_or_none(remote), source, source_url,
          datetime.now(timezone.utc).isoformat()),
     )
     conn.commit()

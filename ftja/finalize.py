@@ -363,6 +363,8 @@ def finalize(results: list[dict], db_path: str = DEFAULT_DB, out_dir: str = ".",
                     t1_blocks=r.get("t1_blocks"),
                     stage1_reason=r.get("stage1_reason"),
                     remote=r.get("remote"),
+                    source=r.get("source"),
+                    source_url=r.get("source_url"),
                 )
 
     digest_path = write_digest(passed, out_dir=out_dir, review=review, run_id=run_id,  # always write, even 0 passed -> no silent gaps

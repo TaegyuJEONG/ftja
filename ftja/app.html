@@ -179,6 +179,8 @@ select { -webkit-appearance: none; appearance: none; background-image: url("data
 .card-title { font-size: 15px; font-weight: 600; color: var(--text); }
 .card-title .repost-note { font-size: 11px; color: var(--text3); font-weight: 400; }
 .card-company { color: var(--text2); font-size: 12px; margin-top: 2px; }
+.src-badge { display: inline-block; font-size: 10.5px; letter-spacing: .02em; padding: 0 6px; margin-left: 6px; border: 1px solid var(--border, #d8d4ca); border-radius: 3px; color: var(--text2); vertical-align: 1px; text-decoration: none; }
+a.src-badge:hover { color: var(--text); border-color: currentColor; }
 .badge {
   font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; font-weight: 600;
   padding: 4px 10px; border-radius: 999px; flex-shrink: 0; white-space: nowrap;
@@ -1568,6 +1570,18 @@ function runStages(snapshot, given) {
 //    stage0: {passed, dropped}|null, skip, remote: {pass, fail, pending}|null,
 //    stage1: {pass, fail, pending}|null, stage2: {passed, review, fail, pending}|null,
 //    stoppedAfter, stage2Pending (how many wait there), continueTo: [stages], meta}
+// where a posting's text was read: "linkedin", "ats:ashby/legora" -> "Ashby board", linking to the
+// posting on that board when its URL is known; nothing for runs before it was kept
+function srcBadge(source, url) {
+  if (!source) return '';
+  if (source === 'linkedin') return '<span class="src-badge" title="Text read from the LinkedIn posting">LinkedIn</span>';
+  const [vendor, slug] = source.replace(/^ats:/, '').split('/');
+  const name = vendor.replace(/_eu$/, '').replace(/^./, c => c.toUpperCase());
+  const title = `Text read from ${esc(slug || '')} on ${esc(name)}`;
+  return url ? `<a class="src-badge" href="${esc(url)}" target="_blank" title="${title} — open it there">${esc(name)} board ↗</a>`
+             : `<span class="src-badge" title="${title}">${esc(name)} board</span>`;
+}
+
 function funnelHtml(v) {
   const cs = v.cs || {};
   const wanted = cs.results_wanted;
@@ -1575,6 +1589,9 @@ function funnelHtml(v) {
   const read = v.terms && v.terms.length && v.terms.every(t => t.read != null) ? v.terms.reduce((n, t) => n + t.read, 0) : null;
   let scrape = `<div class="line">Scraped <b>${count('scraped', v.scraped)}</b>${read != null
     ? ` — title contains the search term, out of <b>${count('read', read)}</b> postings LinkedIn returned` : ''}</div>`;
+  // `from_ats`: of the scraped, the ones whose text came from the company's own job board instead of a LinkedIn page
+  const fromAts = v.terms && v.terms.some(t => t.from_ats != null) ? v.terms.reduce((n, t) => n + (t.from_ats || 0), 0) : null;
+  if (fromAts != null) scrape += `<div class="line">Text read from the company's job board for <b>${count('ats', fromAts)}</b>, from LinkedIn for <b>${count('li', Math.max(0, (v.scraped || 0) - fromAts))}</b></div>`;
   if (v.terms && v.terms.length) {
     scrape += `<div class="term-list">${v.terms.map((t, i) => {
       const cap = t.read != null ? t.read : (t.wanted || wanted || 0);  // before `read`: the cap per search
@@ -1904,7 +1921,7 @@ function openStage1Pass(url) {
     <div class="s1-body">
       <div class="s1-explain">Stage 1 reads only the sentences around your keywords, never the whole posting. These are the sentences it read for this job, and what it made of them.</div>
       <div class="s1-row">
-        <div class="s1-title"><a href="${esc(j.job_url)}" target="_blank">${esc(j.title)}</a> <span>— ${esc(j.company)}${j.location ? ' · ' + esc(j.location) : ''}</span></div>
+        <div class="s1-title"><a href="${esc(j.job_url)}" target="_blank">${esc(j.title)}</a> <span>— ${esc(j.company)}${j.location ? ' · ' + esc(j.location) : ''}${srcBadge(j.source, j.source_url)}</span></div>
         ${j.stage1_reason ? `<div class="s1-reason">${esc(j.stage1_reason)}</div>` : ''}
         ${keywords.length ? `<div class="s1-keywords"><span>Matched</span>${keywords.map(k => `<span class="chip">${esc(k)}</span>`).join('')}</div>` : ''}
         ${j.pruned_at ? `<div class="pruned-note">The sentences were removed on ${esc(fmtDate(j.pruned_at))} to save space.</div>` : stage1BlocksHtml(j.t1_blocks, keywords)}
@@ -1946,7 +1963,7 @@ async function openStage1Fails(runId, verdict = 'fail') {
     let fresh = 0;
     dialog.querySelector('#s1-rows').innerHTML = data.jobs.map(j => `
       <div class="s1-row ${known && known.has(j.job_url) ? '' : 'entering'}" style="--d:${known && known.has(j.job_url) ? 0 : fresh++ * 110}ms">
-        <div class="s1-title"><a href="${esc(j.job_url)}" target="_blank">${esc(j.title)}</a> <span>— ${esc(j.company)}${j.location ? ' · ' + esc(j.location) : ''}</span></div>
+        <div class="s1-title"><a href="${esc(j.job_url)}" target="_blank">${esc(j.title)}</a> <span>— ${esc(j.company)}${j.location ? ' · ' + esc(j.location) : ''}${srcBadge(j.source, j.source_url)}</span></div>
         <div class="s1-reason ${j.reason ? '' : 'none'}">${j.reason ? esc(j.reason) : 'No reason recorded — this run is older than Stage 1 reasons.'}</div>
         ${(j.keywords || []).length ? `<div class="s1-keywords"><span>Matched</span>${j.keywords.map(k => `<span class="chip">${esc(k)}</span>`).join('')}</div>` : ''}
         ${j.pruned_at ? `<div class="pruned-note">The sentences were removed on ${esc(fmtDate(j.pruned_at))} to save space.</div>` : stage1BlocksHtml(j.blocks, j.keywords)}
@@ -2018,7 +2035,7 @@ async function openRemoteJobs(runId, verdict = 'fail') {
       const keywords = [...new Set((j.blocks || []).flatMap(b => b.keywords || []))];
       return `
       <div class="s1-row">
-        <div class="s1-title"><a href="${esc(j.job_url)}" target="_blank">${esc(j.title)}</a> <span>— ${esc(j.company)}${j.location ? ' · ' + esc(j.location) : ''}</span></div>
+        <div class="s1-title"><a href="${esc(j.job_url)}" target="_blank">${esc(j.title)}</a> <span>— ${esc(j.company)}${j.location ? ' · ' + esc(j.location) : ''}${srcBadge(j.source, j.source_url)}</span></div>
         ${j.pruned_at ? '' : remoteChipsHtml(j.answers)}
         ${j.reason ? `<div class="s1-reason">${j.decided_by === 'rule' ? '<b>Marked ✕ by you</b> — ' : ''}${esc(j.reason)}${(j.evidence_sids || []).map(sid => (j.blocks || []).find(b => b.sid === sid)).filter(Boolean).map(b => `<div class="ra-quote">${quoteText(b.sentence)}</div>`).join('')}</div>` : ''}
         ${j.pruned_at ? `<div class="pruned-note">The details were removed on ${esc(fmtDate(j.pruned_at))} to save space.</div>` : remoteAnswersHtml(j.answers, j.blocks)}
@@ -2263,7 +2280,7 @@ function jobCardInner(job) {
     <div class="card-head">
       <div>
         <div class="card-title">${esc(job.title)}${repostNote}</div>
-        <div class="card-company">${esc(job.company)}${job.location ? ' · ' + esc(job.location) : ''}</div>
+        <div class="card-company">${esc(job.company)}${job.location ? ' · ' + esc(job.location) : ''}${srcBadge(job.source, job.source_url)}</div>
         ${job.company_line ? `<div class="company-line">${esc(job.company_line)}</div>` : ''}
       </div>
       <span class="badge ${badgeClass} mono">${badgeText}</span>

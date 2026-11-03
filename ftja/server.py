@@ -102,7 +102,7 @@ def _fetch_jobs(db_path: str, run_id: str, status: str, page: int) -> dict:
                       reasoning, evidence_sentences, t1_matched_keywords,
                       user_action, user_reason, last_seen_at,
                       criteria, criteria_feedback, company_line, employer, notes,
-                      t1_blocks, stage1_reason, pruned_at, remote
+                      t1_blocks, stage1_reason, pruned_at, remote, source, source_url
                FROM seen_jobs
                WHERE stage_reached = 2 AND run_id = ? AND (status = ? OR ? = 'all')
                ORDER BY CASE status WHEN 'passed' THEN 0 WHEN 'review' THEN 1 ELSE 2 END, last_seen_at DESC""",
@@ -112,7 +112,7 @@ def _fetch_jobs(db_path: str, run_id: str, status: str, page: int) -> dict:
             "reasoning", "evidence_sentences", "t1_matched_keywords",
             "user_action", "user_reason", "last_seen_at",
             "criteria", "criteria_feedback", "company_line", "employer", "notes",
-            "t1_blocks", "stage1_reason", "pruned_at", "remote"]
+            "t1_blocks", "stage1_reason", "pruned_at", "remote", "source", "source_url"]
     seen_groups: dict[tuple, dict] = {}
     for row in rows:
         job = dict(zip(cols, row))

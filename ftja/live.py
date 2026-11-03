@@ -664,7 +664,10 @@ def assemble_results(run_dir: str) -> dict:
         job = by_url.get(entry["job_url"], {})
         keywords, sentences = _matched(job)
         out = {"job_url": entry["job_url"], "title": entry.get("title") or "", "company": entry.get("company") or "",
-               "location": entry.get("location") or ""}
+               "location": entry.get("location") or "",
+               "source": job.get("_source") or "linkedin"}  # where the text was read: "linkedin" or "ats:vendor/slug"
+        if job.get("_source") and job.get("job_url_direct"):
+            out["source_url"] = job["job_url_direct"]  # the posting on the company's board
         if job.get("_duplicate_job_urls"):
             out["duplicate_job_urls"] = job["_duplicate_job_urls"]
         if keywords:
@@ -713,7 +716,8 @@ def assemble_results(run_dir: str) -> dict:
              "stages": stages, "stopped_after": stop,
              "scraped_count": counts.get("scraped"), "stage0_dropped": counts.get("dropped"),
              "scraped_by_term": [{"term": p["term"], "location": p.get("location") or "", "count": p["count"],
-                                  **({"read": p["read"]} if p.get("read") is not None else {})}  # how many search results it read
+                                  **({"read": p["read"]} if p.get("read") is not None else {}),  # how many search results it read
+                                  **({"from_ats": p["from_ats"]} if p.get("from_ats") is not None else {})}  # of them read from company boards
                                  for p in _scrape_progress(run_dir)],
              "already_seen_skipped": (counts.get("dropped") or {}).get("already_seen")}
     _write_json(os.path.join(run_dir, "stats.json"), stats)
