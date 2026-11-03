@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="960" height="640" viewBox="0 0 480 320" role="img" aria-labelledby="ms-title ms-desc">
   <title id="ms-title">FTJA's milestones: more agents and more places to look</title>
-  <desc id="ms-desc">Agents on the left: Claude Code, where FTJA started, and Codex, milestone 1, done. Sources on the right: LinkedIn, where FTJA started; company job boards, milestone 2, done; job posts on Reddit, X and Threads, milestone 4, next. Around FTJA in the middle, the shared pool of company boards, milestone 3, done.</desc>
+  <desc id="ms-desc">Agents on the left: Claude Code and Codex. Sources on the right: LinkedIn, company job boards, and job posts on Reddit, X and Threads, drawn dashed as the next step. Around FTJA in the middle, the shared pool of company boards.</desc>
   <style>
     .soft{fill:#f7f6f0;stroke:#a4b5aa;stroke-width:1.2}
     .next{fill:#f7f6f0;stroke:#a4b5aa;stroke-width:1.2;stroke-dasharray:4 4}
@@ -12,8 +12,6 @@
     .lbl{fill:#3f4a44;font:500 12px ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;text-anchor:middle}
     .sub{fill:#6d756e;font:500 9.5px ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;text-anchor:middle}
     .head{fill:#6d756e;font:500 9px ui-monospace,"IBM Plex Mono",Menlo,monospace;letter-spacing:.14em;text-anchor:middle}
-    .tagdone{fill:#2e5142}.tagnext{fill:#f7f6f0;stroke:#a4b5aa;stroke-width:1}
-    .tagt{font:600 7.5px ui-monospace,"IBM Plex Mono",Menlo,monospace;letter-spacing:.08em;text-anchor:middle}
     .hubt{fill:#f3f0e9;font:400 17px "Instrument Serif",Georgia,serif;text-anchor:middle}
     .poolt{fill:#47675d;font:500 8px ui-monospace,"IBM Plex Mono",Menlo,monospace;letter-spacing:.1em;text-anchor:middle}
     @keyframes route{to{stroke-dashoffset:-36}}@keyframes spin{to{transform:rotate(360deg)}}
@@ -56,10 +54,4 @@
   <text class="lbl" x="410" y="290">Job posts on social</text>
   <text class="sub" x="410" y="302">Reddit · X · Threads · LinkedIn</text>
 
-  <rect class="tagdone" x="78" y="80" width="32" height="13" rx="6.5"/><text class="tagt" x="94.0" y="89.5" fill="#f3f0e9">START</text>
-  <rect class="tagdone" x="78" y="180" width="27" height="13" rx="6.5"/><text class="tagt" x="91.4" y="189.5" fill="#f3f0e9">M1 ✓</text>
-  <rect class="tagdone" x="418" y="38" width="32" height="13" rx="6.5"/><text class="tagt" x="434.0" y="47.5" fill="#f3f0e9">START</text>
-  <rect class="tagdone" x="418" y="130" width="27" height="13" rx="6.5"/><text class="tagt" x="431.4" y="139.5" fill="#f3f0e9">M2 ✓</text>
-  <rect class="tagdone" x="212" y="227" width="27" height="13" rx="6.5"/><text class="tagt" x="225.4" y="236.5" fill="#f3f0e9">M3 ✓</text>
-  <rect class="tagnext" x="430" y="222" width="42" height="13" rx="6.5"/><text class="tagt" x="451.2" y="231.5" fill="#47675d">M4 NEXT</text>
-</svg>
+            </svg>
