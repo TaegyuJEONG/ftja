@@ -1,0 +1,7847 @@
+{
+ "about": "Company job boards FTJA reads postings from (see ftja/ats.py). Each entry was checked to list postings when added; `source` says where it came from; the licences of the lists it was built from are in THIRD_PARTY_NOTICES.md. Add yours: python -m ftja.ats export, then a pull request with the file it writes.",
+ "boards": {
+  "1000heads": {
+   "name": "1000heads",
+   "slug": "1000heads",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "1010 games": {
+   "name": "1010 Games",
+   "slug": "1010games.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "10beauty": {
+   "name": "10Beauty",
+   "slug": "10beauty",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "10times": {
+   "name": "10times",
+   "slug": "10times",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "11 bit studios": {
+   "name": "11 Bit Studios",
+   "slug": "11bitstudios",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "recruitee"
+  },
+  "1password": {
+   "name": "1Password",
+   "slug": "1password",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "ashby"
+  },
+  "2k": {
+   "name": "2K",
+   "slug": "2k",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "2k vegas": {
+   "name": "2k vegas",
+   "slug": "2kvegas",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "31st union": {
+   "name": "31st Union",
+   "slug": "31stunion",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "5minlab": {
+   "name": "5minlab",
+   "slug": "5minlab",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "66degrees": {
+   "name": "66degrees",
+   "slug": "66degrees",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "6sense": {
+   "name": "6sense",
+   "slug": "6sense",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "a44 games": {
+   "name": "A44 Games",
+   "slug": "a44games",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "a5 labs": {
+   "name": "A5 Labs",
+   "slug": "a5labs.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "ab games": {
+   "name": "AB Games",
+   "slug": "abgames",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "abbyy": {
+   "name": "ABBYY",
+   "slug": "abbyy",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "abnormal security": {
+   "name": "Abnormal Security",
+   "slug": "abnormalsecurity",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "abridge": {
+   "name": "Abridge",
+   "slug": "abridge",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "absurd ventures": {
+   "name": "Absurd Ventures",
+   "slug": "absurdventures",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "abzorba games": {
+   "name": "Abzorba Games",
+   "slug": "abzorbagames",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "acceldata": {
+   "name": "AccelData",
+   "slug": "acceldata",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "accor": {
+   "name": "Accor",
+   "slug": "accor",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "accurate background": {
+   "name": "Accurate Background",
+   "slug": "accuratebackground",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "acl digital": {
+   "name": "ACL Digital",
+   "slug": "acldigital",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "actian": {
+   "name": "Actian",
+   "slug": "actian",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "activate games": {
+   "name": "Activate Games",
+   "slug": "activategames.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "ada": {
+   "name": "Ada",
+   "slug": "ada18",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "addepar": {
+   "name": "Addepar",
+   "slug": "addepar1",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "addi": {
+   "name": "Addi",
+   "slug": "addi",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "ashby"
+  },
+  "adi resourcing": {
+   "name": "ADI Resourcing",
+   "slug": "adiresourcing",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "adpushup": {
+   "name": "AdPushup",
+   "slug": "adpushup",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "advantage solutions": {
+   "name": "ADVANTAGE SOLUTIONS",
+   "slug": "advantagesolutions",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "adyen": {
+   "name": "Adyen",
+   "slug": "Adyen",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "aeg worldwide": {
+   "name": "AEG Worldwide",
+   "slug": "aegworldwide",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "aera technology": {
+   "name": "Aera Technology",
+   "slug": "aeratechnology",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "aerovect": {
+   "name": "Aerovect",
+   "slug": "AeroVect",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "aesir interactive": {
+   "name": "Aesir Interactive",
+   "slug": "aesir.jobs.personio.de",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "personio"
+  },
+  "affinidi": {
+   "name": "affinidi",
+   "slug": "affinidi",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "afry": {
+   "name": "AFRY",
+   "slug": "AFRY",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "aftershock media": {
+   "name": "Aftershock Media Group",
+   "slug": "aftershockmediagroup.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "agave games": {
+   "name": "Agave Games",
+   "slug": "agavegames",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "agency09": {
+   "name": "AGENCY09",
+   "slug": "agency09",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "agile engine": {
+   "name": "Agile Engine",
+   "slug": "agileengine",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "agoda": {
+   "name": "Agoda",
+   "slug": "agoda",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "aidkit": {
+   "name": "AidKit",
+   "slug": "aidkit",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "aifund": {
+   "name": "AIFund",
+   "slug": "AIFund",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "airbnb": {
+   "name": "airbnb",
+   "slug": "airbnb",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "airlabinc": {
+   "name": "AirlabInc",
+   "slug": "AirlabInc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "airtable": {
+   "name": "Airtable",
+   "slug": "airtable",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "airwallex": {
+   "name": "AirWallex",
+   "slug": "airwallex",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "aiwyn": {
+   "name": "Aiwyn",
+   "slug": "aiwyn",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "akqa": {
+   "name": "AKQA",
+   "slug": "akqa",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "aledade": {
+   "name": "Aledade",
+   "slug": "aledade",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "alegrium": {
+   "name": "Alegrium",
+   "slug": "Alegrium1",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "alegrium 1": {
+   "name": "alegrium 1",
+   "slug": "Alegrium1",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "aleph alpha": {
+   "name": "Aleph Alpha",
+   "slug": "AlephAlpha",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "ashby"
+  },
+  "alloy": {
+   "name": "Alloy",
+   "slug": "alloy",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "alpha media": {
+   "name": "Alpha Media",
+   "slug": "alphamedia",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "alpha sense": {
+   "name": "Alpha Sense",
+   "slug": "alphasense",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "altagram": {
+   "name": "Altagram Group",
+   "slug": "altagramgroup.jobs.personio.de",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "personio"
+  },
+  "alten": {
+   "name": "ALTEN",
+   "slug": "alten",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "alten technology": {
+   "name": "Alten Technology",
+   "slug": "altentechnologyusa",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "amanotes": {
+   "name": "Amanotes",
+   "slug": "amanotes",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "amplemarket": {
+   "name": "Amplemarket",
+   "slug": "amplemarket",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "amva dev": {
+   "name": "Amva Dev",
+   "slug": "AmvaDev1",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "analogfolk": {
+   "name": "AnalogFolk",
+   "slug": "analogfolk.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "anavation": {
+   "name": "Anavation",
+   "slug": "anavationllc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "andela": {
+   "name": "Andela",
+   "slug": "andela",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "anduril industries": {
+   "name": "Anduril Industries",
+   "slug": "andurilindustries",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "animoca brands": {
+   "name": "Animoca Brands",
+   "slug": "animocabrands",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "antarctica global": {
+   "name": "Antarctica Global",
+   "slug": "antarcticaglobal",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "antartic globle": {
+   "name": "Antartic Globle",
+   "slug": "antarcticaglobal",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "anthropic": {
+   "name": "Anthropic",
+   "slug": "anthropic",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "any desk": {
+   "name": "Any Desk",
+   "slug": "anydesk",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "apollo io": {
+   "name": "Apollo.io",
+   "slug": "apolloio",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "appier": {
+   "name": "appier",
+   "slug": "appier",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "applicantz": {
+   "name": "Applicantz",
+   "slug": "applicantz",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "applovin": {
+   "name": "AppLovin",
+   "slug": "applovin",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "appsflyer": {
+   "name": "AppsFlyer",
+   "slug": "appsflyer",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "appzen": {
+   "name": "appzen",
+   "slug": "appzen",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "april": {
+   "name": "April",
+   "slug": "april",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "arb interactive": {
+   "name": "ARB Interactive",
+   "slug": "arb-interactive",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "archipelago": {
+   "name": "Archipelago",
+   "slug": "onarchipelago",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "arhs": {
+   "name": "ARHS",
+   "slug": "ARHS",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "arista networks": {
+   "name": "Arista Networks",
+   "slug": "aristanetworks",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "arize ai": {
+   "name": "Arize AI",
+   "slug": "arizeai",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "arkavis": {
+   "name": "Arkavis",
+   "slug": "Arkavis",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "arketa": {
+   "name": "Arketa",
+   "slug": "arketa",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "arkose labs": {
+   "name": "Arkose Labs",
+   "slug": "arkoselabs",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "armada": {
+   "name": "Armada",
+   "slug": "armada",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "armory": {
+   "name": "Armory",
+   "slug": "armory",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "arootah": {
+   "name": "Arootah",
+   "slug": "arootah",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "arrible": {
+   "name": "Arrible",
+   "slug": "Arrible",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "arthrex": {
+   "name": "Arthrex",
+   "slug": "arthrex",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "artisan": {
+   "name": "Artisan",
+   "slug": "artisan",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "artists animation": {
+   "name": "Artists Animation",
+   "slug": "artistsanimation.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "arvore immersive experiences": {
+   "name": "ARVORE Immersive Experiences",
+   "slug": "arvore.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "ashby": {
+   "name": "Ashby",
+   "slug": "ashby",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "asobo studio": {
+   "name": "Asobo Studio",
+   "slug": "asobostudio",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever_eu"
+  },
+  "assembly ai": {
+   "name": "Assembly AI",
+   "slug": "assemblyai",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "assetwatch": {
+   "name": "AssetWatch®",
+   "slug": "assetwatch",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "assist software": {
+   "name": "Assist software",
+   "slug": "assistsoftware",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "assured": {
+   "name": "Assured",
+   "slug": "assured",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "assystems": {
+   "name": "Assystems",
+   "slug": "ASSYSTEM",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "astera labs": {
+   "name": "Astera Labs",
+   "slug": "asteralabs",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "astra": {
+   "name": "Astra",
+   "slug": "astra",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "astrocade": {
+   "name": "Astrocade",
+   "slug": "astrocade",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "atari": {
+   "name": "Atari",
+   "slug": "atariinc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "athena education": {
+   "name": "Athena Education",
+   "slug": "athena-education",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "atidan technologies": {
+   "name": "Atidan Technologies",
+   "slug": "atidantechnologies",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "atlas": {
+   "name": "Atlas",
+   "slug": "atlas",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "atlys": {
+   "name": "atlys",
+   "slug": "atlys",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "recruitee"
+  },
+  "atomic cartoons": {
+   "name": "Atomic cartoons",
+   "slug": "atomiccartoons",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "atrium": {
+   "name": "Atrium",
+   "slug": "atrium.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "attio": {
+   "name": "Attio",
+   "slug": "attio",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "auros global": {
+   "name": "Auros Global",
+   "slug": "aurosglobal",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "authzed": {
+   "name": "Authzed",
+   "slug": "authzed",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "avacend": {
+   "name": "Avacend Inc",
+   "slug": "avacendinc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "avalanche studios": {
+   "name": "Avalanche Studios Group",
+   "slug": "avalanchestudios",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "avathon": {
+   "name": "Avathon",
+   "slug": "avathon",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "averna": {
+   "name": "Averna",
+   "slug": "averna.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "aviatrix": {
+   "name": "Aviatrix",
+   "slug": "aviatrix",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "awaceb": {
+   "name": "Awaceb",
+   "slug": "awaceb.teamtailor.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "teamtailor"
+  },
+  "axel springer": {
+   "name": "Axel springer",
+   "slug": "AxelSpringerNewsMediaNational",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "axes inmotion": {
+   "name": "Axes InMotion",
+   "slug": "axesinmotion",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "axi": {
+   "name": "Axi",
+   "slug": "axicorpfinancialservicesptyltd",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "axle": {
+   "name": "Axle",
+   "slug": "axle",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "axolot game labs": {
+   "name": "Axolot game labs",
+   "slug": "axolotgamesab.teamtailor.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "teamtailor"
+  },
+  "axon": {
+   "name": "Axon",
+   "slug": "axon",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "azerion": {
+   "name": "Azerion",
+   "slug": "azerion.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "azra games": {
+   "name": "Azra Games",
+   "slug": "azragames",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "azul": {
+   "name": "Azul",
+   "slug": "azul",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "babil games": {
+   "name": "Babil Games",
+   "slug": "babilgames",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "balbix": {
+   "name": "Balbix",
+   "slug": "balbix",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "banyan software": {
+   "name": "Banyan Software",
+   "slug": "banyansoftware",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "barnstorm vfx": {
+   "name": "Barnstorm VFX",
+   "slug": "barnstormvfx.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "base power": {
+   "name": "Base Power",
+   "slug": "base-power",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "baseten": {
+   "name": "Baseten",
+   "slug": "baseten",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "baton": {
+   "name": "Baton",
+   "slug": "baton",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "baxenergy": {
+   "name": "Baxenergy",
+   "slug": "BaxEnergy",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "bayesian health": {
+   "name": "Bayesian Health",
+   "slug": "bayesianhealth",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "bazaar voice": {
+   "name": "Bazaar Voice",
+   "slug": "bazaarvoice",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "bcforward": {
+   "name": "BCforward",
+   "slug": "bcforward",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "beamdog": {
+   "name": "Beamdog",
+   "slug": "beamdog.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "beamng": {
+   "name": "BeamNG",
+   "slug": "beamng",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "bedrock technology": {
+   "name": "Bedrock technology",
+   "slug": "bedrocktechnology.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "beghou consulting": {
+   "name": "beghou consulting",
+   "slug": "beghouconsulting",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "behaviour interactive": {
+   "name": "Behaviour Interactive",
+   "slug": "bhvr",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "believe": {
+   "name": "Believe",
+   "slug": "believe",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "benchling": {
+   "name": "Benchling",
+   "slug": "benchling",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "bento box entertainment": {
+   "name": "Bento Box Entertainment LLC",
+   "slug": "bentoboxent",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "bestex research": {
+   "name": "Bestex Research",
+   "slug": "bestex-research",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "beta craft": {
+   "name": "Beta Craft",
+   "slug": "BetaCraftTechnologies",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "betadwarf": {
+   "name": "Betadwarf",
+   "slug": "betadwarfaps.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "betson": {
+   "name": "Betson Group",
+   "slug": "betsson",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "better collective": {
+   "name": "Better Collective",
+   "slug": "bettercollective",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "recruitee"
+  },
+  "beyond": {
+   "name": "Beyond Inc.",
+   "slug": "beyondinc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "bigid": {
+   "name": "BigID",
+   "slug": "bigid",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "billigence": {
+   "name": "Billigence",
+   "slug": "billigence.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "binance": {
+   "name": "binance",
+   "slug": "binance",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "bird grey": {
+   "name": "Bird Grey",
+   "slug": "birdygrey",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "bishop fox": {
+   "name": "Bishop Fox",
+   "slug": "bishopfox",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "bitgo": {
+   "name": "BitGo",
+   "slug": "bitgo",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "bitlane": {
+   "name": "Bitlane",
+   "slug": "Bitlane",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "bitwise alchemy": {
+   "name": "Bitwise Alchemy",
+   "slug": "bitwisealchemy.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "black forest labs": {
+   "name": "Black Forest Labs",
+   "slug": "black-forest-labs",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "ashby"
+  },
+  "black kite studios": {
+   "name": "Black Kite Studios",
+   "slug": "blackkitestudios",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "blackbird interactive": {
+   "name": "Blackbird Interactive",
+   "slug": "blackbirdinteractive",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "blackrock": {
+   "name": "BlackRock",
+   "slug": "blackrock.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "blackshark": {
+   "name": "Blackshark",
+   "slug": "blackshark",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever_eu"
+  },
+  "bland ai": {
+   "name": "Bland AI",
+   "slug": "bland",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "ashby"
+  },
+  "blazing griffin": {
+   "name": "Blazing Griffin",
+   "slug": "blazinggriffin.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "blend 360": {
+   "name": "Blend 360",
+   "slug": "blend360",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "blenheim chalcot india": {
+   "name": "Blenheim Chalcot India",
+   "slug": "blenheimchalcotindia",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "blink": {
+   "name": "Blink",
+   "slug": "blinkux",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "blink ux": {
+   "name": "Blink UX",
+   "slug": "blinkux",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "blinkhealth": {
+   "name": "Blinkhealth",
+   "slug": "blinkhealth",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "bloc resources": {
+   "name": "BLOC Resources",
+   "slug": "blocresources",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "blockville": {
+   "name": "Blockville",
+   "slug": "Blockville",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "blue isle studios": {
+   "name": "blue isle studios",
+   "slug": "blueislestudios",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "bluehole": {
+   "name": "bluehole",
+   "slug": "bluehole",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "bluevine india": {
+   "name": "Bluevine India",
+   "slug": "bluevineindia",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "bold": {
+   "name": "BOLD",
+   "slug": "bold",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "bold orange": {
+   "name": "Bold Orange",
+   "slug": "bold-orange",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "booker dimaio": {
+   "name": "Booker DiMaio",
+   "slug": "bookerdimaio",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "booming games": {
+   "name": "Booming Games",
+   "slug": "booming-games.jobs.personio.de",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "personio"
+  },
+  "bootloader studio": {
+   "name": "Bootloader studio",
+   "slug": "bootloaderstudio",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "bosch": {
+   "name": "Bosch Group",
+   "slug": "boschgroup",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "bosch india": {
+   "name": "Bosch Group India",
+   "slug": "BoschGroup",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "bounteous": {
+   "name": "bounteous",
+   "slug": "bounteous",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "brain hunter": {
+   "name": "Brain Hunter",
+   "slug": "BRAINHUNTER",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "braintrust": {
+   "name": "Braintrust",
+   "slug": "braintrust",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "branch": {
+   "name": "Branch",
+   "slug": "branch.gg",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "brand new school": {
+   "name": "Brand New School",
+   "slug": "brandnewschool",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "bright edge": {
+   "name": "Bright Edge",
+   "slug": "brightedge",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "bright machines": {
+   "name": "Bright Machines",
+   "slug": "brightmachines",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "brillio": {
+   "name": "Brillio",
+   "slug": "brillio-2",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "britive": {
+   "name": "Britive",
+   "slug": "britive",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "bse global": {
+   "name": "BSE Global",
+   "slug": "bseglobal",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "buckeye broadband": {
+   "name": "Buckeye Broadband",
+   "slug": "buckeyebroadband",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "buddle": {
+   "name": "Buddle",
+   "slug": "buddle.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "budge studios": {
+   "name": "Budge Studios",
+   "slug": "budge.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "bugcrowd": {
+   "name": "Bugcrowd",
+   "slug": "bugcrowd",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "build a rocket": {
+   "name": "Build a rocket",
+   "slug": "buildarocket.jobs.personio.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "personio"
+  },
+  "build staff": {
+   "name": "Build Staff",
+   "slug": "BuildstaffInc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "bungie": {
+   "name": "Bungie",
+   "slug": "bungie",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "bytedance": {
+   "name": "ByteDance",
+   "slug": "bytedance",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "c3 iot": {
+   "name": "C3 IoT",
+   "slug": "c3iot",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "caci": {
+   "name": "CACI",
+   "slug": "caci",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "caliogo": {
+   "name": "caliogo",
+   "slug": "celigo",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "calm": {
+   "name": "Calm",
+   "slug": "calm",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "cambium": {
+   "name": "Cambium",
+   "slug": "cambium",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "cambium networks": {
+   "name": "Cambium Networks",
+   "slug": "cambiumnetworks",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "cambridge mobile telematics": {
+   "name": "Cambridge Mobile Telematics",
+   "slug": "cambridgemobiletelematics",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "campfire": {
+   "name": "Campfire",
+   "slug": "campfire",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "canonical": {
+   "name": "Canonical",
+   "slug": "canonical",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "cantina": {
+   "name": "Cantina",
+   "slug": "cantina",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "canva": {
+   "name": "Canva",
+   "slug": "Canva",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "capco": {
+   "name": "Capco",
+   "slug": "capco",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "cape": {
+   "name": "Cape",
+   "slug": "cape",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "car gurus": {
+   "name": "Car Gurus",
+   "slug": "cargurus",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "carry1st": {
+   "name": "Carry1st",
+   "slug": "carry1st",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "casium": {
+   "name": "Casium",
+   "slug": "casium",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "casumo": {
+   "name": "Casumo",
+   "slug": "casumo.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "cat daddy": {
+   "name": "cat daddy",
+   "slug": "catdaddy",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "caterpillar": {
+   "name": "Caterpillar Inc.",
+   "slug": "caterpillarinc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "catface": {
+   "name": "Catface",
+   "slug": "catface.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "catina": {
+   "name": "Catina",
+   "slug": "cantina",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "causaly": {
+   "name": "Causaly",
+   "slug": "causaly",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "ashby"
+  },
+  "cause and fx": {
+   "name": "Cause and FX",
+   "slug": "cause-and-fx-ltd",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "cd projekt red": {
+   "name": "CD PROJEKT RED",
+   "slug": "CDPROJEKTRED",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "celigo": {
+   "name": "Celigo",
+   "slug": "celigo",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "celonis": {
+   "name": "Celonis",
+   "slug": "celonis",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "chainguard": {
+   "name": "ChainGuard",
+   "slug": "chainguard",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "chamber media": {
+   "name": "Chamber.Media",
+   "slug": "chambermedia.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "channable": {
+   "name": "Channable",
+   "slug": "channable",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "recruitee"
+  },
+  "chaos": {
+   "name": "Chaos",
+   "slug": "chaos",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "recruitee"
+  },
+  "character ai": {
+   "name": "Character.AI",
+   "slug": "character",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "chargepoint": {
+   "name": "ChargePoint",
+   "slug": "chargepoint",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "charthop": {
+   "name": "ChartHop",
+   "slug": "charthop",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "chimera technologies": {
+   "name": "Chimera Technologies",
+   "slug": "chimeratechnologies",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "christ fellowship": {
+   "name": "Christ Fellowship",
+   "slug": "christfellowship",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "ci games": {
+   "name": "CI Games",
+   "slug": "cigames.teamtailor.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "teamtailor"
+  },
+  "cialfo": {
+   "name": "Cialfo",
+   "slug": "cialfo",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "cineverse": {
+   "name": "Cineverse",
+   "slug": "cineverse.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "circuithub": {
+   "name": "CircuitHub",
+   "slug": "circuithub",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "cirrus logic": {
+   "name": "cirrus logic",
+   "slug": "cirrus",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever_eu"
+  },
+  "city of philadelphia": {
+   "name": "City of Philadelphia",
+   "slug": "cityofphiladelphia",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "clara": {
+   "name": "Clara",
+   "slug": "clara",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "clay labs": {
+   "name": "Clay Labs",
+   "slug": "claylabs",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "ashby"
+  },
+  "clearpoint recruitment": {
+   "name": "ClearPoint Recruitment",
+   "slug": "ClearPointRecruitment",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "clerk": {
+   "name": "Clerk",
+   "slug": "clerk",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "clever": {
+   "name": "Clever",
+   "slug": "clever",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "click therapeutics": {
+   "name": "Click Therapeutics",
+   "slug": "clicktherapeutics",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "clickup": {
+   "name": "ClickUp",
+   "slug": "clickup",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "climax studios": {
+   "name": "Climax Studios",
+   "slug": "climax-studios",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "cloud chamber": {
+   "name": "Cloud Chamber",
+   "slug": "cloudchamberen",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "cloudlinux": {
+   "name": "CloudLinux",
+   "slug": "cloudlinux-1",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "clutch": {
+   "name": "Clutch",
+   "slug": "clutch",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "coalfire": {
+   "name": "Coalfire",
+   "slug": "coalfire",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "lever"
+  },
+  "cobre": {
+   "name": "Cobre",
+   "slug": "cobre",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "coconut lizard": {
+   "name": "Coconut Lizard",
+   "slug": "keywords-intl1",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "coda": {
+   "name": "Coda",
+   "slug": "Coda",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "codametrix": {
+   "name": "CodaMetrix",
+   "slug": "codametrix",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "code and theory": {
+   "name": "Code and Theory",
+   "slug": "codeandtheory",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "codeninja": {
+   "name": "codeninja",
+   "slug": "codeninjapk",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "cohere": {
+   "name": "Cohere",
+   "slug": "cohere",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "ashby"
+  },
+  "coinbase": {
+   "name": "Coinbase",
+   "slug": "coinbase",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "collective ace": {
+   "name": "Collective Ace",
+   "slug": "collectiveacegmbh.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "com2us corporation": {
+   "name": "Com2us Corporation",
+   "slug": "gvc2u.jobs.personio.de",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "personio"
+  },
+  "comcast corporation": {
+   "name": "Comcast Corporation",
+   "slug": "comcastcorporation",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "comeon": {
+   "name": "ComeOn Group",
+   "slug": "comeon-group",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "commerceiq": {
+   "name": "CommerceIQ",
+   "slug": "commerceiq",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "conga": {
+   "name": "conga",
+   "slug": "conga",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "conjointely": {
+   "name": "conjointely",
+   "slug": "conjointly",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "contentful": {
+   "name": "Contentful",
+   "slug": "contentful",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "contentstack": {
+   "name": "Contentstack",
+   "slug": "contentstack",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "continental": {
+   "name": "Continental",
+   "slug": "continental",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "converse ai": {
+   "name": "Converse.AI",
+   "slug": "ConverseNow",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "conviva": {
+   "name": "Conviva",
+   "slug": "conviva",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "convoso": {
+   "name": "Convoso",
+   "slug": "convoso",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "cookunity": {
+   "name": "CookUnity",
+   "slug": "cookunity",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "coolgames": {
+   "name": "CoolGames",
+   "slug": "coolgames",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "corti": {
+   "name": "Corti",
+   "slug": "corti",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "ashby"
+  },
+  "coupa": {
+   "name": "Coupa",
+   "slug": "coupa",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "coursera": {
+   "name": "Coursera",
+   "slug": "coursera",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "cradle": {
+   "name": "Cradle",
+   "slug": "cradlebio",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "ashby"
+  },
+  "crashplan": {
+   "name": "CrashPlan",
+   "slug": "crashplan",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "crazy games": {
+   "name": "Crazy Games",
+   "slug": "crazygames",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "recruitee"
+  },
+  "creative cove": {
+   "name": "Creative Cove Inc.",
+   "slug": "creativecoveinc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "cred": {
+   "name": "Cred",
+   "slug": "cred",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "critical mass": {
+   "name": "Critical mass",
+   "slug": "criticalmass",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "crunchyroll": {
+   "name": "Crunchyroll",
+   "slug": "crunchyroll",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "crystal dynamics": {
+   "name": "Crystal Dynamics",
+   "slug": "crystaldynamics",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "crytek": {
+   "name": "Crytek",
+   "slug": "crytek",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "curri": {
+   "name": "Curri",
+   "slug": "curri",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "cursor": {
+   "name": "Cursor",
+   "slug": "cursor",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "cyara": {
+   "name": "cyara",
+   "slug": "cyara",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "cypher games": {
+   "name": "Cypher games",
+   "slug": "cypher-games",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "daily wire": {
+   "name": "Daily Wire",
+   "slug": "dailywire",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "dash0": {
+   "name": "Dash0",
+   "slug": "dash0",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "data to biz": {
+   "name": "Data to biz",
+   "slug": "datatobiz",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "databricks": {
+   "name": "Databricks",
+   "slug": "databricks",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "dataiku": {
+   "name": "Dataiku",
+   "slug": "dataiku",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "datastaff": {
+   "name": "DataStaff, Inc.",
+   "slug": "datastaffinc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "datavisor": {
+   "name": "DataVisor",
+   "slug": "datavisor-jobs",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "dbox": {
+   "name": "DBOX",
+   "slug": "dbox.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "decagon": {
+   "name": "Decagon",
+   "slug": "decagon",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "deepgram": {
+   "name": "Deepgram",
+   "slug": "Deepgram",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "deepl": {
+   "name": "DeepL",
+   "slug": "DeepL",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "ashby"
+  },
+  "definitive healthcare": {
+   "name": "Definitive Healthcare",
+   "slug": "definitivehcindia",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "deliveroo": {
+   "name": "Deliveroo",
+   "slug": "deliveroo",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "dept": {
+   "name": "DEPT",
+   "slug": "dept",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "detroit lions": {
+   "name": "Detroit Lions",
+   "slug": "detroitlions",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "deuna": {
+   "name": "Deuna",
+   "slug": "deuna",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "lever"
+  },
+  "devoteam": {
+   "name": "Devoteam",
+   "slug": "devoteam",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "devoted studios": {
+   "name": "Devoted Studios",
+   "slug": "devoted-studios-1",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "devrev": {
+   "name": "DevRev",
+   "slug": "devrev",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "dexory": {
+   "name": "Dexory",
+   "slug": "dexory",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "diabolocom": {
+   "name": "Diabolocom",
+   "slug": "diabolocom",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "lever_eu"
+  },
+  "dialogue ai": {
+   "name": "Dialogue AI",
+   "slug": "dialogueai",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "dialpad": {
+   "name": "Dialpad",
+   "slug": "dialpad",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "dialpad ai": {
+   "name": "Dialpad AI",
+   "slug": "dialpad",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "digicert": {
+   "name": "DigiCert",
+   "slug": "digicert",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "digital extremes": {
+   "name": "Digital extremes",
+   "slug": "digitalextremes",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "diligent corporation": {
+   "name": "Diligent Corporation",
+   "slug": "diligentcorporation",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "disco": {
+   "name": "DISCO",
+   "slug": "disco",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "discord": {
+   "name": "Discord",
+   "slug": "discord",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "divensi": {
+   "name": "Divensi",
+   "slug": "Divensi1",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "dlocal": {
+   "name": "dLocal",
+   "slug": "dlocal",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "lever"
+  },
+  "doist": {
+   "name": "Doist",
+   "slug": "todoist-inc",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "ashby"
+  },
+  "don t nod": {
+   "name": "Don't Nod",
+   "slug": "DONTNOD",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "doola": {
+   "name": "Doola",
+   "slug": "doola",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "dots": {
+   "name": "Dots",
+   "slug": "dots",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "dots games": {
+   "name": "DOTS games",
+   "slug": "dots",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "dotsoft": {
+   "name": "DOTSOFT SA",
+   "slug": "DOTSOFTSA",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "double eleven": {
+   "name": "Double Eleven",
+   "slug": "double-eleven",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "doxel": {
+   "name": "Doxel",
+   "slug": "doxel",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "dr panda": {
+   "name": "Dr. Panda",
+   "slug": "drpanda",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "drake cooper": {
+   "name": "Drake cooper",
+   "slug": "drakecooper",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "dream games": {
+   "name": "Dream Games",
+   "slug": "dreamgames",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "drive mode": {
+   "name": "Drive mode",
+   "slug": "drivemode",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "drivetrain": {
+   "name": "Drivetrain",
+   "slug": "drivetrain",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "dropbox": {
+   "name": "Dropbox",
+   "slug": "dropbox",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "druva": {
+   "name": "Druva",
+   "slug": "druva",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "dun bradstreet": {
+   "name": "dun bradstreet",
+   "slug": "dnb",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "dungarvin": {
+   "name": "Dungarvin",
+   "slug": "Dungarvin",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "duolingo": {
+   "name": "Duolingo",
+   "slug": "duolingo",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "dxminds innovation labs pvt": {
+   "name": "DxMinds Innovation Labs Pvt Ltd",
+   "slug": "dxmindsinnovationlabspvtltd",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "dynamis": {
+   "name": "Dynamis Inc",
+   "slug": "dynamisinc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "e2 open": {
+   "name": "e2 open",
+   "slug": "e2openllc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "earnin": {
+   "name": "EarnIn",
+   "slug": "earnin",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "easybrain": {
+   "name": "Easybrain",
+   "slug": "easybrain",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "easygo": {
+   "name": "easygo",
+   "slug": "easygo",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "easyship": {
+   "name": "Easyship",
+   "slug": "easyship",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "ebanx": {
+   "name": "EBANX",
+   "slug": "ebanx",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "echtra games": {
+   "name": "Echtra Games",
+   "slug": "echtra",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "eclinical solutions": {
+   "name": "eClinical Solutions",
+   "slug": "eclinicalsolutions",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "egen": {
+   "name": "Egen",
+   "slug": "egen",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "eko system": {
+   "name": "eko system",
+   "slug": "ekosystem",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "elevate k 12": {
+   "name": "Elevate K-12",
+   "slug": "elevatek-12",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "elevation capital": {
+   "name": "Elevation Capital",
+   "slug": "elevation-capital-3",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "elevenlabs": {
+   "name": "ElevenLabs",
+   "slug": "elevenlabs",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "ello": {
+   "name": "Ello",
+   "slug": "ello",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "ema": {
+   "name": "EMA",
+   "slug": "ema",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "ember lab": {
+   "name": "Ember Lab",
+   "slug": "emberlab.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "employ": {
+   "name": "Employ",
+   "slug": "employ",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "encore": {
+   "name": "Encore",
+   "slug": "encore",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "endava": {
+   "name": "Endava",
+   "slug": "endava",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "endless studios": {
+   "name": "Endless Studios",
+   "slug": "endlessstudios.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "entain": {
+   "name": "Entain group",
+   "slug": "entaingroup",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "enterra solutions": {
+   "name": "Enterra Solutions",
+   "slug": "enterrasolutions",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "entrata": {
+   "name": "entrata",
+   "slug": "entrata",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "entrupy": {
+   "name": "Entrupy",
+   "slug": "entrupy",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "envoy": {
+   "name": "Envoy",
+   "slug": "envoy",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "envoy global": {
+   "name": "Envoy Global",
+   "slug": "envoyglobalinc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "eos it solutions": {
+   "name": "EOS IT Solutions",
+   "slug": "eositsolutions",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "epic games": {
+   "name": "Epic Games",
+   "slug": "epicgames",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "epoch games": {
+   "name": "Epoch Games",
+   "slug": "epochgames",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "equativ": {
+   "name": "Equativ",
+   "slug": "equativ",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "eqvilent": {
+   "name": "Eqvilent",
+   "slug": "eqvilentjobs",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "esper": {
+   "name": "Esper",
+   "slug": "esper",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "espressif systems": {
+   "name": "Espressif Systems",
+   "slug": "espressifsystems",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "essilorluxottica": {
+   "name": "EssilorLuxottica",
+   "slug": "essilorluxottica",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "ethernova": {
+   "name": "Ethernova",
+   "slug": "ethernovia",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "ethernovia": {
+   "name": "Ethernovia",
+   "slug": "ethernovia",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "ethos": {
+   "name": "Ethos",
+   "slug": "ethos",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "ethos life": {
+   "name": "Ethos Life",
+   "slug": "ethoslife",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "ettain": {
+   "name": "Ettain Group",
+   "slug": "EttainGroup",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "euromonitor": {
+   "name": "Euromonitor",
+   "slug": "euromonitor",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "everclear foundation": {
+   "name": "Everclear Foundation",
+   "slug": "connext-network",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "everlane": {
+   "name": "Everlane",
+   "slug": "everlane",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "everlaw": {
+   "name": "Everlaw",
+   "slug": "everlaw",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "everymatrix": {
+   "name": "EveryMatrix",
+   "slug": "everymatrix.teamtailor.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "teamtailor"
+  },
+  "evolution": {
+   "name": "Evolution",
+   "slug": "Evolution",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "evoplay": {
+   "name": "Evoplay",
+   "slug": "evoplaygames",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "evoplay games": {
+   "name": "Evoplay games",
+   "slug": "evoplaygames",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "evs": {
+   "name": "EVS, Inc.",
+   "slug": "evsinc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "ewar games": {
+   "name": "Ewar games",
+   "slug": "ewargames",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "exaze": {
+   "name": "Exaze",
+   "slug": "exaze.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "exient": {
+   "name": "Exient",
+   "slug": "exient.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "experian": {
+   "name": "Experian",
+   "slug": "Experian",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "experthiring": {
+   "name": "ExpertHiring",
+   "slug": "experthiring",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "exploding kittens": {
+   "name": "Exploding Kittens, Inc.",
+   "slug": "explodingkittens",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "extreme network": {
+   "name": "extreme network",
+   "slug": "extremenetworks",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "extreme networks": {
+   "name": "Extreme Networks",
+   "slug": "extremenetworks",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "faculty": {
+   "name": "Faculty",
+   "slug": "faculty",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "ashby"
+  },
+  "falconx": {
+   "name": "FalconX",
+   "slug": "falconx",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "fanatee": {
+   "name": "Fanatee",
+   "slug": "fanatee",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "fandom": {
+   "name": "Fandom",
+   "slug": "fandom",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "fanduel": {
+   "name": "FanDuel",
+   "slug": "fanduel",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "favorited": {
+   "name": "favorited",
+   "slug": "favorited",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "fc cincinnati": {
+   "name": "FC Cincinnati",
+   "slug": "fccincinnati",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "federal soft systems": {
+   "name": "Federal Soft Systems Inc.",
+   "slug": "federalsoftsystemsinc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "feld entertainment": {
+   "name": "Feld Entertainment",
+   "slug": "feldinc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "felix": {
+   "name": "Felix",
+   "slug": "felix",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "fictiv": {
+   "name": "Fictiv",
+   "slug": "fictiv",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "fieldguide": {
+   "name": "Fieldguide",
+   "slug": "fieldguide",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "figma": {
+   "name": "Figma",
+   "slug": "figma",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "filevine": {
+   "name": "Filevine",
+   "slug": "filevine",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "filmhub": {
+   "name": "Filmhub",
+   "slug": "filmhub",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "filmless": {
+   "name": "Filmless",
+   "slug": "Filmless",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "finch": {
+   "name": "Finch",
+   "slug": "finch",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "findem": {
+   "name": "Findem",
+   "slug": "findem",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "firaxis": {
+   "name": "Firaxis",
+   "slug": "firaxis",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "fire hose games": {
+   "name": "Fire Hose Games",
+   "slug": "FireHoseGames",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "firecrawl": {
+   "name": "Firecrawl",
+   "slug": "firecrawl",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "firesprit": {
+   "name": "firesprit",
+   "slug": "firesprite",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "firesprite": {
+   "name": "Firesprite",
+   "slug": "firesprite",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "fivetran": {
+   "name": "fivetran",
+   "slug": "fivetran",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "flaanaa": {
+   "name": "Flaanaa",
+   "slug": "flaanaa",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "fleetworks": {
+   "name": "FleetWorks",
+   "slug": "fleetworks",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "fliff": {
+   "name": "Fliff",
+   "slug": "Fliff",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "fluxon": {
+   "name": "Fluxon",
+   "slug": "fluxon",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "flying bark": {
+   "name": "Flying Bark",
+   "slug": "flyingbark.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "focus entertainment": {
+   "name": "Focus Entertainment",
+   "slug": "focusentertainment",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "recruitee"
+  },
+  "focus home interactive": {
+   "name": "Focus Home Interactive",
+   "slug": "focushomeinteractive",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "recruitee"
+  },
+  "footballco": {
+   "name": "Footballco",
+   "slug": "footballco.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "fora travel": {
+   "name": "Fora Travel",
+   "slug": "foratravel",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "forgotten empires": {
+   "name": "Forgotten Empires",
+   "slug": "forgotten-empires",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "formlabs": {
+   "name": "Formlabs",
+   "slug": "formlabs",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "fortanix": {
+   "name": "fortanix",
+   "slug": "fortanix",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "forto": {
+   "name": "Forto",
+   "slug": "forto",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "ashby"
+  },
+  "four hands": {
+   "name": "Four Hands",
+   "slug": "fourhands",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "four seasons hotels and resorts": {
+   "name": "Four Seasons Hotels and Resorts",
+   "slug": "fourseasonshotelsandresorts",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "fractured byte": {
+   "name": "Fractured Byte",
+   "slug": "fracturedbyte",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "frames store": {
+   "name": "frames store",
+   "slug": "framestore",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "recruitee"
+  },
+  "freed": {
+   "name": "Freed",
+   "slug": "freed",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "fresh prints": {
+   "name": "Fresh Prints",
+   "slug": "freshprints",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "freshbox media pvt": {
+   "name": "FreshBox Media Pvt. Ltd",
+   "slug": "freshboxmediapvtltd",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "freshpaint": {
+   "name": "Freshpaint",
+   "slug": "freshpaint",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "freshworks": {
+   "name": "Freshworks",
+   "slug": "freshworks",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "frontier developments": {
+   "name": "Frontier Developments",
+   "slug": "frontier",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever_eu"
+  },
+  "frost sullivan": {
+   "name": "Frost & Sullivan",
+   "slug": "frostsullivan.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "fs studio": {
+   "name": "FS Studio",
+   "slug": "fs-studio",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "full circle": {
+   "name": "Full Circle",
+   "slug": "fullcircle.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "funguuy studio": {
+   "name": "Funguuy Studio",
+   "slug": "FunGuyStudioPhilippinesInc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "funguy studio": {
+   "name": "Funguy Studio",
+   "slug": "FunGuyStudioPhilippinesInc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "further ai": {
+   "name": "Further AI",
+   "slug": "furtherai",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "fuse games": {
+   "name": "fuse games",
+   "slug": "fusegames.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "futran solutions": {
+   "name": "Futran Solutions",
+   "slug": "futransolutions",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "future mug": {
+   "name": "Future Mug",
+   "slug": "futuremug",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "future works": {
+   "name": "Future Works",
+   "slug": "futureworks",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "recruitee"
+  },
+  "futurlab": {
+   "name": "Futurlab",
+   "slug": "futurlab-ltd",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "futurum technology": {
+   "name": "Futurum Technology",
+   "slug": "FuturumTechnologyLtd",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "g games": {
+   "name": "G.games",
+   "slug": "GluckGames",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "gain pro": {
+   "name": "Gain.pro",
+   "slug": "gainpro",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "recruitee"
+  },
+  "galaxe solutions": {
+   "name": "GalaxE.Solutions",
+   "slug": "galaxesolutions",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "gallagher": {
+   "name": "Gallagher",
+   "slug": "gallagher.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "game mode one": {
+   "name": "Game Mode One",
+   "slug": "gamemodeone.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "game5mobile": {
+   "name": "Game5Mobile",
+   "slug": "Game5Mobile",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "gamechanger": {
+   "name": "GameChanger",
+   "slug": "gamechanger",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "gamecloud technologies pvt": {
+   "name": "GameCloud Technologies Pvt Ltd",
+   "slug": "gamecloudtechnologiespvtltd",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "gameloft": {
+   "name": "Gameloft",
+   "slug": "Gameloft",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "gamepoint": {
+   "name": "GamePoint",
+   "slug": "gamepoint.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "games for love": {
+   "name": "Games For Love",
+   "slug": "GamesForLove",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "gamigo": {
+   "name": "gamigo group",
+   "slug": "gamigo",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "gardens interactive": {
+   "name": "Gardens Interactive",
+   "slug": "Gardens",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "gather ai": {
+   "name": "Gather AI",
+   "slug": "gatherai",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "gear": {
+   "name": "Gear Inc",
+   "slug": "gearinc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "geico": {
+   "name": "GEICO",
+   "slug": "geico",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "genea": {
+   "name": "Genea",
+   "slug": "genea",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "genera games": {
+   "name": "Genera Games",
+   "slug": "GeneraGames1",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "getyourguide": {
+   "name": "GetYourGuide",
+   "slug": "getyourguide",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "ghx": {
+   "name": "GHX",
+   "slug": "globalhealthcareexchangeinc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "giants software": {
+   "name": "GIANTS Software",
+   "slug": "GIANTSSoftwareGmbH",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "giggle bug": {
+   "name": "Giggle bug",
+   "slug": "gigglebug.teamtailor.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "teamtailor"
+  },
+  "girraphic": {
+   "name": "GIRRAPHIC",
+   "slug": "girraphic.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "gitlab": {
+   "name": "gitlab",
+   "slug": "gitlab",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "givebutter": {
+   "name": "Givebutter",
+   "slug": "givebutter",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "glacis ai": {
+   "name": "Glacis AI",
+   "slug": "glacis-ai",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "ashby"
+  },
+  "glance": {
+   "name": "Glance",
+   "slug": "glance",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "glean": {
+   "name": "Glean",
+   "slug": "gleanwork",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "globalization partners": {
+   "name": "Globalization Partners",
+   "slug": "globalizationpartners",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "gloify": {
+   "name": "Gloify",
+   "slug": "gloify",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "gluck games": {
+   "name": "Gluck Games",
+   "slug": "GluckGames",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "gms services": {
+   "name": "GMS Services",
+   "slug": "GMSServices",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "gnosis": {
+   "name": "gnosis",
+   "slug": "gnosis.jobs.personio.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "personio"
+  },
+  "go fund me": {
+   "name": "Go Fund Me",
+   "slug": "gofundme",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "go guardian": {
+   "name": "Go guardian",
+   "slug": "goguardian",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "goat": {
+   "name": "GOAT Group",
+   "slug": "goatgroup",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "godaddy": {
+   "name": "GoDaddy",
+   "slug": "godaddy",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "goliath": {
+   "name": "Goliath Group",
+   "slug": "goliathgroup",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "goliath games": {
+   "name": "Goliath games",
+   "slug": "goliathgroup",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "gomotive": {
+   "name": "GoMotive",
+   "slug": "gomotive",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "good job games": {
+   "name": "good job games",
+   "slug": "goodjobgames",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "goodgame studios": {
+   "name": "Goodgame Studios",
+   "slug": "goodgamestudios.teamtailor.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "teamtailor"
+  },
+  "goop": {
+   "name": "goop",
+   "slug": "goop",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "goreel": {
+   "name": "GoReel",
+   "slug": "goreel",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "goto": {
+   "name": "GoTo Group",
+   "slug": "GoToGroup",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "govini": {
+   "name": "Govini",
+   "slug": "govini",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "grab": {
+   "name": "Grab",
+   "slug": "Grab",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "granted": {
+   "name": "Granted",
+   "slug": "granted",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "gravitee": {
+   "name": "Gravitee",
+   "slug": "graviteetopcoltd.teamtailor.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "teamtailor"
+  },
+  "greenwave radios": {
+   "name": "GreenWave™ Radios",
+   "slug": "greenwaveradios",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "greenworks sunrise global marketing": {
+   "name": "Greenworks Sunrise Global Marketing",
+   "slug": "greenworkssunriseglobalmarketing",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "grid esports": {
+   "name": "GRID esports",
+   "slug": "grid",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "recruitee"
+  },
+  "groupon": {
+   "name": "Groupon",
+   "slug": "groupon",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "growe": {
+   "name": "Growe",
+   "slug": "growe",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "groww": {
+   "name": "Groww",
+   "slug": "groww",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "gruve": {
+   "name": "Gruve",
+   "slug": "gruve",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "gt hq": {
+   "name": "GT HQ",
+   "slug": "gt-hq",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "guild": {
+   "name": "Guild",
+   "slug": "guild",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "gungho": {
+   "name": "GungHo",
+   "slug": "gungho.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "gupta media": {
+   "name": "Gupta Media",
+   "slug": "gupta.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "guru studio": {
+   "name": "Guru Studio",
+   "slug": "gurustudio.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "gusto": {
+   "name": "Gusto",
+   "slug": "gusto",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "hackajob": {
+   "name": "HackaJob",
+   "slug": "hackajob",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "hackerone": {
+   "name": "HackerOne",
+   "slug": "hackerone",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "hackerrank": {
+   "name": "HackerRank",
+   "slug": "hackerrank",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "hacksaw studios": {
+   "name": "Hacksaw Studios",
+   "slug": "hacksawstudios.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "halcyon": {
+   "name": "Halcyon",
+   "slug": "halcyon",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "hampa studio": {
+   "name": "Hampa Studio",
+   "slug": "hampastudio.teamtailor.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "teamtailor"
+  },
+  "hangar 13": {
+   "name": "Hangar 13",
+   "slug": "hangar13",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "happy finish": {
+   "name": "Happy Finish",
+   "slug": "happyfinish.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "harbinger": {
+   "name": "Harbinger Group",
+   "slug": "harbingergroup",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "hard ball games": {
+   "name": "hard ball games",
+   "slug": "hardballgames",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "hardsuit labs": {
+   "name": "Hardsuit Labs",
+   "slug": "hardsuit-labs-1",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "harvey": {
+   "name": "Harvey",
+   "slug": "harvey",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "hasbro": {
+   "name": "Hasbro",
+   "slug": "hasbro",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "hatch": {
+   "name": "Hatch",
+   "slug": "hatch",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "haven studios": {
+   "name": "Haven Studios Inc",
+   "slug": "haven",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "hawkeye innovations": {
+   "name": "Hawkeye Innovations",
+   "slug": "hawkeyeinnovations",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "hayden ai": {
+   "name": "Hayden AI",
+   "slug": "haydenai",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "headout": {
+   "name": "Headout",
+   "slug": "headoutlinkedin",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "headspin": {
+   "name": "HeadSpin",
+   "slug": "headspin.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "hedra": {
+   "name": "Hedra",
+   "slug": "hedra",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "hellofresh": {
+   "name": "HelloFresh",
+   "slug": "hellofresh",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "help scout": {
+   "name": "Help Scout",
+   "slug": "helpscout",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "helsing": {
+   "name": "Helsing",
+   "slug": "helsing",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "hha exchange": {
+   "name": "HHA Exchange",
+   "slug": "hhaexchange",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "high 5 games": {
+   "name": "high 5 games",
+   "slug": "high5games.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "high drive": {
+   "name": "High Drive",
+   "slug": "highdive",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "high radius": {
+   "name": "high radius",
+   "slug": "highradius",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "high voltage software": {
+   "name": "High Voltage Software",
+   "slug": "high-voltage-software",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "higharc": {
+   "name": "Higharc",
+   "slug": "higharc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "highdive": {
+   "name": "Highdive",
+   "slug": "highdive",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "hitachi": {
+   "name": "Hitachi",
+   "slug": "HitachiSolutions",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "hive": {
+   "name": "Hive",
+   "slug": "Hive1",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "hololight": {
+   "name": "Hololight",
+   "slug": "holo-light.jobs.personio.de",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "personio"
+  },
+  "homa games": {
+   "name": "Homa Games",
+   "slug": "homa-games",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "honor": {
+   "name": "Honor",
+   "slug": "honor",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "hootsuite": {
+   "name": "Hootsuite",
+   "slug": "hootsuite",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "hopskipdrive": {
+   "name": "HopSkipDrive",
+   "slug": "hopskipdrive",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "hotjar": {
+   "name": "Hotjar",
+   "slug": "contentsquare",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "lever"
+  },
+  "housemarque": {
+   "name": "Housemarque",
+   "slug": "housemarque",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "hovercraft": {
+   "name": "hovercraft",
+   "slug": "hovercraft",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "howard hanna real estate services": {
+   "name": "Howard Hanna Real Estate Services",
+   "slug": "howardhannarealestateservices",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "hoyoverse": {
+   "name": "HoYoverse",
+   "slug": "HoYoverse",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "hudl": {
+   "name": "Hudl",
+   "slug": "hudl",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "hugging face": {
+   "name": "Hugging Face",
+   "slug": "huggingface",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "hume ai": {
+   "name": "Hume AI",
+   "slug": "humeai",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "hunterdouglas": {
+   "name": "HunterDouglas",
+   "slug": "hunterdouglas",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "huntress": {
+   "name": "Huntress",
+   "slug": "huntress",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "hutch": {
+   "name": "hutch",
+   "slug": "hutch",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "huuuge games": {
+   "name": "Huuuge Games",
+   "slug": "huuuge",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "recruitee"
+  },
+  "hycu": {
+   "name": "HYCU",
+   "slug": "hycu.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "hypehype": {
+   "name": "HypeHype Inc.",
+   "slug": "hypehype.teamtailor.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "teamtailor"
+  },
+  "hyperhug": {
+   "name": "Hyperhug",
+   "slug": "hyperhug",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "hyperlab": {
+   "name": "Hyperlab",
+   "slug": "hyperlab",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "hyperspace": {
+   "name": "hyperspace.",
+   "slug": "hyperspace.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "icon creative": {
+   "name": "Icon Creative",
+   "slug": "iconcreative.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "ideogram": {
+   "name": "ideogram",
+   "slug": "ideogram",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "idler": {
+   "name": "Idler",
+   "slug": "idler",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "igg": {
+   "name": "IGG",
+   "slug": "igg.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "igs": {
+   "name": "IGS",
+   "slug": "igs.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "illumio": {
+   "name": "illumio",
+   "slug": "illumio",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "image engine": {
+   "name": "Image Engine",
+   "slug": "imageengine.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "imc": {
+   "name": "IMC",
+   "slug": "imc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "immersion labs": {
+   "name": "Immersion Labs",
+   "slug": "immersionspzoo",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "recruitee"
+  },
+  "immutable": {
+   "name": "Immutable",
+   "slug": "immutable",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "impact theory": {
+   "name": "Impact Theory",
+   "slug": "impact-theory",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "imply": {
+   "name": "Imply",
+   "slug": "imply",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "in the pocket": {
+   "name": "In The Pocket",
+   "slug": "inthepocket",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "informa": {
+   "name": "Informa Group",
+   "slug": "InformaGroupPlc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "informica solutions": {
+   "name": "Informica Solutions",
+   "slug": "informicasolutions",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "inkittt": {
+   "name": "Inkittt",
+   "slug": "inkitt",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "inmobi": {
+   "name": "InMobi",
+   "slug": "inmobi",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "inngest": {
+   "name": "Inngest",
+   "slug": "inngest",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "ashby"
+  },
+  "innogames": {
+   "name": "InnoGames",
+   "slug": "innogames",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever_eu"
+  },
+  "innophase iot": {
+   "name": "InnoPhase IoT",
+   "slug": "innophaseiot",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "innovecs": {
+   "name": "Innovecs",
+   "slug": "innovecs",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "insomniac": {
+   "name": "Insomniac",
+   "slug": "insomniac",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "instacart": {
+   "name": "Instacart",
+   "slug": "instacart",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "instawork": {
+   "name": "Instawork",
+   "slug": "instawork",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "instrument": {
+   "name": "Instrument",
+   "slug": "instrument",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "instrumental": {
+   "name": "Instrumental",
+   "slug": "Instrumentl",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "integrant": {
+   "name": "Integrant",
+   "slug": "integrant",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "intelerad": {
+   "name": "Intelerad",
+   "slug": "Intelerad",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "inter sources": {
+   "name": "Inter Sources Inc",
+   "slug": "intersourcesinc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "intercom": {
+   "name": "Intercom",
+   "slug": "intercom",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "intergalactic gaming": {
+   "name": "Intergalactic Gaming",
+   "slug": "IntergalacticGamingLtd",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "interview kickstart": {
+   "name": "Interview Kickstart",
+   "slug": "interviewkickstart",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "intrepid studios": {
+   "name": "Intrepid Studios",
+   "slug": "intrepidstudios",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "inxile": {
+   "name": "inXile",
+   "slug": "inxile.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "inxite out": {
+   "name": "Inxite Out",
+   "slug": "inxiteout",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "io digital": {
+   "name": "IO DIGITAL",
+   "slug": "iodigital",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "ion": {
+   "name": "Ion",
+   "slug": "ion",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "irongame studios": {
+   "name": "irongame studios",
+   "slug": "igs.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "isomorphic labs": {
+   "name": "Isomorphic Labs",
+   "slug": "isomorphiclabs",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "iugo": {
+   "name": "IUGO",
+   "slug": "iugo.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "ixl learning": {
+   "name": "IXL Learning",
+   "slug": "ixllearning",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "j s held": {
+   "name": "J.S. Held LLC",
+   "slug": "jsheldllc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "jade global": {
+   "name": "Jade Global",
+   "slug": "jadeglobal",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "jagex": {
+   "name": "Jagex",
+   "slug": "jagex-limited",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "jam city": {
+   "name": "Jam City",
+   "slug": "jamcity",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "jam media": {
+   "name": "Jam media",
+   "slug": "jammedia",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "jane street": {
+   "name": "Jane Street",
+   "slug": "janestreet",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "jetbrains": {
+   "name": "jetbrains",
+   "slug": "jetbrains",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "jfrog": {
+   "name": "JFrog",
+   "slug": "jfrog",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "jma": {
+   "name": "JMA",
+   "slug": "jmawireless",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "joyteractive": {
+   "name": "Joyteractive",
+   "slug": "Joyteractive",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "jumia": {
+   "name": "Jumia",
+   "slug": "jumia",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "jumio": {
+   "name": "Jumio",
+   "slug": "jumio",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "jumpcloud": {
+   "name": "JumpCloud",
+   "slug": "jumpcloud",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "justanswer": {
+   "name": "JustAnswer",
+   "slug": "justanswer",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "justlife": {
+   "name": "Justlife",
+   "slug": "justlife.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "k group1": {
+   "name": "K-group1",
+   "slug": "k-group1",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "kabam": {
+   "name": "Kabam",
+   "slug": "kabam",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "kailera": {
+   "name": "Kailera",
+   "slug": "kailera",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "kaizen gaming": {
+   "name": "kaizen gaming",
+   "slug": "kaizengaming",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "kalshi": {
+   "name": "Kalshi",
+   "slug": "kalshi",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "kante": {
+   "name": "Kante Group",
+   "slug": "kantegroup",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "kaseya": {
+   "name": "Kaseya",
+   "slug": "kaseya",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "kbg blockchain game studios": {
+   "name": "KBG Blockchain Game Studios",
+   "slug": "K-group1",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "keen software houses": {
+   "name": "keen software houses",
+   "slug": "keensoftwarehouseas",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "kenvue": {
+   "name": "Kenvue",
+   "slug": "kenvue",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "keycard labs": {
+   "name": "Keycard Labs",
+   "slug": "keycard-labs",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "keylent": {
+   "name": "Keylent Inc",
+   "slug": "keylentinc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "keywords international": {
+   "name": "Keywords International",
+   "slug": "keywords-intl1",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "keywords studios": {
+   "name": "Keywords Studios",
+   "slug": "keywords-intl1",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "kgroup": {
+   "name": "Kgroup",
+   "slug": "K-group1",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "kingsisle entertainment": {
+   "name": "KingsIsle Entertainment",
+   "slug": "kingsisle-entertainment-inc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "klaviyo": {
+   "name": "Klaviyo",
+   "slug": "klaviyo",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "klue": {
+   "name": "Klue",
+   "slug": "klue",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "ashby"
+  },
+  "knack studios": {
+   "name": "Knack studios",
+   "slug": "KnackStudios",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "koch": {
+   "name": "Koch",
+   "slug": "koch",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "kodo": {
+   "name": "Kodo",
+   "slug": "kodo",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "kolibri games": {
+   "name": "Kolibri Games",
+   "slug": "kolibrigames",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "konecranes": {
+   "name": "Konecranes",
+   "slug": "konecranes",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "kovai": {
+   "name": "Kovai.co",
+   "slug": "kovaico",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "krafton india": {
+   "name": "Krafton India",
+   "slug": "kraftonindia",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "krafton montr al studio": {
+   "name": "KRAFTON Montréal Studio",
+   "slug": "studiokraftonboard",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "kroll": {
+   "name": "Kroll",
+   "slug": "kroll.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "kronospan": {
+   "name": "Kronospan",
+   "slug": "kronospan",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "kulfi collective": {
+   "name": "Kulfi Collective",
+   "slug": "kulficollective",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "kwalee": {
+   "name": "Kwalee",
+   "slug": "kwalee",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever_eu"
+  },
+  "l or al": {
+   "name": "L'Oréal",
+   "slug": "loral",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "la clippers": {
+   "name": "LA Clippers",
+   "slug": "laclippers",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "lakshya digital": {
+   "name": "Lakshya Digital",
+   "slug": "lakshyadigitalglobal",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "lambda": {
+   "name": "Lambda",
+   "slug": "lambda",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "landor": {
+   "name": "Landor",
+   "slug": "landor",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "langchain": {
+   "name": "LangChain",
+   "slug": "langchain",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "languagebird": {
+   "name": "LanguageBird",
+   "slug": "languagebird.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "larian studios": {
+   "name": "Larian Studios",
+   "slug": "larian",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "later": {
+   "name": "Later",
+   "slug": "later",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "launchdarkly": {
+   "name": "LaunchDarkly",
+   "slug": "launchdarkly",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "le collectionist": {
+   "name": "Le Collectionist",
+   "slug": "lecollectionist",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "legion": {
+   "name": "legion",
+   "slug": "legion",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "legora": {
+   "name": "Legora",
+   "slug": "legora",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "ashby"
+  },
+  "leidos": {
+   "name": "Leidos",
+   "slug": "leidos.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "letsgetchecked": {
+   "name": "LetsGetChecked",
+   "slug": "letsgetchecked",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "level ai": {
+   "name": "level ai",
+   "slug": "levelai",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "level all": {
+   "name": "Level All",
+   "slug": "levelall",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "lifechruh": {
+   "name": "lifechruh",
+   "slug": "life",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "lightcast": {
+   "name": "Lightcast",
+   "slug": "economicmodeling",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "lightforce orthodontics": {
+   "name": "LightForce Orthodontics",
+   "slug": "lightforceorthodontics",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "lighthouse games": {
+   "name": "Lighthouse Games",
+   "slug": "lighthousegames",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "lila sciences": {
+   "name": "LILA Sciences",
+   "slug": "lilasciences",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "lincoln digital": {
+   "name": "Lincoln Digital Group™",
+   "slug": "lincolndigitalgroup",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "linden lab": {
+   "name": "Linden lab",
+   "slug": "lindenlab",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "linear": {
+   "name": "Linear",
+   "slug": "linear",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "linkedin": {
+   "name": "LinkedIn",
+   "slug": "linkedin3",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "liquid development": {
+   "name": "Liquid Development",
+   "slug": "liquid-development",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "lirio": {
+   "name": "Lirio",
+   "slug": "Lirio",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "liven": {
+   "name": "Liven",
+   "slug": "liven",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "liveperson": {
+   "name": "LivePerson",
+   "slug": "liveperson",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "llnl": {
+   "name": "LLNL",
+   "slug": "LLNL",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "lockwood": {
+   "name": "Lockwood",
+   "slug": "lockwood",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "lockwood publishing": {
+   "name": "Lockwood Publishing Ltd",
+   "slug": "lockwood",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "locumtenens com": {
+   "name": "LocumTenens.com",
+   "slug": "locumtenenscom",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "loft 17 visuals": {
+   "name": "LOFT 17 visuals",
+   "slug": "loft17visuals",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "loft orbital": {
+   "name": "Loft Orbital",
+   "slug": "loftorbital",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "logicmonitor": {
+   "name": "LogicMonitor",
+   "slug": "logicmonitor",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "logifuture": {
+   "name": "logifuture",
+   "slug": "logifuture",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "lokalise": {
+   "name": "Lokalise",
+   "slug": "lokalise",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "lonza": {
+   "name": "Lonza",
+   "slug": "lonza",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "loop": {
+   "name": "Loop",
+   "slug": "followloop",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "loop games": {
+   "name": "Loop games",
+   "slug": "loopgames",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "lorikeet": {
+   "name": "Lorikeet",
+   "slug": "lorikeet",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "lottiefiles": {
+   "name": "LottieFiles",
+   "slug": "lottiefiles",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "lovable": {
+   "name": "Lovable",
+   "slug": "lovable",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "loyalty juggernaut": {
+   "name": "Loyalty Juggernaut",
+   "slug": "lji.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "lucid reality labs": {
+   "name": "Lucid Reality Labs",
+   "slug": "lucidrealitylabs",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "recruitee"
+  },
+  "ludia studios": {
+   "name": "Ludia studios",
+   "slug": "jamcity",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "lumen games": {
+   "name": "lumen games",
+   "slug": "lumengames",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "lumilens": {
+   "name": "Lumilens",
+   "slug": "lumilens",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "luminary": {
+   "name": "Luminary",
+   "slug": "luminary",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "magic school": {
+   "name": "Magic School",
+   "slug": "magicschool",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "magnopus": {
+   "name": "magnopus",
+   "slug": "magnopus",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "make": {
+   "name": "Make",
+   "slug": "make",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "manifest": {
+   "name": "Manifest",
+   "slug": "manifest",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "mapbox": {
+   "name": "Mapbox",
+   "slug": "mapbox",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "mark43": {
+   "name": "Mark43",
+   "slug": "mark43",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "marshmallow": {
+   "name": "Marshmallow",
+   "slug": "marshmallow",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "masabi": {
+   "name": "Masabi",
+   "slug": "masabi",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "mashgin": {
+   "name": "Mashgin",
+   "slug": "mashgin",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "masterclass": {
+   "name": "Masterclass",
+   "slug": "masterclass",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "match": {
+   "name": "Match Group",
+   "slug": "matchgroup",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "matic robots": {
+   "name": "Matic Robots",
+   "slug": "MaticRobots",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "matte projects": {
+   "name": "Matte projects",
+   "slug": "matteprojects",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "mattel": {
+   "name": "Mattel Inc",
+   "slug": "MattelInc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "mcafee": {
+   "name": "McAfee",
+   "slug": "mcafee",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "mcdonalds": {
+   "name": "Mcdonalds",
+   "slug": "McDonaldsCorporation",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "media molecule": {
+   "name": "Media molecule",
+   "slug": "mm",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "megazebra": {
+   "name": "Megazebra",
+   "slug": "megazebragmbh.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "mendix": {
+   "name": "Mendix",
+   "slug": "mendix",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "menlo security": {
+   "name": "Menlo Security Inc.",
+   "slug": "menlosecurity",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "mentava": {
+   "name": "Mentava",
+   "slug": "mentava",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "mercor": {
+   "name": "Mercor",
+   "slug": "mercor",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "mercury": {
+   "name": "Mercury",
+   "slug": "mercury",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "merqube": {
+   "name": "Merqube",
+   "slug": "merqube",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "meta4": {
+   "name": "META4",
+   "slug": "META4",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "metlife": {
+   "name": "MetLife",
+   "slug": "metlife",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "mgm resorts international": {
+   "name": "MGM Resorts International",
+   "slug": "mgmresortsinternational",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "micoworks": {
+   "name": "Micoworks",
+   "slug": "micoworks",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "minted": {
+   "name": "Minted",
+   "slug": "minted",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "miq": {
+   "name": "MiQ",
+   "slug": "miqdigital",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "miracle software": {
+   "name": "miracle software",
+   "slug": "MiracleSoftwareSystem1",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "mirage": {
+   "name": "Mirage",
+   "slug": "mirage",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "miratech": {
+   "name": "Miratech",
+   "slug": "miratech1",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "mission box solutions": {
+   "name": "Mission Box Solutions",
+   "slug": "missionboxsolutions",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "mistplay": {
+   "name": "Mistplay",
+   "slug": "mistplay",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "mistral ai": {
+   "name": "Mistral AI",
+   "slug": "mistral.ai",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "ashby"
+  },
+  "mitratech": {
+   "name": "Mitratech",
+   "slug": "mitratech",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "mitsogo": {
+   "name": "Mitsogo",
+   "slug": "mitsogo",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "recruitee"
+  },
+  "mixmob": {
+   "name": "MixMob",
+   "slug": "MixMob",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "mixpanel": {
+   "name": "Mixpanel",
+   "slug": "mixpanel",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "mnr solutions pvt": {
+   "name": "MNR Solutions Pvt. Ltd.",
+   "slug": "mnrsolutionspvtltd",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "mob entertainment": {
+   "name": "Mob entertainment",
+   "slug": "mobentertainment",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "mobilityware": {
+   "name": "Mobilityware",
+   "slug": "mobilityware",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "mobius": {
+   "name": "Mobius",
+   "slug": "mobius",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "modern treasury": {
+   "name": "Modern Treasury",
+   "slug": "moderntreasury",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "modulate": {
+   "name": "Modulate",
+   "slug": "modulate",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "mojang": {
+   "name": "Mojang",
+   "slug": "mojangab",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "mojang studios": {
+   "name": "Mojang Studios",
+   "slug": "mojangab",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "mollie": {
+   "name": "Mollie",
+   "slug": "mollie",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "ashby"
+  },
+  "moloco": {
+   "name": "Moloco",
+   "slug": "moloco",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "monarch money": {
+   "name": "Monarch Money",
+   "slug": "monarchmoney",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "moniepoint": {
+   "name": "Moniepoint",
+   "slug": "moniepoint",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "monks": {
+   "name": "Monks",
+   "slug": "monks",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "monster energy": {
+   "name": "Monster Energy",
+   "slug": "monsterenergy",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "monzo": {
+   "name": "Monzo",
+   "slug": "monzo",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "moonbug entertainment": {
+   "name": "Moonbug Entertainment",
+   "slug": "moonbug-entertainment",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "mott macdonald": {
+   "name": "Mott MacDonald",
+   "slug": "mottmacdonald",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "moving picture company": {
+   "name": "Moving Picture Company",
+   "slug": "movingpicturecompany",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "moving walls india": {
+   "name": "Moving Walls India",
+   "slug": "MovingWallsIndiaPvtLtd",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "mozilla": {
+   "name": "Mozilla",
+   "slug": "mozilla",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "mpower financing": {
+   "name": "MPOWER Financing",
+   "slug": "mpowerfinancing",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "multiplier": {
+   "name": "Multiplier",
+   "slug": "multiplier.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "multiverse": {
+   "name": "multiverse",
+   "slug": "multiverse",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "mundfish": {
+   "name": "mundfish",
+   "slug": "mundfish.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "my fitness pal": {
+   "name": "My Fitness Pal",
+   "slug": "myfitnesspal",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "myr": {
+   "name": "MYR",
+   "slug": "myr",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "recruitee"
+  },
+  "myr games": {
+   "name": "MYR Games",
+   "slug": "myr",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "recruitee"
+  },
+  "mythic talent": {
+   "name": "Mythic Talent",
+   "slug": "mythictalent.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "n26": {
+   "name": "N26",
+   "slug": "N26",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "n8n": {
+   "name": "n8n",
+   "slug": "n8n",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "ashby"
+  },
+  "nagarro": {
+   "name": "Nagarro",
+   "slug": "Nagarro1",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "nahc io": {
+   "name": "Nahc.io",
+   "slug": "nahc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "namely": {
+   "name": "Namely",
+   "slug": "namely",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "naughty dog": {
+   "name": "Naughty Dog",
+   "slug": "naughtydog",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "nbc universal": {
+   "name": "NBC Universal",
+   "slug": "NBCUniversal3",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "neoglobe": {
+   "name": "neoglobe",
+   "slug": "newglobesandbox",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "neostella": {
+   "name": "neostella",
+   "slug": "neostella",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "netbrain": {
+   "name": "NetBrain",
+   "slug": "netbrain",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "netease games": {
+   "name": "NetEase Games",
+   "slug": "neteasegames",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "netomi": {
+   "name": "Netomi",
+   "slug": "netomi",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "netskope": {
+   "name": "Netskope",
+   "slug": "netskope",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "neural concept": {
+   "name": "neural concept",
+   "slug": "neuralconcept",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "neuralink": {
+   "name": "neuralink",
+   "slug": "neuralink",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "new globe": {
+   "name": "New Globe",
+   "slug": "newglobesandbox",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "new relic": {
+   "name": "New Relic",
+   "slug": "newrelic",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "newrick network": {
+   "name": "Newrick Network",
+   "slug": "newrich-network",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "news corp": {
+   "name": "News Corp",
+   "slug": "newscorp",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "next level business services": {
+   "name": "Next Level Business Services",
+   "slug": "NextLevelBusinessServicesInc2",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "nextdoor": {
+   "name": "Nextdoor",
+   "slug": "nextdoor",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "nextgen clearing": {
+   "name": "nextgen-clearing",
+   "slug": "nextgen-clearing",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "nextiva": {
+   "name": "Nextiva",
+   "slug": "nextiva",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "nice": {
+   "name": "Nice",
+   "slug": "nice",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "nielseniq": {
+   "name": "NielsenIQ",
+   "slug": "NielsenIQ",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "ninjavan": {
+   "name": "NinjaVan",
+   "slug": "ninjavan",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "nium": {
+   "name": "Nium",
+   "slug": "nium",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "nk architects": {
+   "name": "NK Architects",
+   "slug": "nkarchitects.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "nk securities research": {
+   "name": "NK Securities Research",
+   "slug": "nksecuritiesresearch",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "nordeus": {
+   "name": "nordeus",
+   "slug": "nordeus",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "novomatic technologies poland": {
+   "name": "NOVOMATIC Technologies Poland",
+   "slug": "novomatictechnologiespoland",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "numeral": {
+   "name": "Numeral",
+   "slug": "numeral",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "nvizzio creations": {
+   "name": "Nvizzio Creations",
+   "slug": "NvizzioCreations",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "octagon": {
+   "name": "Octagon",
+   "slug": "octagon",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "off world studios": {
+   "name": "Off world studios",
+   "slug": "owi.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "ogilvy": {
+   "name": "Ogilvy",
+   "slug": "ogilvy",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "okta": {
+   "name": "Okta",
+   "slug": "okta",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "okx": {
+   "name": "OKX",
+   "slug": "okx",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "old skull games": {
+   "name": "Old Skull Games",
+   "slug": "OldSkullGames1",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "olipop": {
+   "name": "Olipop",
+   "slug": "olipop",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "oliver agency": {
+   "name": "Oliver Agency",
+   "slug": "oliverseapac",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "oliver wyman": {
+   "name": "Oliver Wyman",
+   "slug": "oliverwyman",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "onebrief": {
+   "name": "Onebrief",
+   "slug": "onebrief",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "onehouse": {
+   "name": "Onehouse",
+   "slug": "Onehouse",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "oneimaging": {
+   "name": "OneImaging",
+   "slug": "oneimaging",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "onetrust": {
+   "name": "OneTrust",
+   "slug": "onetrust",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "oni": {
+   "name": "oni",
+   "slug": "oni",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever_eu"
+  },
+  "onward search": {
+   "name": "Onward Search",
+   "slug": "onwardsearch.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "oportun": {
+   "name": "oportun",
+   "slug": "oportun",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "orion innovation": {
+   "name": "Orion Innovation",
+   "slug": "orioninnovation",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "oshi health": {
+   "name": "Oshi Health",
+   "slug": "oshihealth",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "oura": {
+   "name": "Oura",
+   "slug": "oura",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "outfit7": {
+   "name": "Outfit7",
+   "slug": "outfit7",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "outpost": {
+   "name": "Outpost",
+   "slug": "outpost",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "overdare": {
+   "name": "Overdare",
+   "slug": "overdare",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "owkin": {
+   "name": "Owkin",
+   "slug": "owkin",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "oxbridge international school": {
+   "name": "Oxbridge International School",
+   "slug": "oxbridgeinternationalschool",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "pacifica continental": {
+   "name": "Pacifica Continental",
+   "slug": "pacificacontinental",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "palantir": {
+   "name": "Palantir",
+   "slug": "palantir",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "lever"
+  },
+  "panic button": {
+   "name": "Panic Button",
+   "slug": "panicbutton",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "parallel wireless": {
+   "name": "Parallel Wireless",
+   "slug": "parallelwireless",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "parloa": {
+   "name": "Parloa",
+   "slug": "parloa",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "passive logic": {
+   "name": "Passive Logic",
+   "slug": "passivelogic.teamtailor.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "teamtailor"
+  },
+  "patreon": {
+   "name": "Patreon",
+   "slug": "patreon",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "pay2": {
+   "name": "Pay2",
+   "slug": "pay2dc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "payactive": {
+   "name": "Payactive",
+   "slug": "payactiv",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "payload studios": {
+   "name": "Payload Studios",
+   "slug": "payload-studios",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "paypay": {
+   "name": "paypay",
+   "slug": "paypay",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "paypay india": {
+   "name": "PayPay India",
+   "slug": "pay2dc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "paytm": {
+   "name": "Paytm",
+   "slug": "paytm",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "peak games": {
+   "name": "Peak Games",
+   "slug": "peakgames",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "peakmetrics": {
+   "name": "Peakmetrics",
+   "slug": "peakmetrics",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "pelago": {
+   "name": "Pelago",
+   "slug": "pelago",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "penn interactive": {
+   "name": "Penn Interactive",
+   "slug": "penninteractive",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "penumbrainc": {
+   "name": "Penumbrainc",
+   "slug": "penumbrainc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "people can fly": {
+   "name": "People Can Fly",
+   "slug": "PeopleCanFly",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "performio": {
+   "name": "Performio",
+   "slug": "performio",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "periodic labs": {
+   "name": "Periodic Labs",
+   "slug": "periodic-labs",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "permitflow": {
+   "name": "PermitFlow",
+   "slug": "permitflow",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "personiv": {
+   "name": "personiv",
+   "slug": "personiv",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "pharmaace": {
+   "name": "PharmaACE",
+   "slug": "pharmaace",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "photoroom": {
+   "name": "Photoroom",
+   "slug": "photoroom",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "ashby"
+  },
+  "physicsx": {
+   "name": "PhysicsX",
+   "slug": "physicsx",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "pigment": {
+   "name": "Pigment",
+   "slug": "pigment",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "lever"
+  },
+  "pine games": {
+   "name": "Pine games",
+   "slug": "pinegames",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "pinecone": {
+   "name": "Pinecone",
+   "slug": "pinecone",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "ashby"
+  },
+  "ping identity": {
+   "name": "Ping Identity",
+   "slug": "pingidentity",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "pinterest": {
+   "name": "Pinterest",
+   "slug": "pinterest",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "pixel toys": {
+   "name": "Pixel Toys",
+   "slug": "pixeltoysltd.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "pixion games": {
+   "name": "Pixion Games",
+   "slug": "pixiongames.teamtailor.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "teamtailor"
+  },
+  "pixle pool": {
+   "name": "Pixle Pool",
+   "slug": "pixelpool",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "recruitee"
+  },
+  "plaid": {
+   "name": "Plaid",
+   "slug": "plaid",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "plain": {
+   "name": "Plain",
+   "slug": "plain",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "planera": {
+   "name": "Planera",
+   "slug": "planera",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "planetscale": {
+   "name": "PlanetScale",
+   "slug": "planetscale",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "platzi": {
+   "name": "Platzi",
+   "slug": "platzi",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "workable"
+  },
+  "play perfect": {
+   "name": "Play Perfect",
+   "slug": "play-perfect",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "playground": {
+   "name": "playground",
+   "slug": "playground",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "playq": {
+   "name": "Playq",
+   "slug": "playq",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "playstation": {
+   "name": "Playstation",
+   "slug": "sonyinteractiveentertainmentglobal",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "playstation global": {
+   "name": "PlayStation Global",
+   "slug": "sonyinteractiveentertainmentglobal",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "playtech": {
+   "name": "Playtech",
+   "slug": "Playtech",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "playwing": {
+   "name": "Playwing",
+   "slug": "playwing",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "pleo": {
+   "name": "Pleo",
+   "slug": "pleo",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "ashby"
+  },
+  "pokemon": {
+   "name": "Pokemon",
+   "slug": "pokemoncareers",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "poki": {
+   "name": "Poki",
+   "slug": "poki",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "pollen": {
+   "name": "Pollen",
+   "slug": "pollen.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "polyai": {
+   "name": "PolyAI",
+   "slug": "polyai",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "polygon labs": {
+   "name": "Polygon Labs",
+   "slug": "polygon-labs",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "poppulo": {
+   "name": "Poppulo",
+   "slug": "poppulo",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "populla": {
+   "name": "Populla",
+   "slug": "poppulo",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "portcast": {
+   "name": "Portcast",
+   "slug": "portcast",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "porter": {
+   "name": "Porter",
+   "slug": "porter",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "posthog": {
+   "name": "PostHog",
+   "slug": "posthog",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "power digital marketing": {
+   "name": "Power Digital Marketing",
+   "slug": "powerdigitalmarketing",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "powtoon": {
+   "name": "powtoon",
+   "slug": "powtoon",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "ppfa": {
+   "name": "PPfa",
+   "slug": "ppfa",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "praetorian": {
+   "name": "Praetorian",
+   "slug": "praetorian",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "prizepicks": {
+   "name": "PrizePicks",
+   "slug": "prizepicks",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "prodigal": {
+   "name": "Prodigal",
+   "slug": "prodigal",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "profound": {
+   "name": "Profound",
+   "slug": "profound",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "prophecy": {
+   "name": "Prophecy",
+   "slug": "prophecysimpledatalabs",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "proscia": {
+   "name": "Proscia",
+   "slug": "proscia.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "protegrity": {
+   "name": "Protegrity",
+   "slug": "protegrity",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "proxima": {
+   "name": "Proxima",
+   "slug": "proxima",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "pubmatic": {
+   "name": "PubMatic",
+   "slug": "pubmatic",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "pure storage": {
+   "name": "Pure Storage",
+   "slug": "purestorage",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "purview": {
+   "name": "PURVIEW",
+   "slug": "purview",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "push gaming": {
+   "name": "Push Gaming",
+   "slug": "pushgaming.teamtailor.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "teamtailor"
+  },
+  "putnam": {
+   "name": "Putnam",
+   "slug": "putnamassociatesllc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "qonto": {
+   "name": "Qonto",
+   "slug": "qonto",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "ashby"
+  },
+  "qs quacquarelli symonds": {
+   "name": "QS Quacquarelli Symonds",
+   "slug": "qs.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "quantic dream": {
+   "name": "Quantic Dream",
+   "slug": "quanticdream",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever_eu"
+  },
+  "quickplay": {
+   "name": "Quickplay",
+   "slug": "firstlightai.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "quience": {
+   "name": "quience",
+   "slug": "quince",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "quilt": {
+   "name": "Quilt",
+   "slug": "quilt",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "quince": {
+   "name": "Quince",
+   "slug": "quince",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "quinstreet": {
+   "name": "QuinStreet",
+   "slug": "quinstreet",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "quixel": {
+   "name": "Quixel",
+   "slug": "quixel",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "quora": {
+   "name": "quora",
+   "slug": "quora",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "rackner": {
+   "name": "Rackner",
+   "slug": "rackner",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "rain": {
+   "name": "Rain",
+   "slug": "rain",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "raindrop": {
+   "name": "Raindrop",
+   "slug": "raindrop",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "ramboll3": {
+   "name": "Ramboll3",
+   "slug": "Ramboll3",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "ramp": {
+   "name": "Ramp",
+   "slug": "ramp",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "rapp": {
+   "name": "RAPP",
+   "slug": "rapp",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "rapt studio": {
+   "name": "Rapt studio",
+   "slug": "RaptStudio",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "raw": {
+   "name": "Raw group",
+   "slug": "raw-group.jobs.personio.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "personio"
+  },
+  "raw power games": {
+   "name": "Raw Power Games",
+   "slug": "rawpowergames-1700833558.teamtailor.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "teamtailor"
+  },
+  "rds digital": {
+   "name": "RDS Digital",
+   "slug": "rdsdigital",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "readme": {
+   "name": "ReadMe",
+   "slug": "readme",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "real chemistry": {
+   "name": "Real Chemistry",
+   "slug": "realchemistry",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "reality defender": {
+   "name": "Reality Defender",
+   "slug": "realitydefender",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "reality games": {
+   "name": "Reality Games",
+   "slug": "realitygames",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "rebel foods": {
+   "name": "Rebel Foods",
+   "slug": "rebelfoods",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "rebellion": {
+   "name": "Rebellion",
+   "slug": "rebellion",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "recruitrix": {
+   "name": "Recruitrix",
+   "slug": "Recruitrix",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "red 6": {
+   "name": "Red 6",
+   "slug": "red6",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "red barrels": {
+   "name": "Red Barrels",
+   "slug": "redbarrels.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "red point labs": {
+   "name": "Red Point Labs",
+   "slug": "RedPointLabs",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "red points": {
+   "name": "Red Points",
+   "slug": "RedPoints1",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "red storm entertainment": {
+   "name": "Red storm entertainment",
+   "slug": "Ubisoft2",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "reddit": {
+   "name": "Reddit",
+   "slug": "reddit",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "redhorse corp": {
+   "name": "Redhorse Corp",
+   "slug": "redhorsecorp",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "reducto": {
+   "name": "Reducto",
+   "slug": "reducto",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "reedsy": {
+   "name": "Reedsy",
+   "slug": "reedsy",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "reflection ai": {
+   "name": "Reflection AI",
+   "slug": "reflectionai",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "regal": {
+   "name": "Regal",
+   "slug": "regal.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "relic entertainment": {
+   "name": "relic entertainment",
+   "slug": "relicentertainment.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "reltio": {
+   "name": "Reltio",
+   "slug": "reltio",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "renesas electronics": {
+   "name": "Renesas Electronics",
+   "slug": "renesaselectronics",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "rennsport gg": {
+   "name": "Rennsport.gg",
+   "slug": "competition-company-gmbh.jobs.personio.de",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "personio"
+  },
+  "resend": {
+   "name": "Resend",
+   "slug": "resend",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "ashby"
+  },
+  "resmed": {
+   "name": "ResMed",
+   "slug": "resmed",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "restream": {
+   "name": "ReStream",
+   "slug": "restream",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "revalsys technologies": {
+   "name": "Revalsys Technologies",
+   "slug": "revalsystechnologies",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "reversing labs": {
+   "name": "reversing labs",
+   "slug": "reversinglabs",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "rise": {
+   "name": "Rise",
+   "slug": "rise",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "roblox": {
+   "name": "Roblox",
+   "slug": "roblox",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "robomq": {
+   "name": "RoboMQ",
+   "slug": "robomq",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "rocket science": {
+   "name": "Rocket Science",
+   "slug": "rocketsciencegg",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "rocket workz": {
+   "name": "rocket workz",
+   "slug": "rocketwerkz",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "recruitee"
+  },
+  "rocketwerkz": {
+   "name": "RocketWerkz",
+   "slug": "rocketwerkz",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "recruitee"
+  },
+  "rockstar games": {
+   "name": "Rockstar Games",
+   "slug": "rockstargames",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "roku": {
+   "name": "Roku",
+   "slug": "roku",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "roller": {
+   "name": "ROLLER",
+   "slug": "roller",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "roof stacks": {
+   "name": "Roof Stacks",
+   "slug": "roofstacks",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "rovio": {
+   "name": "Rovio",
+   "slug": "rovio-2",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "rtb house": {
+   "name": "RTB House",
+   "slug": "rtbhouse",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "rubrik": {
+   "name": "Rubrik",
+   "slug": "rubrik",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "ruby play": {
+   "name": "Ruby play",
+   "slug": "rubyplay",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "runpod": {
+   "name": "RunPod",
+   "slug": "runpod",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "ashby"
+  },
+  "runway": {
+   "name": "Runway",
+   "slug": "runway",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "rush down studios": {
+   "name": "Rush down studios",
+   "slug": "rushdownstudios",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "rush street interactive": {
+   "name": "Rush street interactive",
+   "slug": "rushstreetinteractive",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "ryse up studios": {
+   "name": "Ryse up studios",
+   "slug": "ryseupstudios",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "saas labs": {
+   "name": "SaaS Labs",
+   "slug": "saaslabs",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "recruitee"
+  },
+  "safari ai": {
+   "name": "Safari AI",
+   "slug": "safariai",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "safe security": {
+   "name": "Safe security",
+   "slug": "safe",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "sahara": {
+   "name": "Sahara",
+   "slug": "sahara",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "sailgp": {
+   "name": "SailGP",
+   "slug": "sailgp.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "sakura visuals": {
+   "name": "Sakura Visuals",
+   "slug": "sakuravisuals.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "salt xc": {
+   "name": "SALT XC",
+   "slug": "saltxc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "sama": {
+   "name": "Sama",
+   "slug": "samainc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "sambanova systems": {
+   "name": "SambaNova Systems",
+   "slug": "sambanovasystems",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "samsara": {
+   "name": "Samsara",
+   "slug": "samsara",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "samsung semiconductor": {
+   "name": "Samsung Semiconductor",
+   "slug": "samsungsemiconductor",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "sandbox vr": {
+   "name": "Sandbox VR",
+   "slug": "sandboxvr",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "sandboxaq": {
+   "name": "SandboxAQ",
+   "slug": "sandboxaq",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "sardine": {
+   "name": "Sardine",
+   "slug": "sardine",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "saviynt": {
+   "name": "Saviynt",
+   "slug": "saviynt",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "sawhorse productions": {
+   "name": "Sawhorse Productions",
+   "slug": "sawhorse-productions",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "scale ai": {
+   "name": "Scale AI",
+   "slug": "scaleai",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "scandit": {
+   "name": "Scandit",
+   "slug": "scandit",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "schell games": {
+   "name": "Schell Games",
+   "slug": "sg.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "scout": {
+   "name": "Scout",
+   "slug": "scoutmotors",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "seamount": {
+   "name": "Seamount",
+   "slug": "seamount",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "second dinner": {
+   "name": "Second Dinner",
+   "slug": "SecondDinner",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "second talent": {
+   "name": "Second Talent",
+   "slug": "secondtalent",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "secret 6": {
+   "name": "Secret 6",
+   "slug": "secret-6",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "seedify": {
+   "name": "seedify",
+   "slug": "seedify-fund",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "segula technologies": {
+   "name": "SEGULA Technologies",
+   "slug": "SegulaTechnologies",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "semgrep": {
+   "name": "Semgrep",
+   "slug": "semgrep",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "semios": {
+   "name": "Semios",
+   "slug": "semios",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "workable"
+  },
+  "seneca": {
+   "name": "Seneca",
+   "slug": "seneca",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "serval": {
+   "name": "Serval",
+   "slug": "serval",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "servicenow": {
+   "name": "ServiceNow",
+   "slug": "servicenow",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "sesame": {
+   "name": "Sesame",
+   "slug": "sesame",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "sgnl ai": {
+   "name": "sgnl.ai",
+   "slug": "sgnlai",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "shein": {
+   "name": "SHEIN",
+   "slug": "shein",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "shield": {
+   "name": "SHIELD",
+   "slug": "shield",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "shield ai": {
+   "name": "Shield AI",
+   "slug": "shieldai",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "shopmy": {
+   "name": "ShopMy",
+   "slug": "shopmy",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "shyftlabs": {
+   "name": "ShyftLabs",
+   "slug": "shyftlabs",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "side": {
+   "name": "Side",
+   "slug": "sideinc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "sidefx": {
+   "name": "SideFX",
+   "slug": "sidefx.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "sierra": {
+   "name": "Sierra",
+   "slug": "sierra",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "sift": {
+   "name": "SIFT",
+   "slug": "sift",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "sigma computing": {
+   "name": "Sigma Computing",
+   "slug": "sigmacomputing",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "sigma software": {
+   "name": "Sigma Software",
+   "slug": "sigmasoftware2",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "sigma world": {
+   "name": "SiGMA World",
+   "slug": "sigmaworld.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "sika": {
+   "name": "Sika Group",
+   "slug": "SikaAG",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "simpleclosure": {
+   "name": "SimpleClosure",
+   "slug": "simpleclosure",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "simplisafe": {
+   "name": "SimpliSafe",
+   "slug": "simplisafe",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "single store": {
+   "name": "Single Store",
+   "slug": "singlestore",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "sirenopt": {
+   "name": "SirenOpt",
+   "slug": "sirenopt",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "sitetracker": {
+   "name": "sitetracker",
+   "slug": "sitetracker",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "sixfold": {
+   "name": "Sixfold",
+   "slug": "sixfold",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "skeleton key": {
+   "name": "Skeleton key",
+   "slug": "skeletonkey",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "skillsoft": {
+   "name": "Skillsoft",
+   "slug": "skillsoft",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "skillz": {
+   "name": "Skillz Inc.",
+   "slug": "skillzinc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "skybox labs": {
+   "name": "skybox labs",
+   "slug": "skyboxlabs",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "skydance": {
+   "name": "Skydance",
+   "slug": "skydance",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "skydio": {
+   "name": "Skydio",
+   "slug": "skydio",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "skyrocket ventures": {
+   "name": "Skyrocket Ventures",
+   "slug": "skyrocketventures",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "sleeper": {
+   "name": "Sleeper",
+   "slug": "sleeper",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "sleeper hq": {
+   "name": "sleeper Hq",
+   "slug": "sleeper",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "slice": {
+   "name": "slice",
+   "slug": "slice",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "smarsh": {
+   "name": "smarsh",
+   "slug": "smarsh",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "smartbear": {
+   "name": "smartbear",
+   "slug": "smartbear",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "smoking gun interactive": {
+   "name": "Smoking Gun Interactive",
+   "slug": "smoking-gun-interactive-1",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "snap mobile": {
+   "name": "Snap Mobile INC",
+   "slug": "snapmobileinc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "snappr": {
+   "name": "Snappr",
+   "slug": "snappr",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "snorkel ai": {
+   "name": "Snorkel AI",
+   "slug": "snorkelai",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "snowed in studios": {
+   "name": "Snowed In Studios",
+   "slug": "snowed-in-studios-3",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "snowflake": {
+   "name": "Snowflake",
+   "slug": "snowflake",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "sofar sounds": {
+   "name": "sofar sounds",
+   "slug": "sofarsounds",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "sofi": {
+   "name": "SoFi",
+   "slug": "sofi",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "softswiss": {
+   "name": "SoftSwiss",
+   "slug": "softswiss.teamtailor.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "teamtailor"
+  },
+  "soho house": {
+   "name": "Soho House & Co",
+   "slug": "sohohouseco",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "solace": {
+   "name": "Solace",
+   "slug": "solace",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "sonar source": {
+   "name": "Sonar Source",
+   "slug": "sonarsource",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "sonicwall": {
+   "name": "SonicWall",
+   "slug": "sonicwall",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "sony interactive entertainment": {
+   "name": "Sony Interactive Entertainment",
+   "slug": "siei",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "sony music career": {
+   "name": "Sony Music Career",
+   "slug": "sonymusicasiacareers",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "sony music entertainment": {
+   "name": "Sony Music Entertainment",
+   "slug": "sonymusicentertainment",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "sony pictures animation": {
+   "name": "Sony pictures animation",
+   "slug": "sonypicturesanimation",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "sony picturese": {
+   "name": "sony picturese",
+   "slug": "sonypicturesanimation",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "sophos": {
+   "name": "Sophos",
+   "slug": "sophos",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "lever"
+  },
+  "sorare": {
+   "name": "Sorare",
+   "slug": "Sorare",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "soul assembly": {
+   "name": "Soul Assembly",
+   "slug": "soulassembly.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "sound cloud": {
+   "name": "sound cloud",
+   "slug": "soundcloud71",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "sourcegraph": {
+   "name": "Sourcegraph Inc.",
+   "slug": "sourcegraph91",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "spacex": {
+   "name": "SpaceX",
+   "slug": "spacex",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "spalah": {
+   "name": "Spalah",
+   "slug": "spalah.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "spaulding ridge": {
+   "name": "Spaulding Ridge",
+   "slug": "spauldingridge",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "speckle": {
+   "name": "Speckle",
+   "slug": "speckle",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "specterops": {
+   "name": "SpecterOps",
+   "slug": "specterops",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "speechmatics": {
+   "name": "Speechmatics",
+   "slug": "speechmatics",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "speedlabs": {
+   "name": "SpeEdLabs",
+   "slug": "speedlabs",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "spellbrush": {
+   "name": "Spellbrush",
+   "slug": "spellbrush",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "sperasoft": {
+   "name": "Sperasoft",
+   "slug": "sperasoft",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "sphere entertainment": {
+   "name": "sphere entertainment",
+   "slug": "sphereentertainment",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "splice": {
+   "name": "Splice",
+   "slug": "splice",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "spocket": {
+   "name": "Spocket",
+   "slug": "spocket",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "recruitee"
+  },
+  "sportradar": {
+   "name": "Sportradar",
+   "slug": "Sportradar",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "spotify": {
+   "name": "Spotify",
+   "slug": "spotify",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "springer nature": {
+   "name": "Springer Nature",
+   "slug": "springernature",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "spyke games": {
+   "name": "Spyke Games",
+   "slug": "spyke-games",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "square enix": {
+   "name": "Square Enix",
+   "slug": "square-enix",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "squeeze studio": {
+   "name": "Squeeze Studio",
+   "slug": "squeezestudio",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "recruitee"
+  },
+  "squeeze studios": {
+   "name": "Squeeze studios",
+   "slug": "squeezestudio",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "recruitee"
+  },
+  "stability ai": {
+   "name": "Stability AI",
+   "slug": "stabilityai",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "stackblitz": {
+   "name": "Stackblitz",
+   "slug": "stackblitz",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "stacklok": {
+   "name": "Stacklok",
+   "slug": "stacklok",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "stage": {
+   "name": "Stage",
+   "slug": "stage",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "stand": {
+   "name": "Stand",
+   "slug": "stand",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "star marketing": {
+   "name": "star marketing",
+   "slug": "starmarketing",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "starbridge": {
+   "name": "Starbridge",
+   "slug": "starbridge",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "starburst": {
+   "name": "Starburst",
+   "slug": "starburst",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "stardock": {
+   "name": "Stardock",
+   "slug": "stardock.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "stealth startup": {
+   "name": "Stealth Startup",
+   "slug": "stealth-startup",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "stockx": {
+   "name": "StockX",
+   "slug": "stockx",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "stone search": {
+   "name": "Stone Search",
+   "slug": "StoneSearch",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "story ground": {
+   "name": "Story Ground",
+   "slug": "Storygrounds",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "stratecent": {
+   "name": "Stratecent",
+   "slug": "Stratacent",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "stratosphere games": {
+   "name": "stratosphere games",
+   "slug": "stratosphere-games.jobs.personio.de",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "personio"
+  },
+  "streamline media": {
+   "name": "Streamline Media Group Inc.",
+   "slug": "streamlinestudios.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "strella": {
+   "name": "Strella",
+   "slug": "strella",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "stripe": {
+   "name": "stripe",
+   "slug": "stripe",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "studio unagi": {
+   "name": "Studio Unagi",
+   "slug": "studiounagi.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "studio wildcard": {
+   "name": "Studio Wildcard",
+   "slug": "studiowildcard.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "substack": {
+   "name": "Substack",
+   "slug": "substack",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "suki": {
+   "name": "Suki",
+   "slug": "suki",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "sumo logic": {
+   "name": "Sumo logic",
+   "slug": "sumologic",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "sumup": {
+   "name": "SumUp",
+   "slug": "sumup",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "sunrise productions": {
+   "name": "Sunrise Productions",
+   "slug": "sunriseproductions.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "supabase": {
+   "name": "Supabase",
+   "slug": "supabase",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "supercell": {
+   "name": "supercell",
+   "slug": "supercell",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "supermassive games": {
+   "name": "Supermassive Games",
+   "slug": "supermassive-games",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "sustainable talent": {
+   "name": "Sustainable Talent",
+   "slug": "sustainabletalent",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "sviper": {
+   "name": "sviper",
+   "slug": "sviper-gmbh.jobs.personio.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "personio"
+  },
+  "sweatpals": {
+   "name": "SweatPals",
+   "slug": "sweatpals",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "swissborg": {
+   "name": "swissborg",
+   "slug": "swissborg",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "sybo": {
+   "name": "SYBO",
+   "slug": "sybo.teamtailor.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "teamtailor"
+  },
+  "sybo studios": {
+   "name": "sybo studios",
+   "slug": "sybo.teamtailor.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "teamtailor"
+  },
+  "symphonyai": {
+   "name": "SymphonyAI",
+   "slug": "symphonyai",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "synergy resource solutions": {
+   "name": "Synergy Resource Solutions",
+   "slug": "synergyresourcesolutions",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "syngenta": {
+   "name": "Syngenta Group",
+   "slug": "SyngentaGroup",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "synthesia": {
+   "name": "Synthesia",
+   "slug": "synthesia",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "t systems": {
+   "name": "T systems",
+   "slug": "T-SystemsICTIndiaPvtLtd1",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "taboola": {
+   "name": "Taboola",
+   "slug": "taboola",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "tactical adventures": {
+   "name": "Tactical Adventures",
+   "slug": "tacticaladventures.teamtailor.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "teamtailor"
+  },
+  "take two interactive": {
+   "name": "Take-Two Interactive",
+   "slug": "taketwo",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "tala": {
+   "name": "TALA",
+   "slug": "tala",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "talent folks": {
+   "name": "Talent Folks",
+   "slug": "talentfolks",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "talent socio": {
+   "name": "Talent Socio",
+   "slug": "talentsocio",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "talent software services": {
+   "name": "TALENT Software Services",
+   "slug": "talentsoftwareservices",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "talentxo": {
+   "name": "TalentXO",
+   "slug": "talentxo",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "tamatem": {
+   "name": "Tamatem",
+   "slug": "tamatem",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "tangle wood games": {
+   "name": "Tangle Wood Games",
+   "slug": "tanglewoodgameslive-1744291072.teamtailor.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "teamtailor"
+  },
+  "tapblaze": {
+   "name": "tapblaze",
+   "slug": "tapblaze",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "taskforce": {
+   "name": "TaskForce",
+   "slug": "taskforce.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "tatsu works": {
+   "name": "tatsu works",
+   "slug": "tatsuworks",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "tavus": {
+   "name": "Tavus",
+   "slug": "tavus",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "team pumpkin": {
+   "name": "Team Pumpkin",
+   "slug": "teampumpkin",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "team17": {
+   "name": "Team17",
+   "slug": "team-17-digital",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "team17 digital": {
+   "name": "Team17 Digital",
+   "slug": "team-17-digital",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "tech army": {
+   "name": "Tech Army, LLC",
+   "slug": "techarmyllc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "tech mahindra": {
+   "name": "Tech Mahindra",
+   "slug": "techmahindra.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "techholding": {
+   "name": "techholding",
+   "slug": "techholding",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "techland": {
+   "name": "Techland",
+   "slug": "TechlandSA",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "technorizen software solution": {
+   "name": "Technorizen Software Solution",
+   "slug": "TechnorizenSoftwareSolution",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "techstar": {
+   "name": "Techstar group",
+   "slug": "techstargroup",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "techstars": {
+   "name": "Techstars",
+   "slug": "techstars57",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "techvedika": {
+   "name": "TechVedika",
+   "slug": "TechVedika",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "tegna": {
+   "name": "TEGNA Inc.",
+   "slug": "tegnainc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "tellius": {
+   "name": "Tellius",
+   "slug": "tellius",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "telnyx": {
+   "name": "Telnyx",
+   "slug": "telnyx54",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "templafy": {
+   "name": "Templafy",
+   "slug": "templafy.teamtailor.com",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "teamtailor"
+  },
+  "temporal": {
+   "name": "Temporal",
+   "slug": "temporal",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "ashby"
+  },
+  "ten square games": {
+   "name": "ten square games",
+   "slug": "tensquaregames",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "recruitee"
+  },
+  "ten4": {
+   "name": "Ten4",
+   "slug": "Ten4",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "tennr": {
+   "name": "Tennr",
+   "slug": "tennr",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "tensorwave": {
+   "name": "TensorWave",
+   "slug": "tensorwave",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "tenstorrent": {
+   "name": "Tenstorrent",
+   "slug": "tenstorrent",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "tentworks interactive": {
+   "name": "Tentworks Interactive",
+   "slug": "tentworks-interactive",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "testronic": {
+   "name": "Testronic",
+   "slug": "testronic",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "tfl": {
+   "name": "TFL Group",
+   "slug": "tflgroup.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "that s no moon": {
+   "name": "That's No Moon",
+   "slug": "thatsnomoonentertainment",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "that s no moon entertainment": {
+   "name": "That's No Moon Entertainment",
+   "slug": "thatsnomoonentertainment",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "thatgamecompany": {
+   "name": "Thatgamecompany",
+   "slug": "Thatgamecompany",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "the believer company": {
+   "name": "The Believer Company",
+   "slug": "believer",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "the global talent": {
+   "name": "The Global Talent Co.",
+   "slug": "the-global-talent-co",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "the globel talent": {
+   "name": "The Globel Talent Co",
+   "slug": "the-global-talent-co",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "the mill": {
+   "name": "The Mill",
+   "slug": "TheMill2",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "the mill adventure": {
+   "name": "The Mill Adventure",
+   "slug": "the-mill-adventure",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "the new york times": {
+   "name": "The New York Times",
+   "slug": "thenewyorktimes",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "the orchard": {
+   "name": "The Orchard",
+   "slug": "theorchard",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "themill2": {
+   "name": "TheMill2",
+   "slug": "themill2",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "theorycraft games": {
+   "name": "Theorycraft Games",
+   "slug": "theorycraftgames",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "thiess": {
+   "name": "Thiess",
+   "slug": "thiess",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "think academy u s": {
+   "name": "Think Academy U.S",
+   "slug": "thinkacademyus",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "threat tec": {
+   "name": "Threat Tec",
+   "slug": "threattec",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "tide": {
+   "name": "Tide",
+   "slug": "tide",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "tinybird": {
+   "name": "Tinybird",
+   "slug": "tinybird",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "lever"
+  },
+  "toast": {
+   "name": "Toast",
+   "slug": "Toast",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "toku": {
+   "name": "Toku",
+   "slug": "toku",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "tonic dna": {
+   "name": "Tonic DNA",
+   "slug": "TonicDNA1",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "tonies studios": {
+   "name": "tonies studios",
+   "slug": "tonies.jobs.personio.de",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "personio"
+  },
+  "toppan edge": {
+   "name": "TOPPAN Edge Inc.",
+   "slug": "bottomlinetechnologies",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "toptal": {
+   "name": "Toptal",
+   "slug": "toptal",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "tower research capital": {
+   "name": "Tower Research Capital",
+   "slug": "towerresearchcapital",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "townsquare media": {
+   "name": "Townsquare Media",
+   "slug": "townsquaremedia",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "track vfx": {
+   "name": "Track VFX",
+   "slug": "trackvfx",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "trackman": {
+   "name": "Trackman",
+   "slug": "trackman",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "recruitee"
+  },
+  "transfr": {
+   "name": "Transfr",
+   "slug": "transfr",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "transperfect": {
+   "name": "TransPerfect",
+   "slug": "tgs",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "recruitee"
+  },
+  "transperfect gaming": {
+   "name": "Transperfect Gaming",
+   "slug": "tgs",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "recruitee"
+  },
+  "travelperk": {
+   "name": "Travelperk",
+   "slug": "perk",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "ashby"
+  },
+  "trendyol": {
+   "name": "Trendyol",
+   "slug": "trendyol",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "triggerfish": {
+   "name": "Triggerfish",
+   "slug": "triggerfish.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "trilitech": {
+   "name": "trilitech",
+   "slug": "trilitech",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "triotech": {
+   "name": "Triotech",
+   "slug": "triotech.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "triple dot studios": {
+   "name": "Triple dot studios",
+   "slug": "tripledotstudios",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "tripledot studios": {
+   "name": "Tripledot Studios",
+   "slug": "tripledotstudios",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "tripwire": {
+   "name": "Tripwire",
+   "slug": "tripwireinteractive",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "tripwire interactive": {
+   "name": "Tripwire Interactive",
+   "slug": "tripwireinteractive",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "trove brands": {
+   "name": "Trove Brands",
+   "slug": "trovebrands",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "true foundry": {
+   "name": "true foundry",
+   "slug": "truefoundry",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "truecaller": {
+   "name": "truecaller",
+   "slug": "truecaller",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "trust wallet": {
+   "name": "Trust Wallet",
+   "slug": "trust-wallet",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "ttc global": {
+   "name": "TTC Global",
+   "slug": "ttcglobal",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "turbotenant": {
+   "name": "TurboTenant",
+   "slug": "turbotenant",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "turbotenent": {
+   "name": "TurboTenent",
+   "slug": "turbotenant",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "turtle rock studios": {
+   "name": "turtle rock studios",
+   "slug": "turtlerockstudios",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "twitch": {
+   "name": "Twitch",
+   "slug": "twitch",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "two circles": {
+   "name": "Two Circles",
+   "slug": "twocircles",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "tycho ai": {
+   "name": "Tycho.AI",
+   "slug": "tycho-ai",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "uber": {
+   "name": "Uber",
+   "slug": "uber",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "ubisoft": {
+   "name": "Ubisoft",
+   "slug": "Ubisoft2",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "udemy": {
+   "name": "Udemy",
+   "slug": "udemy",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "uken games": {
+   "name": "Uken Games",
+   "slug": "uken.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "unchained entertainment": {
+   "name": "Unchained Entertainment",
+   "slug": "citystateentertainmentllc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "unifynd": {
+   "name": "Unifynd",
+   "slug": "unifynd",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "unispace": {
+   "name": "Unispace",
+   "slug": "unispace",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "united games": {
+   "name": "united games",
+   "slug": "unitedgames.jobs.personio.de",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "personio"
+  },
+  "universally speaking": {
+   "name": "Universally Speaking",
+   "slug": "universally-speaking",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "untold tales": {
+   "name": "Untold Tales",
+   "slug": "UntoldTalesSA",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "upgrade": {
+   "name": "Upgrade",
+   "slug": "upgrade",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "upwork": {
+   "name": "upwork",
+   "slug": "upwork",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "ursus": {
+   "name": "Ursus, Inc.",
+   "slug": "ursusinc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "valon": {
+   "name": "Valon",
+   "slug": "valon",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "valu": {
+   "name": "ValU",
+   "slug": "ValU1",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "valuelabs": {
+   "name": "ValueLabs",
+   "slug": "valuelabs",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "vanta": {
+   "name": "Vanta",
+   "slug": "vanta",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "vapi": {
+   "name": "Vapi",
+   "slug": "vapi",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "ashby"
+  },
+  "vast": {
+   "name": "Vast",
+   "slug": "vast",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "vaynermedia": {
+   "name": "VaynerMedia",
+   "slug": "vaynermedia",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "veeam software": {
+   "name": "Veeam Software",
+   "slug": "veeamsoftware",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "velan studios": {
+   "name": "Velan Studios",
+   "slug": "velanstudios",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "vendavo": {
+   "name": "Vendavo",
+   "slug": "vendavo",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "venoeer": {
+   "name": "Venoeer",
+   "slug": "veoneerin.teamtailor.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "teamtailor"
+  },
+  "vercel": {
+   "name": "Vercel",
+   "slug": "vercel",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "veremark": {
+   "name": "Veremark",
+   "slug": "veremark",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "verifone": {
+   "name": "Verifone",
+   "slug": "verifone",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "version 1": {
+   "name": "version 1",
+   "slug": "Version1",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "vgw": {
+   "name": "VGW",
+   "slug": "vgw",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "vibes": {
+   "name": "Vibes",
+   "slug": "vibes",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "recruitee"
+  },
+  "village talkies": {
+   "name": "Village talkies",
+   "slug": "villagetalkies",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "recruitee"
+  },
+  "visionaries": {
+   "name": "Visionaries",
+   "slug": "visionaries.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "visual concepts": {
+   "name": "Visual Concepts",
+   "slug": "visualconcepts",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "viz experts": {
+   "name": "Viz Experts",
+   "slug": "vizexperts",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "vmd corp": {
+   "name": "VMD Corp",
+   "slug": "vmdcorp",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "void interactive": {
+   "name": "VOID Interactive",
+   "slug": "void.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "voldex": {
+   "name": "Voldex",
+   "slug": "Voldex",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "volks byte": {
+   "name": "Volks Byte",
+   "slug": "Volksbyte",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "vysystems": {
+   "name": "VySystems",
+   "slug": "vysystems",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "waveapps": {
+   "name": "WaveApps",
+   "slug": "waveapps",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "wayfair": {
+   "name": "Wayfair",
+   "slug": "wayfair",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "wayup": {
+   "name": "WayUp",
+   "slug": "wayup",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "we are social": {
+   "name": "We are social",
+   "slug": "we-are-social-1",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "weights biases coreweave": {
+   "name": "Weights & Biases (CoreWeave)",
+   "slug": "coreweave",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "welltech": {
+   "name": "Welltech",
+   "slug": "welltech",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "western digital": {
+   "name": "Western Digital",
+   "slug": "WesternDigital",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "wfc la": {
+   "name": "WFC LA Inc",
+   "slug": "wfclainc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "whalar": {
+   "name": "Whalar",
+   "slug": "whalarinc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "whatfix": {
+   "name": "Whatfix",
+   "slug": "whatfix",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "whatwapp": {
+   "name": "Whatwapp",
+   "slug": "whatwapp",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "whizz hr": {
+   "name": "Whizz HR",
+   "slug": "whizzhr",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "wildbrain": {
+   "name": "WildBrain",
+   "slug": "WildBrain",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "wildlife studios": {
+   "name": "Wildlife Studios",
+   "slug": "wildlifestudios",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "windranger": {
+   "name": "Windranger",
+   "slug": "windranger",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "wistia": {
+   "name": "wistia",
+   "slug": "wistia",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "wiz": {
+   "name": "Wiz",
+   "slug": "wizinc",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "wokarto": {
+   "name": "wokarto",
+   "slug": "workato",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "wolcen studio": {
+   "name": "Wolcen Studio",
+   "slug": "wolcenstudio.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "wonderkind": {
+   "name": "Wonderkind",
+   "slug": "wonderkind",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "recruitee"
+  },
+  "wongdoody": {
+   "name": "WongDoody",
+   "slug": "wongdoody",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "wooga": {
+   "name": "Wooga",
+   "slug": "wooga",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "workato": {
+   "name": "Workato",
+   "slug": "workato",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "workos": {
+   "name": "WorkOS",
+   "slug": "workos",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "ashby"
+  },
+  "world relief": {
+   "name": "world relief",
+   "slug": "wr",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "worldwinner": {
+   "name": "WorldWinner",
+   "slug": "worldwinner.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "wrike": {
+   "name": "Wrike",
+   "slug": "wrike",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "x studios": {
+   "name": "X Studios, Inc.",
+   "slug": "xstudios.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "xborg": {
+   "name": "XBorg",
+   "slug": "swissborg",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "xflow": {
+   "name": "XFlow",
+   "slug": "xflow.bamboohr.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "bamboohr"
+  },
+  "xiaomi india": {
+   "name": "Xiaomi India",
+   "slug": "xiaomiindia",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "xplor technologies": {
+   "name": "Xplor Technologies",
+   "slug": "Xplor",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "xsolla": {
+   "name": "Xsolla",
+   "slug": "xsolla",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "yendo": {
+   "name": "Yendo",
+   "slug": "yendo",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "yext": {
+   "name": "Yext",
+   "slug": "yext",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "yggdrasil gaming": {
+   "name": "Yggdrasil Gaming Ltd",
+   "slug": "YggdrasilSandbox",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "yggdrasil sandbox": {
+   "name": "Yggdrasil Sandbox",
+   "slug": "YggdrasilSandbox",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "smartrecruiters"
+  },
+  "yubo": {
+   "name": "yubo",
+   "slug": "yubo",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "yuno": {
+   "name": "Yuno",
+   "slug": "yuno",
+   "source": "santifer/career-ops@20b9fd3 (MIT)",
+   "vendor": "lever"
+  },
+  "zaibatsu interactive": {
+   "name": "Zaibatsu Interactive",
+   "slug": "zaibatsuinteractiveoy.teamtailor.com",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "teamtailor"
+  },
+  "zapier": {
+   "name": "Zapier",
+   "slug": "zapier",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "ashby"
+  },
+  "zenoti": {
+   "name": "Zenoti",
+   "slug": "zenoti",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "zeptolab": {
+   "name": "ZeptoLab",
+   "slug": "zeptolab",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "zeta": {
+   "name": "zeta",
+   "slug": "zeta",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "zeta global": {
+   "name": "Zeta Global",
+   "slug": "zetaglobal",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "zinnia": {
+   "name": "Zinnia",
+   "slug": "zinnia",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "zipdev": {
+   "name": "zipdev",
+   "slug": "zipdev",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "workable"
+  },
+  "zocdoc": {
+   "name": "Zocdoc",
+   "slug": "zocdoc",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "zoominfo": {
+   "name": "ZoomInfo",
+   "slug": "zoominfo",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "zoox": {
+   "name": "zoox",
+   "slug": "zoox",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "lever"
+  },
+  "zscaler": {
+   "name": "Zscaler",
+   "slug": "zscaler",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "zuora": {
+   "name": "Zuora",
+   "slug": "zuora",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  },
+  "zwift": {
+   "name": "zwift",
+   "slug": "zwift",
+   "source": "outscal/OpenJobs@cdcc533 (MIT)",
+   "vendor": "greenhouse"
+  }
+ }
+}

@@ -30,6 +30,10 @@ remote-request.json
 remote-check.draft.json
 keywords-request.json
 .ftja-update-check.json
+ats_local.json
+ats_jobs.json
+ats_contributions.json
+ats_share.json
 
 # local agent/tool folders and downloads — never part of the repository
 .codex/
@@ -45,3 +49,6 @@ _site/
 # Folders the Codex app makes in every session folder
 outputs/
 work/
+
+# your model API key for judging (see .env.example) — never committed
+.env

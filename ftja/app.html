@@ -179,6 +179,8 @@ select { -webkit-appearance: none; appearance: none; background-image: url("data
 .card-title { font-size: 15px; font-weight: 600; color: var(--text); }
 .card-title .repost-note { font-size: 11px; color: var(--text3); font-weight: 400; }
 .card-company { color: var(--text2); font-size: 12px; margin-top: 2px; }
+.src-badge { display: inline-block; font-size: 10.5px; letter-spacing: .02em; padding: 0 6px; margin-left: 6px; border: 1px solid var(--border, #d8d4ca); border-radius: 3px; color: var(--text2); vertical-align: 1px; text-decoration: none; }
+a.src-badge:hover { color: var(--text); border-color: currentColor; }
 .badge {
   font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; font-weight: 600;
   padding: 4px 10px; border-radius: 999px; flex-shrink: 0; white-space: nowrap;
@@ -291,6 +293,10 @@ select { -webkit-appearance: none; appearance: none; background-image: url("data
   padding: 9px 14px; margin: -14px 0 24px;
 }
 .update-banner code { font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; }
+.share-banner p { margin: 0 0 8px; }
+.share-banner .share-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.share-banner button { font: inherit; padding: 4px 12px; border-radius: 3px; border: 1px solid var(--accent-border); background: transparent; color: var(--accent-text); cursor: pointer; }
+.share-banner button.primary { background: var(--accent-text); color: var(--bg, #fff); border-color: var(--accent-text); }
 .server-down-banner { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; margin: 0; font-size: 13px; padding: 12px 18px; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
 
 /* a run in progress */
@@ -450,6 +456,30 @@ button.save-btn:disabled { opacity: .45; cursor: default; }
 .page-btn.active { background: var(--accent); color: var(--on-accent); border-color: var(--accent-strong); }
 
 /* ---- Pipeline tab ---- */
+.judge-card .explain { margin-bottom: 16px; }
+.judge-seg { display: inline-flex; border: 1px solid var(--accent-border); border-radius: 8px; overflow: hidden; margin-bottom: 4px; }
+.judge-seg button { font: inherit; font-size: 12.5px; padding: 8px 16px; border: 0; background: transparent; color: var(--accent-text); cursor: pointer; }
+.judge-seg button + button { border-left: 1px solid var(--accent-border); }
+.judge-seg button.on { background: var(--accent); color: var(--on-accent); }
+.judge-api { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); }
+.judge-api .field-row { align-items: flex-end; }
+.judge-api select, .judge-api input[type="password"] { font-family: inherit; font-size: 12.5px; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; width: 100%; }
+.judge-api input[type="password"]:focus { outline: none; border-color: var(--accent); }
+.judge-btn { font: inherit; font-size: 12.5px; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--accent-border); background: transparent; color: var(--accent-text); cursor: pointer; white-space: nowrap; }
+.judge-btn:hover { background: var(--accent-dim); }
+.judge-btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.judge-inline { display: flex; gap: 8px; }
+.judge-inline > :first-child { flex: 1 1 auto; min-width: 0; }
+.judge-saved { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--text); padding: 8px 0; }
+.judge-saved code { font-family: 'IBM Plex Mono', monospace; background: var(--surface2); padding: 2px 6px; border-radius: 4px; }
+.judge-help { font-size: 12px; color: var(--text3); line-height: 1.6; margin-top: 6px; }
+.judge-help a, .judge-link { color: var(--accent-text); }
+.judge-link { font: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.judge-status { margin-top: 18px; font-size: 12.5px; padding: 10px 12px; border-radius: 8px; }
+.judge-status.ready { background: var(--accent-dim); color: var(--accent-text); }
+.judge-status.todo { background: var(--warn-bg); color: var(--warn-text); }
+.judge-note { margin-top: 10px; font-size: 12px; color: var(--text2); }
+@media (max-width: 520px) { .judge-api .field-row > .judge-btn { flex: 1 1 100%; } }
 .section { margin-bottom: 46px; }
 .section-title {
   font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;
@@ -735,6 +765,7 @@ select.sort-select {
 
 <div id="update-banner" class="update-banner" hidden></div>
 <div id="server-down-banner" class="update-banner server-down-banner" hidden></div>
+<div id="share-banner" class="update-banner share-banner" hidden></div>
 <div id="view-results" class="view">
   <div class="no-run-banner" data-no-run-banner><span>→</span><div><b>You haven't run FTJA yet.</b>Type <code>/ftja-run</code> in the Claude Code session connected to this FTJA folder. Results appear here as the run goes.</div></div>
   <div class="results-layout">
@@ -753,6 +784,7 @@ select.sort-select {
 
 <div id="view-pipeline" class="view">
   <div class="no-run-banner" data-no-run-banner><span>→</span><div><b>Setup is done — one last review, then your first run.</b>Check everything below. If it looks right, type <code>/ftja-run</code> in the Claude Code session connected to this FTJA folder to run your first search.</div></div>
+  <div id="pipeline-judge"></div>
   <div id="pipeline-config"></div>
   <div id="pipeline-keywords"></div>
 </div>
@@ -1568,6 +1600,18 @@ function runStages(snapshot, given) {
 //    stage0: {passed, dropped}|null, skip, remote: {pass, fail, pending}|null,
 //    stage1: {pass, fail, pending}|null, stage2: {passed, review, fail, pending}|null,
 //    stoppedAfter, stage2Pending (how many wait there), continueTo: [stages], meta}
+// where a posting's text was read: "linkedin", "ats:ashby/legora" -> "Ashby board", linking to the
+// posting on that board when its URL is known; nothing for runs before it was kept
+function srcBadge(source, url) {
+  if (!source) return '';
+  if (source === 'linkedin') return '<span class="src-badge" title="Text read from the LinkedIn posting">LinkedIn</span>';
+  const [vendor, slug] = source.replace(/^ats:/, '').split('/');
+  const name = vendor.replace(/_eu$/, '').replace(/^./, c => c.toUpperCase());
+  const title = `Text read from ${esc(slug || '')} on ${esc(name)}`;
+  return url ? `<a class="src-badge" href="${esc(url)}" target="_blank" title="${title} — open it there">${esc(name)} board ↗</a>`
+             : `<span class="src-badge" title="${title}">${esc(name)} board</span>`;
+}
+
 function funnelHtml(v) {
   const cs = v.cs || {};
   const wanted = cs.results_wanted;
@@ -1575,6 +1619,9 @@ function funnelHtml(v) {
   const read = v.terms && v.terms.length && v.terms.every(t => t.read != null) ? v.terms.reduce((n, t) => n + t.read, 0) : null;
   let scrape = `<div class="line">Scraped <b>${count('scraped', v.scraped)}</b>${read != null
     ? ` — title contains the search term, out of <b>${count('read', read)}</b> postings LinkedIn returned` : ''}</div>`;
+  // `from_ats`: of the scraped, the ones whose text came from the company's own job board instead of a LinkedIn page
+  const fromAts = v.terms && v.terms.some(t => t.from_ats != null) ? v.terms.reduce((n, t) => n + (t.from_ats || 0), 0) : null;
+  if (fromAts != null) scrape += `<div class="line">Text read from the company's job board for <b>${count('ats', fromAts)}</b>, from LinkedIn for <b>${count('li', Math.max(0, (v.scraped || 0) - fromAts))}</b></div>`;
   if (v.terms && v.terms.length) {
     scrape += `<div class="term-list">${v.terms.map((t, i) => {
       const cap = t.read != null ? t.read : (t.wanted || wanted || 0);  // before `read`: the cap per search
@@ -1904,7 +1951,7 @@ function openStage1Pass(url) {
     <div class="s1-body">
       <div class="s1-explain">Stage 1 reads only the sentences around your keywords, never the whole posting. These are the sentences it read for this job, and what it made of them.</div>
       <div class="s1-row">
-        <div class="s1-title"><a href="${esc(j.job_url)}" target="_blank">${esc(j.title)}</a> <span>— ${esc(j.company)}${j.location ? ' · ' + esc(j.location) : ''}</span></div>
+        <div class="s1-title"><a href="${esc(j.job_url)}" target="_blank">${esc(j.title)}</a> <span>— ${esc(j.company)}${j.location ? ' · ' + esc(j.location) : ''}${srcBadge(j.source, j.source_url)}</span></div>
         ${j.stage1_reason ? `<div class="s1-reason">${esc(j.stage1_reason)}</div>` : ''}
         ${keywords.length ? `<div class="s1-keywords"><span>Matched</span>${keywords.map(k => `<span class="chip">${esc(k)}</span>`).join('')}</div>` : ''}
         ${j.pruned_at ? `<div class="pruned-note">The sentences were removed on ${esc(fmtDate(j.pruned_at))} to save space.</div>` : stage1BlocksHtml(j.t1_blocks, keywords)}
@@ -1946,7 +1993,7 @@ async function openStage1Fails(runId, verdict = 'fail') {
     let fresh = 0;
     dialog.querySelector('#s1-rows').innerHTML = data.jobs.map(j => `
       <div class="s1-row ${known && known.has(j.job_url) ? '' : 'entering'}" style="--d:${known && known.has(j.job_url) ? 0 : fresh++ * 110}ms">
-        <div class="s1-title"><a href="${esc(j.job_url)}" target="_blank">${esc(j.title)}</a> <span>— ${esc(j.company)}${j.location ? ' · ' + esc(j.location) : ''}</span></div>
+        <div class="s1-title"><a href="${esc(j.job_url)}" target="_blank">${esc(j.title)}</a> <span>— ${esc(j.company)}${j.location ? ' · ' + esc(j.location) : ''}${srcBadge(j.source, j.source_url)}</span></div>
         <div class="s1-reason ${j.reason ? '' : 'none'}">${j.reason ? esc(j.reason) : 'No reason recorded — this run is older than Stage 1 reasons.'}</div>
         ${(j.keywords || []).length ? `<div class="s1-keywords"><span>Matched</span>${j.keywords.map(k => `<span class="chip">${esc(k)}</span>`).join('')}</div>` : ''}
         ${j.pruned_at ? `<div class="pruned-note">The sentences were removed on ${esc(fmtDate(j.pruned_at))} to save space.</div>` : stage1BlocksHtml(j.blocks, j.keywords)}
@@ -2018,7 +2065,7 @@ async function openRemoteJobs(runId, verdict = 'fail') {
       const keywords = [...new Set((j.blocks || []).flatMap(b => b.keywords || []))];
       return `
       <div class="s1-row">
-        <div class="s1-title"><a href="${esc(j.job_url)}" target="_blank">${esc(j.title)}</a> <span>— ${esc(j.company)}${j.location ? ' · ' + esc(j.location) : ''}</span></div>
+        <div class="s1-title"><a href="${esc(j.job_url)}" target="_blank">${esc(j.title)}</a> <span>— ${esc(j.company)}${j.location ? ' · ' + esc(j.location) : ''}${srcBadge(j.source, j.source_url)}</span></div>
         ${j.pruned_at ? '' : remoteChipsHtml(j.answers)}
         ${j.reason ? `<div class="s1-reason">${j.decided_by === 'rule' ? '<b>Marked ✕ by you</b> — ' : ''}${esc(j.reason)}${(j.evidence_sids || []).map(sid => (j.blocks || []).find(b => b.sid === sid)).filter(Boolean).map(b => `<div class="ra-quote">${quoteText(b.sentence)}</div>`).join('')}</div>` : ''}
         ${j.pruned_at ? `<div class="pruned-note">The details were removed on ${esc(fmtDate(j.pruned_at))} to save space.</div>` : remoteAnswersHtml(j.answers, j.blocks)}
@@ -2263,7 +2310,7 @@ function jobCardInner(job) {
     <div class="card-head">
       <div>
         <div class="card-title">${esc(job.title)}${repostNote}</div>
-        <div class="card-company">${esc(job.company)}${job.location ? ' · ' + esc(job.location) : ''}</div>
+        <div class="card-company">${esc(job.company)}${job.location ? ' · ' + esc(job.location) : ''}${srcBadge(job.source, job.source_url)}</div>
         ${job.company_line ? `<div class="company-line">${esc(job.company_line)}</div>` : ''}
       </div>
       <span class="badge ${badgeClass} mono">${badgeText}</span>
@@ -3338,7 +3385,70 @@ function renderConfigSection() {
   });
 }
 
+// Who judges Stage 1/2 and the Remote check: the coding agent's subagents, or the user's own API key (any supplier) in .env.
+function renderJudge(j, note) {
+  const el = document.getElementById('pipeline-judge');
+  if (!el || !j) return;
+  const custom = j.provider === 'custom';
+  const options = j.providers.map(p => `<option value="${esc(p.id)}" ${p.id === j.provider ? 'selected' : ''}>${esc(p.label)}</option>`).join('');
+  const site = u => esc(u.replace('https://', '').split('/')[0]);
+  const keyField = j.key_set && !judgeReplacing
+    ? `<div class="judge-saved">Saved <code>${esc(j.key_var)} ${esc(j.key_hint)}</code><button class="judge-link" data-judge-replace>Replace</button></div>`
+    : `<div class="judge-inline"><input type="password" id="judge-key-input" autocomplete="off" aria-label="API key" placeholder="Paste your ${esc(j.providers.find(p => p.id === j.provider).label)} key"><button class="judge-btn primary" data-judge-save>Save key</button></div>
+       <div class="judge-help">${j.key_page ? `Get one at <a href="${esc(j.key_page)}" target="_blank" rel="noopener">${site(j.key_page)}</a>. ` : ''}Stored in <code>.env</code> on this computer, never shown again.</div>`;
+  const missing = [!j.key_set && 'a key', custom && !j.base && 'the API address', !j.models.s1 && 'a Stage 1 model', !j.models.s2 && 'a Stage 2 model'].filter(Boolean);
+  const api = j.mode !== 'api' ? '' : `<div class="judge-api">
+    <div class="field-row">
+      <div class="field"><label for="judge-provider">Supplier</label><select id="judge-provider">${options}</select></div>
+      ${custom ? `<div class="field"><label for="judge-base">API address</label><input type="text" id="judge-base" value="${esc(j.base)}" placeholder="https://…/v1"></div>` : ''}
+    </div>
+    <div class="field"><label for="judge-key-input">API key</label>${keyField}</div>
+    <datalist id="judge-model-list">${(judgeModels || []).map(m => `<option value="${esc(m)}">`).join('')}</datalist>
+    <div class="field-row">
+      <div class="field"><label for="judge-m1">Stage 1 model · cheap</label><input type="text" id="judge-m1" list="judge-model-list" value="${esc(j.models.s1)}" placeholder="pick from your key's list"></div>
+      <div class="field"><label for="judge-m2">Stage 2 model · stronger</label><input type="text" id="judge-m2" list="judge-model-list" value="${esc(j.models.s2)}" placeholder="pick from your key's list"></div>
+      <button class="judge-btn" data-judge-models>Save models</button>
+    </div>
+    <div class="judge-help">${j.key_set ? '<button class="judge-link" data-judge-list>List the models my key can use</button>' : 'Save a key to list its models'}${j.pricing_page ? ` · <a href="${esc(j.pricing_page)}" target="_blank" rel="noopener">Prices on ${site(j.pricing_page)}</a>` : ''} · or ask your agent to <i>“choose my FTJA judge models”</i>.
+      ${judgeModels && judgeModels.length ? `<br>Your key can use: <span class="mono">${judgeModels.map(esc).join(', ')}</span>` : ''}</div>
+    <div class="judge-status ${missing.length ? 'todo' : 'ready'}">${missing.length
+      ? `Missing ${missing.join(', ')}. Runs use your coding agent until then.`
+      : `Ready. Runs judge with ${esc(j.models.s1)} (Stage 1) and ${esc(j.models.s2)} (Stage 2).`}</div>
+  </div>`;
+  el.innerHTML = `<div class="section"><div class="section-title"><span class="num">0</span>Who judges the jobs</div><div class="card judge-card">
+    <p class="explain">Run Stage 1, Stage 2 and the Remote check on your coding agent's tokens, or on your own API key, billed by the supplier you pick.</p>
+    <div class="judge-seg" role="group" aria-label="Who judges"><button data-judge-mode="agent" class="${j.mode === 'agent' ? 'on' : ''}" aria-pressed="${j.mode === 'agent'}">Coding agent</button><button data-judge-mode="api" class="${j.mode === 'api' ? 'on' : ''}" aria-pressed="${j.mode === 'api'}">My API key</button></div>
+    ${api}
+    ${note ? `<p class="judge-note" role="status">${esc(note)}</p>` : ''}</div></div>`;
+}
+function postJudge(body, ok) {
+  fetch('/api/judge', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)})
+    .then(r => r.json()).then(j => j.error ? renderJudge(lastJudge, j.error) : (lastJudge = j, renderJudge(j, ok)));
+}
+let lastJudge = null, judgeModels = null, judgeReplacing = false;
+document.addEventListener('click', ev => {
+  const m = ev.target.closest('[data-judge-mode]');
+  if (m) postJudge({mode: m.dataset.judgeMode}, 'Saved. The next run uses this.');
+  if (ev.target.closest('[data-judge-save]')) {
+    const input = document.getElementById('judge-key-input');
+    if (input && input.value.trim()) { judgeReplacing = false; postJudge({key: input.value.trim()}, 'Key saved.'); input.value = ''; }
+  }
+  if (ev.target.closest('[data-judge-replace]')) { judgeReplacing = true; renderJudge(lastJudge); document.getElementById('judge-key-input').focus(); }
+  if (ev.target.closest('[data-judge-list]')) {
+    fetch('/api/judge-models').then(r => r.json()).then(d => { judgeModels = d.models || []; renderJudge(lastJudge, d.error || (judgeModels.length ? '' : 'The supplier listed no models.')); });
+  }
+  if (ev.target.closest('[data-judge-models]')) {
+    const base = document.getElementById('judge-base');
+    postJudge({models: {s1: document.getElementById('judge-m1').value, s2: document.getElementById('judge-m2').value},
+               ...(base ? {base: base.value} : {})}, 'Saved.');
+  }
+});
+document.addEventListener('change', ev => {
+  if (ev.target.id === 'judge-provider') judgeModels = null, postJudge({provider: ev.target.value}, 'Supplier saved. Paste its key below.');
+});
+
 async function loadPipeline() {
+  fetch('/api/judge').then(r => r.json()).then(j => { lastJudge = j; renderJudge(j); }).catch(() => {});
   if (!pipelineLoaded) await refreshKeywordLanguages();
   fetch('/api/runs').then(r => r.json()).then(list => { runs = list.filter(r => r.run_id); renderNoRunBanners(); }).catch(() => {});
   if (pipelineLoaded) return;
@@ -3617,6 +3727,32 @@ async function checkServer() {
 }
 setInterval(() => { if (!document.hidden) checkServer(); }, 5000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) checkServer(); });
+// Company job boards this folder's runs found: ask once whether to share them with everyone using FTJA.
+function refreshShare() {
+  fetch('/api/share').then(r => r.json()).then(s => {
+    const banner = document.getElementById('share-banner');
+    banner.hidden = !s.ask;
+    if (banner.hidden) return;
+    banner.innerHTML = `<p>Your runs found <b>${fmtN(s.waiting)}</b> company job board${s.waiting === 1 ? '' : 's'} FTJA did not know. Share them so everyone using FTJA reads more postings straight from the company, with fewer LinkedIn pages?
+      Only each company's name and its board's address are sent, never your searches, criteria or the postings you looked at, and nothing that says who you are.</p>
+      <div class="share-actions"><button class="primary" data-share="yes">Share automatically after each run</button>
+      <button data-share="no">Not now</button><button data-share="never">Never</button></div>`;
+  }).catch(() => {});
+}
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-share]');
+  if (!b) return;
+  b.disabled = true;
+  fetch('/api/share', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({choice: b.dataset.share})})
+    .then(r => r.json()).then(s => {
+      const banner = document.getElementById('share-banner');
+      if (s.choice === 'yes') {
+        banner.innerHTML = s.error ? `<p>Saved. ${esc(s.error)}</p>` : `<p>Thank you — ${fmtN(s.sent || 0)} board${s.sent === 1 ? '' : 's'} shared. New ones are sent after each run.</p>`;
+        setTimeout(() => { banner.hidden = true; }, 6000);
+      } else banner.hidden = true;
+    }).catch(() => { b.disabled = false; });
+});
+refreshShare();
 // A clone only changes when its owner pulls; say so when there is something to pull.
 fetch('/api/version').then(r => r.json()).then(v => {
   // two clones share the port: say which folder's data this is

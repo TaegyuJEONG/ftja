@@ -5,6 +5,43 @@ What changed in each version, newest first. If you cloned FTJA earlier, run
 these. Your own files — `criteria.json`, `rubric.md`, `profile/`, `seen.db`,
 digests — are never touched by an update.
 
+## 0.4.0 — 2026-11-03
+
+### What changes for you after updating
+
+- **Judge jobs with your own API key instead of your agent's tokens.** On
+  the Pipeline tab, choose *My API key*, pick your supplier (Anthropic,
+  OpenAI, DeepSeek, Gemini, Mistral, OpenRouter or any OpenAI-compatible
+  address) and paste its key; it is saved to `.env` in your folder
+  (ignored by git, never shown back). Pick the two models from the list
+  your key can use, or ask your agent to "choose my FTJA judge models":
+  it checks the current prices first. Runs then judge the Remote check,
+  Stage 1 and Stage 2 by calling that API directly (`venv/bin/python -m ftja.judge run`), one posting per call,
+  and count the real tokens used. The default stays the coding agent.
+- **Postings come from the company's own job board when FTJA knows it.**
+  LinkedIn still finds the postings; for a company on Greenhouse, Lever,
+  Ashby, Workable, SmartRecruiters, Recruitee, Teamtailor, Personio or
+  BambooHR, the text is read from its board, every posting of that company
+  in one request, instead of one LinkedIn page each. FTJA ships with 1,307
+  boards, each checked to list postings (from the MIT-licensed OpenJobs
+  and career-ops lists), and looks for the board of any other company it
+  meets; what it finds is kept in your folder's `ats_local.json`.
+- **Closed postings are marked Expired by themselves.** At the start of a
+  run, a passed posting that was read from a company board and is no longer
+  on it is marked Expired, unless you already decided on it.
+- **Share the boards your runs found, if you want to.** The web view asks
+  once. On a yes, each finished run sends the company job boards it
+  confirmed that FTJA did not know: each company's name and its board's
+  address, nothing about your searches, criteria or the postings you looked
+  at, and nothing that says who you are. "Not now" asks again in two weeks;
+  "Never" does not ask again. Change your answer any time with
+  `venv/bin/python -m ftja.share yes | no | never`. The pull-request route
+  (`venv/bin/python -m ftja.ats export`) still works; see CONTRIBUTING.md.
+- **Each job shows where its text was read.** The Scraping line counts the
+  postings read from company boards and from LinkedIn, and each job carries a
+  LinkedIn or board badge; a board badge opens the posting on the company's
+  own board.
+
 ## 0.3.3 — 2026-10-17
 
 ### What changes for you after updating

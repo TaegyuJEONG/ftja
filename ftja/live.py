@@ -44,6 +44,7 @@ import sys
 import time
 from datetime import datetime, timezone
 
+from ftja import ats
 from ftja import remote as remote_check
 from ftja import osutil
 from ftja.lock import is_locked
@@ -191,7 +192,11 @@ def start(project_dir: str = ".") -> dict:
         from ftja.keywords import active_remote_config  # keywords of a language no longer read are switched off
         _write_json(os.path.join(run_dir, remote_check.CONFIG_FILE),
                     active_remote_config(remote_check.config_or_default(project_dir), criteria.get("languages")))
-    run = {"run_id": ts_start, "ts_start": ts_start, "criteria_snapshot": snapshot}
+    try:  # postings from company boards that have closed since: Expired, before anything new is shown
+        closed = ats.close_gone(project_dir)
+    except Exception as e:  # noqa: BLE001 - a check that fails must never stop a run
+        closed = {"error": str(e)}
+    run = {"run_id": ts_start, "ts_start": ts_start, "criteria_snapshot": snapshot, "closed_on_boards": closed}
     _write_json(os.path.join(run_dir, "run.json"), run)
     plan = searches(snapshot)
     for n, search in enumerate(plan):
@@ -210,13 +215,17 @@ def scrape_term(run_dir: str, n: int) -> int:
     term = search["term"]
     progress_path = os.path.join(run_dir, "scrape", f"{n}.progress.json")
 
+    boards = ats.Boards(os.path.dirname(os.path.dirname(os.path.abspath(run_dir))))  # run_dir is <project>/.ftja-run/<id>
+
     def report(count: int, read: int, done: bool = False):
-        _write_json(progress_path, {**search, "count": count, "read": read, "done": done})
+        _write_json(progress_path, {**search, "count": count, "read": read, "done": done,
+                                    "from_ats": boards.stats["from_ats"]})
 
     skipped: list[str] = []
     jobs = scrape(search_term=term, location=search["location"],
                   hours_old=int(snapshot.get("hours_old") or 72),
-                  on_batch=report, skipped=skipped)
+                  on_batch=report, skipped=skipped, boards=boards)
+    boards.save_jobs()
     tally: dict[str, int] = {}
     for title in skipped:
         tally[title] = tally.get(title, 0) + 1
@@ -655,7 +664,10 @@ def assemble_results(run_dir: str) -> dict:
         job = by_url.get(entry["job_url"], {})
         keywords, sentences = _matched(job)
         out = {"job_url": entry["job_url"], "title": entry.get("title") or "", "company": entry.get("company") or "",
-               "location": entry.get("location") or ""}
+               "location": entry.get("location") or "",
+               "source": job.get("_source") or "linkedin"}  # where the text was read: "linkedin" or "ats:vendor/slug"
+        if job.get("_source") and job.get("job_url_direct"):
+            out["source_url"] = job["job_url_direct"]  # the posting on the company's board
         if job.get("_duplicate_job_urls"):
             out["duplicate_job_urls"] = job["_duplicate_job_urls"]
         if keywords:
@@ -704,7 +716,8 @@ def assemble_results(run_dir: str) -> dict:
              "stages": stages, "stopped_after": stop,
              "scraped_count": counts.get("scraped"), "stage0_dropped": counts.get("dropped"),
              "scraped_by_term": [{"term": p["term"], "location": p.get("location") or "", "count": p["count"],
-                                  **({"read": p["read"]} if p.get("read") is not None else {})}  # how many search results it read
+                                  **({"read": p["read"]} if p.get("read") is not None else {}),  # how many search results it read
+                                  **({"from_ats": p["from_ats"]} if p.get("from_ats") is not None else {})}  # of them read from company boards
                                  for p in _scrape_progress(run_dir)],
              "already_seen_skipped": (counts.get("dropped") or {}).get("already_seen")}
     _write_json(os.path.join(run_dir, "stats.json"), stats)
