@@ -2,6 +2,16 @@ name: Tests
 
 on:
   push:
+    # the landing page, its images and docs are checked by landing.yml on Linux; no Mac or Windows needed
+    paths-ignore:
+      - "landing.html"
+      - "remote-eu-pm.html"
+      - "assets/**"
+      - "vercel.json"
+      - "README.md"
+      - "CONTRIBUTING.md"
+      - "BACKLOG.md"
+      - "THIRD_PARTY_NOTICES.md"
   workflow_dispatch:
 
 permissions:
