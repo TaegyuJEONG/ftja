@@ -307,12 +307,13 @@ def run(run_dir: str, stage: str, project_dir: str = ".", jobs: list[int] | None
             with open(tmp, "w", encoding="utf-8") as f:
                 json.dump(answer, f, ensure_ascii=False)
             os.replace(tmp, os.path.join(folder, f"{n}.out.json"))
-        live.record_tokens(run_dir, tin + tout, f"{stage} {n} api {model}")
         return n, answer, tin + tout, None if answer is not None else "reply was not JSON"
 
     written, failed, tokens = [], {}, 0
     with ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
         for n, answer, used, error in pool.map(one, numbers):
+            if used:  # recorded here, one at a time: appends from several threads can be lost on Windows
+                live.record_tokens(run_dir, used, f"{stage} {n} api {model}")
             tokens += used
             if error:
                 failed[n] = error
