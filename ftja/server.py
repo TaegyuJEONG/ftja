@@ -374,6 +374,11 @@ def make_handler(db_path: str, project_dir: str):
                 })
             elif path == "/api/judge":
                 self._send_json(200, judge.status(project_dir))
+            elif path == "/api/judge-models":
+                try:
+                    self._send_json(200, {"models": judge.list_models(project_dir)})
+                except Exception as err:  # the supplier refused the key, or is unreachable
+                    self._send_json(502, {"error": f"{judge.status(project_dir)['provider']} did not list models: {getattr(err, 'code', '') or err}"})
             elif path == "/api/pipeline":
                 self._send_json(200, {
                     **read_config(project_dir),

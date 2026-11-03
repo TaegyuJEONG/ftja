@@ -47,6 +47,7 @@ def read_env(project_dir: str = ".") -> dict:
                 if not line or line.startswith("#") or "=" not in line:
                     continue
                 k, v = line.split("=", 1)
+                v = re.split(r"\s+#", v.strip(), maxsplit=1)[0] if not v.strip().startswith("#") else ""
                 env[k.strip()] = v.strip().strip('"').strip("'")
     except FileNotFoundError:
         pass
@@ -113,32 +114,33 @@ def openai_compatible(prompt: str, model: str, key: str, max_tokens: int, base: 
     return text, int(usage.get("prompt_tokens") or 0), int(usage.get("completion_tokens") or 0)
 
 
-# One entry per supplier: how to call it, where its key goes and where to
-# get one, and a cheap model (Remote check, Stage 1) and a stronger one
-# (Stage 2). Every model can be changed in .env or the viewer; "custom" is
-# any OpenAI-compatible address, with models the user names.
+# One entry per supplier: how to call it, where its key goes, where to get
+# one and where its prices are. No model names: suppliers rename and
+# reprice models often, so the user picks them (from list_models(), the
+# supplier's own list) after their agent has checked the current prices.
+# "custom" is any OpenAI-compatible address.
 PROVIDERS = {
     "anthropic": {"label": "Anthropic (Claude)", "call": anthropic, "base": "https://api.anthropic.com",
                   "key_var": "ANTHROPIC_API_KEY", "key_page": "https://console.anthropic.com/settings/keys",
-                  "models": ("claude-haiku-5-5", "claude-sonnet-5-5")},
+                  "pricing_page": "https://docs.anthropic.com/en/docs/about-claude/pricing"},
     "openai": {"label": "OpenAI", "call": openai_compatible, "base": "https://api.openai.com/v1",
                "key_var": "OPENAI_API_KEY", "key_page": "https://platform.openai.com/api-keys",
-               "models": ("gpt-5-mini", "gpt-5")},
+               "pricing_page": "https://openai.com/api/pricing/"},
     "deepseek": {"label": "DeepSeek", "call": openai_compatible, "base": "https://api.deepseek.com",
                  "key_var": "DEEPSEEK_API_KEY", "key_page": "https://platform.deepseek.com/api_keys",
-                 "models": ("deepseek-chat", "deepseek-reasoner")},
+                 "pricing_page": "https://api-docs.deepseek.com/quick_start/pricing"},
     "gemini": {"label": "Google Gemini", "call": openai_compatible,
                "base": "https://generativelanguage.googleapis.com/v1beta/openai",
                "key_var": "GEMINI_API_KEY", "key_page": "https://aistudio.google.com/apikey",
-               "models": ("gemini-2.5-flash", "gemini-2.5-pro")},
+               "pricing_page": "https://ai.google.dev/gemini-api/docs/pricing"},
     "mistral": {"label": "Mistral", "call": openai_compatible, "base": "https://api.mistral.ai/v1",
                 "key_var": "MISTRAL_API_KEY", "key_page": "https://console.mistral.ai/api-keys",
-                "models": ("mistral-small-latest", "mistral-large-latest")},
+                "pricing_page": "https://mistral.ai/pricing#api-pricing"},
     "openrouter": {"label": "OpenRouter (any model)", "call": openai_compatible, "base": "https://openrouter.ai/api/v1",
                    "key_var": "OPENROUTER_API_KEY", "key_page": "https://openrouter.ai/settings/keys",
-                   "models": ("", "")},
+                   "pricing_page": "https://openrouter.ai/models"},
     "custom": {"label": "Other (OpenAI-compatible)", "call": openai_compatible, "base": "",
-               "key_var": "FTJA_API_KEY", "key_page": "", "models": ("", "")},
+               "key_var": "FTJA_API_KEY", "key_page": "", "pricing_page": ""},
 }
 
 
@@ -149,18 +151,16 @@ def status(project_dir: str = ".") -> dict:
     provider = _setting(env, "FTJA_PROVIDER", "anthropic")
     p = PROVIDERS.get(provider) or PROVIDERS["anthropic"]
     provider = provider if provider in PROVIDERS else "anthropic"
-    cheap, strong = p["models"]
-    defaults = {"rc": cheap, "s1": cheap, "s2": strong}
-    models = {s: _setting(env, MODEL_VARS[s], defaults[s]) for s in STAGES}
+    models = {s: _setting(env, MODEL_VARS[s]) for s in STAGES}
+    models["rc"] = models["rc"] or models["s1"]
     base = _setting(env, "FTJA_API_BASE", p["base"])
     mode = _setting(env, "FTJA_JUDGE", "agent")
     key_set = bool(_setting(env, p["key_var"]))
     return {"mode": mode if mode in ("agent", "api") else "agent", "provider": provider,
-            "key_var": p["key_var"], "key_set": key_set, "key_page": p["key_page"],
+            "key_var": p["key_var"], "key_set": key_set, "key_page": p["key_page"], "pricing_page": p["pricing_page"],
             "base": base, "models": models,
             "ready": key_set and bool(base) and all(models.values()),
-            "providers": [{"id": k, "label": v["label"], "key_page": v["key_page"],
-                           "models": {"s1": v["models"][0], "s2": v["models"][1]}} for k, v in PROVIDERS.items()]}
+            "providers": [{"id": k, "label": v["label"]} for k, v in PROVIDERS.items()]}
 
 
 def choose(project_dir: str, mode: str | None = None, key: str | None = None, provider: str | None = None,
@@ -189,8 +189,7 @@ def choose(project_dir: str, mode: str | None = None, key: str | None = None, pr
             model = str(model).strip()
             if model and not re.fullmatch(r"[\w./:@-]{1,200}", model):
                 raise ValueError("that does not look like a model name")
-            for s in (("rc", "s1") if stage == "s1" else ("s2",)):
-                updates[MODEL_VARS[s]] = model or None
+            updates[MODEL_VARS[stage]] = model or None
     if updates:
         write_env(project_dir, updates)
     if key is not None:
@@ -199,6 +198,24 @@ def choose(project_dir: str, mode: str | None = None, key: str | None = None, pr
             raise ValueError("that does not look like an API key")
         write_env(project_dir, {status(project_dir)["key_var"]: key})
     return status(project_dir)
+
+
+def list_models(project_dir: str = ".") -> list[str]:
+    """The model ids the chosen supplier offers this key, from its own
+    /models endpoint: real names, never a guess. Prices are not in it."""
+    env = read_env(project_dir)
+    st = status(project_dir)
+    p = PROVIDERS[st["provider"]]
+    key = _setting(env, p["key_var"])
+    if not key or not st["base"]:
+        return []
+    if p["call"] is anthropic:
+        url, headers = st["base"].rstrip("/") + "/v1/models?limit=100", {"x-api-key": key, "anthropic-version": "2023-06-01"}
+    else:
+        url, headers = st["base"].rstrip("/") + "/models", {"authorization": f"Bearer {key}"}
+    with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=30) as r:
+        data = json.loads(r.read()).get("data") or []
+    return sorted({str(m.get("id")).removeprefix("models/") for m in data if m.get("id")})
 
 
 # ---------- prompts and answers ----------
@@ -306,6 +323,10 @@ def main():
     ap = argparse.ArgumentParser(prog="ftja.judge", description=__doc__.split("\n\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("status", help="which judge is chosen and whether a key is set (never prints the key)")
+    sub.add_parser("models", help="the model ids the chosen supplier offers your key")
+    mp = sub.add_parser("set-models", help="save the models to judge with, once the user agreed")
+    mp.add_argument("--s1", help="cheap model: Stage 1 and the Remote check")
+    mp.add_argument("--s2", help="stronger model: Stage 2")
     rp = sub.add_parser("run", help="judge a stage's prompts with the model API")
     rp.add_argument("--dir", required=True)
     rp.add_argument("--stage", required=True, choices=STAGES)
@@ -315,6 +336,10 @@ def main():
     args = ap.parse_args()
     if args.cmd == "status":
         out = status(".")
+    elif args.cmd == "models":
+        out = list_models(".")
+    elif args.cmd == "set-models":
+        out = choose(".", models={k: v for k, v in (("s1", args.s1), ("s2", args.s2)) if v is not None})
     else:
         jobs = [int(j) for j in args.jobs.split(",") if j.strip()] if args.jobs else None
         out = run(args.dir, args.stage, ".", jobs, args.force, args.workers)

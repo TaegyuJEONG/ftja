@@ -13,7 +13,9 @@ digests — are never touched by an update.
   the Pipeline tab, choose *My API key*, pick your supplier (Anthropic,
   OpenAI, DeepSeek, Gemini, Mistral, OpenRouter or any OpenAI-compatible
   address) and paste its key; it is saved to `.env` in your folder
-  (ignored by git, never shown back). Runs then judge the Remote check,
+  (ignored by git, never shown back). Pick the two models from the list
+  your key can use, or ask your agent to "choose my FTJA judge models":
+  it checks the current prices first. Runs then judge the Remote check,
   Stage 1 and Stage 2 by calling that API directly (`venv/bin/python -m ftja.judge run`), one posting per call,
   and count the real tokens used. The default stays the coding agent.
 - **Postings come from the company's own job board when FTJA knows it.**

@@ -85,9 +85,12 @@ Start with one or two titles and 100 results per title, then widen.
 Gemini, Mistral, OpenRouter, or any OpenAI-compatible address such as a
 local Ollama) and paste its key. It is saved to `.env` in your FTJA
 folder, which git ignores, and is never shown again. Runs then send the
-Remote check, Stage 1 and Stage 2 prompts straight to that API (a cheap
-model for the first two, a stronger one for Stage 2; you can change
-both), billed to your account with that supplier,
+Remote check, Stage 1 and Stage 2 prompts straight to that API, billed
+to your account with that supplier. You pick a cheap model for the first
+two and a stronger one for Stage 2 from the list your key can use; FTJA
+ships no model names, because suppliers rename and reprice them often.
+Ask your coding agent to "choose my FTJA judge models" and it checks the
+supplier's current prices and suggests a pair. Runs then judge there
 instead of spawning agent subagents that each carry a large fixed overhead.
 Your agent still scrapes and assembles the run. `.env.example` lists the
 settings, including the model for each stage.

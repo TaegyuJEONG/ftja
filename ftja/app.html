@@ -3382,8 +3382,13 @@ function renderJudge(j, note) {
     ${custom ? `<p><label>API address <input id="judge-base" value="${esc(j.base)}" placeholder="https://…/v1"></label></p>` : ''}
     ${keyLine}
     <div class="judge-key"><input type="password" id="judge-key-input" autocomplete="off" placeholder="${j.key_set ? 'Paste a new key to replace it' : 'Paste your API key'}"><button data-judge-save>Save key to .env</button></div>
-    <div class="judge-key"><label>Stage 1 model <input id="judge-m1" value="${esc(j.models.s1)}"></label><label>Stage 2 model <input id="judge-m2" value="${esc(j.models.s2)}"></label><button data-judge-models>Save models</button></div>
-    ${j.ready ? '' : '<p><b>Not ready yet:</b> add a key' + (custom ? ', the address' : '') + ' and both models. Until then runs use the coding agent.</p>'}` : '';
+    <p>Pick two models: a cheap one for Stage 1 and the Remote check, a stronger one for Stage 2. Model names and prices change often, so FTJA does not guess them:
+      ${j.key_set ? '<button data-judge-list>Show the models my key can use</button>' : 'save your key first to list the models it can use'}${j.pricing_page ? `, compare their prices on <a href="${esc(j.pricing_page)}" target="_blank" rel="noopener">${esc(j.pricing_page.replace('https://', '').split('/')[0])}</a>` : ''},
+      or ask your coding agent: <i>“choose my FTJA judge models”</i>. It checks the current prices and suggests a pair.</p>
+    <datalist id="judge-model-list">${(judgeModels || []).map(m => `<option value="${esc(m)}">`).join('')}</datalist>
+    <div class="judge-key"><label>Stage 1 model <input id="judge-m1" list="judge-model-list" value="${esc(j.models.s1)}" placeholder="cheap model"></label><label>Stage 2 model <input id="judge-m2" list="judge-model-list" value="${esc(j.models.s2)}" placeholder="stronger model"></label><button data-judge-models>Save models</button></div>
+    ${judgeModels && judgeModels.length ? `<p class="mono">Your key can use: ${judgeModels.map(esc).join(' · ')}</p>` : ''}
+    ${j.ready ? '' : '<p><b>Not ready yet:</b> ' + [!j.key_set && 'a key', custom && !j.base && 'the address', !(j.models.s1 && j.models.s2) && 'both models'].filter(Boolean).join(', ') + ' missing. Until then runs use the coding agent.</p>'}` : '';
   el.innerHTML = `<div class="section"><div class="section-title"><span class="num">0</span>Who judges the jobs</div><div class="card judge-card">
     <p>Stage 1, Stage 2 and the Remote check can run on your coding agent's tokens, or on your own API key from the supplier you prefer (billed to your account with them).</p>
     <div class="judge-modes"><button data-judge-mode="agent" class="${j.mode === 'agent' ? 'on' : ''}">Coding agent</button><button data-judge-mode="api" class="${j.mode === 'api' ? 'on' : ''}">My API key</button></div>
@@ -3394,13 +3399,16 @@ function postJudge(body, ok) {
   fetch('/api/judge', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)})
     .then(r => r.json()).then(j => j.error ? renderJudge(lastJudge, j.error) : (lastJudge = j, renderJudge(j, ok)));
 }
-let lastJudge = null;
+let lastJudge = null, judgeModels = null;
 document.addEventListener('click', ev => {
   const m = ev.target.closest('[data-judge-mode]');
   if (m) postJudge({mode: m.dataset.judgeMode}, 'Saved. The next run uses this.');
   if (ev.target.closest('[data-judge-save]')) {
     const input = document.getElementById('judge-key-input');
     if (input && input.value.trim()) { postJudge({key: input.value.trim()}, 'Key saved to .env.'); input.value = ''; }
+  }
+  if (ev.target.closest('[data-judge-list]')) {
+    fetch('/api/judge-models').then(r => r.json()).then(d => { judgeModels = d.models || []; renderJudge(lastJudge, d.error || (judgeModels.length ? '' : 'The supplier listed no models.')); });
   }
   if (ev.target.closest('[data-judge-models]')) {
     const base = document.getElementById('judge-base');
@@ -3409,7 +3417,7 @@ document.addEventListener('click', ev => {
   }
 });
 document.addEventListener('change', ev => {
-  if (ev.target.id === 'judge-provider') postJudge({provider: ev.target.value}, 'Supplier saved. Paste its key below.');
+  if (ev.target.id === 'judge-provider') judgeModels = null, postJudge({provider: ev.target.value}, 'Supplier saved. Paste its key below.');
 });
 
 async function loadPipeline() {

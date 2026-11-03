@@ -66,7 +66,7 @@ def test_choose_writes_env_privately_and_keeps_other_lines(tmp_path, monkeypatch
 
 def test_run_writes_answers_and_records_real_tokens(tmp_path, monkeypatch):
     _fake(monkeypatch, lambda p: '```json\n{"verdict": "fail", "reason": "x", "evidence_sids": [], "blocks": []}\n```')
-    (tmp_path / ".env").write_text("ANTHROPIC_API_KEY=sk-ant-abcdefghijklmnopqrstuvwxyz\n")
+    (tmp_path / ".env").write_text("ANTHROPIC_API_KEY=sk-ant-abcdefghijklmnopqrstuvwxyz\nFTJA_STAGE1_MODEL=m1  # cheap\n")
     run_dir = _run(tmp_path)
     out = judge.run(run_dir, "s1", str(tmp_path))
     assert out["judged"] == 2 and out["failed"] == {} and out["tokens"] == 240
@@ -80,7 +80,7 @@ def test_run_keeps_going_when_one_job_fails(tmp_path, monkeypatch):
     def replies(p):
         return urllib.error.HTTPError("u", 400, "bad", {}, None) if "zero" in p else "not json"
     _fake(monkeypatch, replies)
-    (tmp_path / ".env").write_text("ANTHROPIC_API_KEY=sk-ant-abcdefghijklmnopqrstuvwxyz\n")
+    (tmp_path / ".env").write_text("ANTHROPIC_API_KEY=sk-ant-abcdefghijklmnopqrstuvwxyz\nFTJA_STAGE1_MODEL=m1  # cheap\n")
     run_dir = _run(tmp_path)
     out = judge.run(run_dir, "s1", str(tmp_path))
     assert set(out["failed"]) == {0, 1} and out["judged"] == 0
@@ -93,7 +93,7 @@ def test_retries_overloaded(tmp_path, monkeypatch):
         calls.append(1)
         return urllib.error.HTTPError("u", 529, "overloaded", {}, None) if len(calls) < 3 else '{"verdict": "pass"}'
     _fake(monkeypatch, replies)
-    (tmp_path / ".env").write_text("ANTHROPIC_API_KEY=sk-ant-abcdefghijklmnopqrstuvwxyz\n")
+    (tmp_path / ".env").write_text("ANTHROPIC_API_KEY=sk-ant-abcdefghijklmnopqrstuvwxyz\nFTJA_STAGE1_MODEL=m1  # cheap\n")
     run_dir = _run(tmp_path, prompts=("only",))
     assert judge.run(run_dir, "s1", str(tmp_path))["judged"] == 1 and len(calls) == 3
 
@@ -160,12 +160,15 @@ def test_choosing_a_supplier_uses_its_key_models_and_address(tmp_path, monkeypat
     d = str(tmp_path)
     judge.choose(d, mode="api", provider="anthropic", models={"s1": "my-old-model"})
     st = judge.choose(d, provider="deepseek", key="sk-0123456789abcdef0123")
-    assert st["key_var"] == "DEEPSEEK_API_KEY" and st["ready"]
-    assert st["models"] == {"rc": "deepseek-chat", "s1": "deepseek-chat", "s2": "deepseek-reasoner"}  # old model dropped
+    assert st["key_var"] == "DEEPSEEK_API_KEY" and not st["ready"]
+    assert st["models"] == {"rc": "", "s1": "", "s2": ""}  # no guessed names; the old supplier's model dropped
+    assert "deepseek.com" in st["pricing_page"]
+    st = judge.choose(d, models={"s1": "deepseek-flash", "s2": "deepseek-pro"})
+    assert st["ready"] and st["models"]["rc"] == "deepseek-flash"
     assert "0123456789abcdef" not in json.dumps(st)
     run_dir = _run(tmp_path, prompts=("one",))
     out = judge.run(run_dir, "s1", d)
-    assert out["provider"] == "deepseek" and seen[0][1:] == ("deepseek-chat", "sk-0123456789abcdef0123")
+    assert out["provider"] == "deepseek" and seen[0][1:] == ("deepseek-flash", "sk-0123456789abcdef0123")
 
 
 def test_custom_supplier_needs_address_and_models(tmp_path, monkeypatch):
@@ -179,3 +182,29 @@ def test_custom_supplier_needs_address_and_models(tmp_path, monkeypatch):
         judge.choose(d, base="file:///etc/passwd")
     st = judge.choose(d, base="http://localhost:11434/v1", models={"s1": "qwen3:8b", "s2": "qwen3:32b"})
     assert st["ready"] and st["models"]["rc"] == "qwen3:8b"
+
+
+def test_example_env_with_empty_commented_values_reads_as_empty(tmp_path):
+    (tmp_path / ".env").write_text("FTJA_STAGE1_MODEL=          # cheap\nFTJA_STAGE2_MODEL=big # strong\n")
+    env = judge.read_env(str(tmp_path))
+    assert env["FTJA_STAGE1_MODEL"] == "" and env["FTJA_STAGE2_MODEL"] == "big"
+
+
+def test_list_models_asks_the_supplier(tmp_path, monkeypatch):
+    sent = {}
+
+    class Resp:
+        def __enter__(self): return self
+        def __exit__(self, *a): pass
+        def read(self):
+            return json.dumps({"data": [{"id": "deepseek-pro"}, {"id": "deepseek-flash"}]}).encode()
+
+    def urlopen(req, timeout):
+        sent["url"], sent["auth"] = req.full_url, req.headers.get("Authorization")
+        return Resp()
+    monkeypatch.setattr(judge.urllib.request, "urlopen", urlopen)
+    for var in ("FTJA_PROVIDER", "FTJA_API_BASE", "DEEPSEEK_API_KEY"):
+        monkeypatch.delenv(var, raising=False)
+    (tmp_path / ".env").write_text("FTJA_PROVIDER=deepseek\nDEEPSEEK_API_KEY=sk-0123456789abcdef\n")
+    assert judge.list_models(str(tmp_path)) == ["deepseek-flash", "deepseek-pro"]
+    assert sent["url"] == "https://api.deepseek.com/models" and sent["auth"] == "Bearer sk-0123456789abcdef"
