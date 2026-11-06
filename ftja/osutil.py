@@ -8,6 +8,8 @@ import time
 
 WINDOWS = sys.platform == "win32"
 MAC = sys.platform == "darwin"
+# Linux under WSL: the Windows file chooser is reachable through powershell.exe.
+WSL = sys.platform == "linux" and "WSL_DISTRO_NAME" in os.environ
 
 
 def _windows_pid_alive(pid: int) -> bool:
@@ -86,7 +88,7 @@ _WINDOWS_PICK = {
 
 
 def can_pick() -> bool:
-    return MAC or WINDOWS
+    return MAC or WINDOWS or WSL
 
 
 def pick_path(kind: str) -> str | None:
@@ -99,6 +101,14 @@ def pick_path(kind: str) -> str | None:
             ["powershell", "-NoProfile", "-STA", "-Command", _WINDOWS_PICK[kind]],
             capture_output=True, text=True, encoding="utf-8", errors="replace",
             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))  # no console flashing behind the dialog
+    elif WSL:
+        result = subprocess.run(
+            ["powershell.exe", "-NoProfile", "-STA", "-Command", _WINDOWS_PICK[kind]],
+            capture_output=True, text=True, encoding="utf-8", errors="replace")
+        if result.returncode != 0 or not result.stdout.strip():
+            return None
+        # C:\Users\... -> /mnt/c/Users/..., so the path opens from this side.
+        result = subprocess.run(["wslpath", "-u", result.stdout.strip()], capture_output=True, text=True)
     else:
         raise NotImplementedError("no file chooser on this system")
     if result.returncode != 0:
