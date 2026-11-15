@@ -31,6 +31,14 @@
       "destination": "https://ftja-remote.vercel.app/terms/"
     },
     {
+      "source": "/product/social/",
+      "destination": "https://ftja-remote.vercel.app/product/social/"
+    },
+    {
+      "source": "/product/social",
+      "destination": "https://ftja-remote.vercel.app/product/social/"
+    },
+    {
       "source": "/product/:path*",
       "destination": "https://ftja-remote.vercel.app/product/:path*"
     },
