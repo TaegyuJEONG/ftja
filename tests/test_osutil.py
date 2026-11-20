@@ -45,6 +45,22 @@ def test_windows_file_chooser_returns_the_path_and_none_on_cancel():
         assert osutil.pick_path("file") is None
 
 
+def test_wsl_uses_the_windows_file_chooser_and_returns_a_linux_path():
+    windows_path = subprocess.CompletedProcess([], 0, "C:\\Users\\zal\\cv.pdf", "")
+    linux_path = subprocess.CompletedProcess([], 0, "/mnt/c/Users/zal/cv.pdf\n", "")
+    with mock.patch.multiple(osutil, WINDOWS=False, MAC=False, WSL=True), \
+            mock.patch.object(osutil.subprocess, "run", side_effect=[windows_path, linux_path]) as run:
+        assert osutil.can_pick()
+        assert osutil.pick_path("file") == "/mnt/c/Users/zal/cv.pdf"
+        assert run.call_args_list[0][0][0][0] == "powershell.exe"
+        assert run.call_args_list[1][0][0] == ["wslpath", "-u", "C:\\Users\\zal\\cv.pdf"]
+    cancelled = subprocess.CompletedProcess([], 0, "", "")
+    with mock.patch.multiple(osutil, WINDOWS=False, MAC=False, WSL=True), \
+            mock.patch.object(osutil.subprocess, "run", return_value=cancelled) as run:
+        assert osutil.pick_path("file") is None
+        assert run.call_count == 1
+
+
 def test_windows_opens_the_folder_in_explorer():
     with as_windows(), mock.patch.object(osutil.os, "startfile", create=True) as startfile, \
             mock.patch.object(osutil.subprocess, "run") as run:
