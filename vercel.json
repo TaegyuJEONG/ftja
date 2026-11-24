@@ -77,6 +77,18 @@
     {
       "source": "/marketing/:path*",
       "destination": "https://ftja-remote.vercel.app/marketing/:path*"
+    },
+    {
+      "source": "/engineering/",
+      "destination": "https://ftja-remote.vercel.app/engineering/"
+    },
+    {
+      "source": "/engineering",
+      "destination": "https://ftja-remote.vercel.app/engineering/"
+    },
+    {
+      "source": "/engineering/:path*",
+      "destination": "https://ftja-remote.vercel.app/engineering/:path*"
     }
   ]
 }
